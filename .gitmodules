@@ -1,0 +1,3 @@
+[submodule "dcmmlib"]
+	path = dcmmlib
+	url = ../dcmmlib
