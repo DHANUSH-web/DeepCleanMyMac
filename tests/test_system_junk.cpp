@@ -23,6 +23,12 @@ TEST_F(HomeFixture, SystemJunkListsEachCacheChildUnchecked) {
   }
   EXPECT_TRUE(foundJunk);
   EXPECT_TRUE(foundArc);
+  for (const auto& g : r.groups) {
+    if (g.id != "user_caches") continue;
+    for (std::size_t i = 1; i < g.items.size(); ++i)
+      EXPECT_GE(g.items[i - 1].bytes, g.items[i].bytes);
+    EXPECT_EQ(g.items.front().displayName, "com.example.Junk");
+  }
 }
 
 TEST_F(HomeFixture, SystemJunkOptInCleanOnlyCheckedRows) {
