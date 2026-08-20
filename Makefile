@@ -10,9 +10,6 @@ export PATH := /opt/homebrew/bin:$(PATH)
 endif
 
 PRESET ?= debug
-BUILD_DIR := build/$(PRESET)
-APP := $(BUILD_DIR)/DeepCleanMyMac.app
-TESTS := $(BUILD_DIR)/dcmm-desktop-tests
 
 ifneq ($(filter release,$(MAKECMDGOALS)),)
 PRESET := release
@@ -20,6 +17,10 @@ endif
 ifneq ($(filter debug,$(MAKECMDGOALS)),)
 PRESET := debug
 endif
+
+BUILD_DIR = build/$(PRESET)
+APP = $(BUILD_DIR)/DeepCleanMyMac.app
+TESTS = $(BUILD_DIR)/dcmm-desktop-tests
 
 .PHONY: all build debug release test run open relaunch clean help init
 
