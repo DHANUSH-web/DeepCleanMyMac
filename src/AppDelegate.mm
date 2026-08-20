@@ -23,6 +23,13 @@
   [app addItemWithTitle:@"About DeepCleanMyMac" action:@selector(showAbout:) keyEquivalent:@""];
   [app addItem:[NSMenuItem separatorItem]];
   [app addItemWithTitle:@"Hide DeepCleanMyMac" action:@selector(hide:) keyEquivalent:@"h"];
+  NSMenuItem* hideOthers = [[NSMenuItem alloc] initWithTitle:@"Hide Others"
+                                                      action:@selector(hideOtherApplications:)
+                                               keyEquivalent:@"h"];
+  hideOthers.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagOption;
+  [app addItem:hideOthers];
+  [app addItemWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
+  [app addItem:[NSMenuItem separatorItem]];
   [app addItemWithTitle:@"Quit DeepCleanMyMac" action:@selector(terminate:) keyEquivalent:@"q"];
   appItem.submenu = app;
 
