@@ -55,6 +55,8 @@ constexpr CGFloat kWindowMinHeight = 520;
   win.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone;
   win.opaque = NO;
   win.backgroundColor = [NSColor clearColor];
+  win.collectionBehavior = NSWindowCollectionBehaviorFullScreenNone;
+  [win standardWindowButton:NSWindowZoomButton].enabled = NO;
   self = [super initWithWindow:win];
   if (self) {
     self.window.delegate = self;
@@ -130,6 +132,12 @@ constexpr CGFloat kWindowMinHeight = 520;
   frameSize.width = kWindowWidth;
   if (frameSize.height < kWindowMinHeight) frameSize.height = kWindowMinHeight;
   return frameSize;
+}
+
+- (BOOL)windowShouldZoom:(NSWindow*)window toFrame:(NSRect)newFrame {
+  (void)window;
+  (void)newFrame;
+  return NO;
 }
 
 - (CGFloat)splitView:(NSSplitView*)splitView constrainMinCoordinate:(CGFloat)proposed
