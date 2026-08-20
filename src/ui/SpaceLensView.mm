@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <vector>
 
-@interface DCSpaceLensView () <NSTableViewDataSource>
+@interface DCSpaceLensView () <NSTableViewDataSource, NSTableViewDelegate>
 @end
 
 @implementation DCSpaceLensView {
@@ -36,6 +36,7 @@
     _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
     DCStyleTable(_table);
     _table.dataSource = self;
+    _table.delegate = self;
     NSTableColumn* c1 = [[NSTableColumn alloc] initWithIdentifier:@"name"];
     c1.title = @"Folder";
     [_table addTableColumn:c1];
