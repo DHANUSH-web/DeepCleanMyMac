@@ -3,169 +3,317 @@
 
 #include "dcmm/dcmm.hpp"
 
-@interface DCDashCard : NSView
+#import <QuartzCore/QuartzCore.h>
+
+namespace {
+
+struct ToolRow {
+  ui::Module module;
+  const char* symbol;
+  const char* title;
+  const char* subtitle;
+};
+
+const ToolRow kTools[] = {
+    {ui::Module::SmartScan, "sparkles", "Smart Scan",
+     "Find caches, logs, and leftover junk in one pass."},
+    {ui::Module::LargeFiles, "doc.badge.ellipsis", "Large Files",
+     "Surface oversized files you can review and remove."},
+    {ui::Module::Duplicates, "doc.on.doc", "Duplicates",
+     "Hash-matched copies under common folders."},
+    {ui::Module::Uninstaller, "shippingbox", "Uninstaller",
+     "Remove an app together with leftover files."},
+    {ui::Module::Privacy, "eye.slash", "Privacy",
+     "Browser caches and tracking leftovers you choose."},
+    {ui::Module::Maintenance, "wrench.and.screwdriver", "Maintenance",
+     "Empty Trash, flush DNS, rebuild Launch Services."},
+};
+constexpr NSInteger kToolCount = 6;
+
+NSString* VolumeDisplayName() {
+  NSURL* url = [NSURL fileURLWithPath:@"/"];
+  NSString* name = nil;
+  [url getResourceValue:&name forKey:NSURLVolumeNameKey error:nil];
+  if (name.length) return name;
+  return @"Macintosh HD";
+}
+
+void DCApplyFill(NSView* v, NSColor* color) {
+  v.wantsLayer = YES;
+  v.layer.backgroundColor = color.CGColor;
+}
+
+}  // namespace
+
+@interface DCToolRowView : NSView
 @property(nonatomic) ui::Module module;
-@property(nonatomic, copy) NSString* titleStr;
-@property(nonatomic, copy) NSString* bodyStr;
-@property(nonatomic, copy) NSString* symbol;
 @property(nonatomic, copy) void (^onOpen)(ui::Module);
-@property(nonatomic) BOOL hover;
 @end
 
-@implementation DCDashCard
-- (BOOL)isFlipped {
-  return YES;
+@implementation DCToolRowView {
+  NSView* _well;
+  NSImageView* _icon;
+  NSTextField* _title;
+  NSTextField* _sub;
+  NSImageView* _chev;
+  BOOL _hover;
 }
-- (void)drawRect:(NSRect)dirty {
-  NSRect b = self.bounds;
-  NSBezierPath* p = [NSBezierPath bezierPathWithRoundedRect:b xRadius:14 yRadius:14];
-  [(self.hover ? th::cardHi() : th::card()) setFill];
-  [p fill];
-  [th::stroke() setStroke];
-  p.lineWidth = 1;
-  [p stroke];
-  NSImage* img = [NSImage imageWithSystemSymbolName:self.symbol accessibilityDescription:nil];
-  img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:22
-                                                                                         weight:NSFontWeightMedium]];
-  [img drawInRect:NSMakeRect(18, 18, 28, 28)];
-  [self.titleStr drawAtPoint:NSMakePoint(18, 56)
-              withAttributes:@{NSFontAttributeName : th::heading(), NSForegroundColorAttributeName : th::text()}];
-  [self.bodyStr drawInRect:NSMakeRect(18, 80, b.size.width - 36, 48)
-            withAttributes:@{NSFontAttributeName : th::body(), NSForegroundColorAttributeName : th::muted()}];
+
+- (instancetype)initWithTool:(const ToolRow&)tool {
+  self = [super initWithFrame:NSZeroRect];
+  if (self) {
+    _module = tool.module;
+    self.wantsLayer = YES;
+    self.layer.cornerRadius = 8;
+
+    _well = [[NSView alloc] initWithFrame:NSZeroRect];
+    _well.translatesAutoresizingMaskIntoConstraints = NO;
+    _well.wantsLayer = YES;
+    _well.layer.cornerRadius = 7;
+    [self addSubview:_well];
+
+    _icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    _icon.translatesAutoresizingMaskIntoConstraints = NO;
+    _icon.imageScaling = NSImageScaleProportionallyUpOrDown;
+    NSImage* img =
+        [NSImage imageWithSystemSymbolName:[NSString stringWithUTF8String:tool.symbol]
+                  accessibilityDescription:[NSString stringWithUTF8String:tool.title]];
+    img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:13
+                                                                                           weight:NSFontWeightMedium]];
+    _icon.image = img;
+    [_well addSubview:_icon];
+
+    _title = DCLabel([NSString stringWithUTF8String:tool.title]);
+    _title.translatesAutoresizingMaskIntoConstraints = NO;
+    _title.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    [self addSubview:_title];
+
+    _sub = DCCaptionLabel([NSString stringWithUTF8String:tool.subtitle]);
+    _sub.translatesAutoresizingMaskIntoConstraints = NO;
+    _sub.maximumNumberOfLines = 2;
+    [self addSubview:_sub];
+
+    _chev = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    _chev.translatesAutoresizingMaskIntoConstraints = NO;
+    _chev.image = [NSImage imageWithSystemSymbolName:@"chevron.right" accessibilityDescription:nil];
+    _chev.contentTintColor = [NSColor tertiaryLabelColor];
+    [self addSubview:_chev];
+
+    [NSLayoutConstraint activateConstraints:@[
+      [self.heightAnchor constraintEqualToConstant:52],
+      [_well.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:10],
+      [_well.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
+      [_well.widthAnchor constraintEqualToConstant:28],
+      [_well.heightAnchor constraintEqualToConstant:28],
+      [_icon.centerXAnchor constraintEqualToAnchor:_well.centerXAnchor],
+      [_icon.centerYAnchor constraintEqualToAnchor:_well.centerYAnchor],
+      [_icon.widthAnchor constraintEqualToConstant:16],
+      [_icon.heightAnchor constraintEqualToConstant:16],
+      [_chev.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-12],
+      [_chev.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
+      [_chev.widthAnchor constraintEqualToConstant:8],
+      [_title.leadingAnchor constraintEqualToAnchor:_well.trailingAnchor constant:10],
+      [_title.trailingAnchor constraintEqualToAnchor:_chev.leadingAnchor constant:-8],
+      [_title.topAnchor constraintEqualToAnchor:self.topAnchor constant:8],
+      [_sub.leadingAnchor constraintEqualToAnchor:_title.leadingAnchor],
+      [_sub.trailingAnchor constraintEqualToAnchor:_title.trailingAnchor],
+      [_sub.topAnchor constraintEqualToAnchor:_title.bottomAnchor constant:1],
+    ]];
+    [self applyColors];
+  }
+  return self;
 }
-- (void)mouseDown:(NSEvent*)event {
-  if (self.onOpen) self.onOpen(self.module);
+
+- (void)applyColors {
+  DCApplyFill(_well, [[NSColor controlAccentColor] colorWithAlphaComponent:0.14]);
+  _icon.contentTintColor = [NSColor controlAccentColor];
+  DCApplyFill(self, _hover ? [NSColor unemphasizedSelectedContentBackgroundColor]
+                           : [NSColor clearColor]);
 }
+
+- (void)viewDidChangeEffectiveAppearance {
+  [super viewDidChangeEffectiveAppearance];
+  [self applyColors];
+}
+
 - (void)updateTrackingAreas {
   [super updateTrackingAreas];
   for (NSTrackingArea* a in self.trackingAreas) [self removeTrackingArea:a];
   [self addTrackingArea:[[NSTrackingArea alloc]
                             initWithRect:self.bounds
-                                 options:NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow
+                                 options:NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow |
+                                         NSTrackingInVisibleRect
                                    owner:self
                                 userInfo:nil]];
 }
+
 - (void)mouseEntered:(NSEvent*)event {
-  self.hover = YES;
-  self.needsDisplay = YES;
+  _hover = YES;
+  [self applyColors];
 }
+
 - (void)mouseExited:(NSEvent*)event {
-  self.hover = NO;
-  self.needsDisplay = YES;
+  _hover = NO;
+  [self applyColors];
 }
+
+- (void)mouseDown:(NSEvent*)event {
+  if (self.onOpen) self.onOpen(self.module);
+}
+
 - (void)resetCursorRects {
   [self addCursorRect:self.bounds cursor:[NSCursor pointingHandCursor]];
 }
+
 @end
 
 @implementation DCDashboardView {
-  DCRingView* _ring;
-  NSTextField* _vol;
-  NSTextField* _free;
-  NSTextField* _total;
-  NSTextField* _mem;
-  NSTextField* _hint;
-  NSView* _diskCard;
-  NSMutableArray<DCDashCard*>* _cards;
+  NSTextField* _volumeTitle;
+  NSTextField* _capacityLine;
+  NSTextField* _availableLine;
+  NSProgressIndicator* _bar;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
   self = [super initWithFrame:frame];
   if (self) {
-    NSTextField* h = DCLabel(@"Overview", th::title(), th::text());
-    h.tag = 1;
-    [self addSubview:h];
-    NSTextField* s = DCLabel(@"Local engine (dcmmlib). Nothing leaves this Mac.", th::body(), th::muted());
-    s.tag = 2;
-    [self addSubview:s];
+    NSStackView* column = [NSStackView stackViewWithViews:@[]];
+    column.orientation = NSUserInterfaceLayoutOrientationVertical;
+    column.alignment = NSLayoutAttributeLeading;
+    column.distribution = NSStackViewDistributionFill;
+    column.spacing = 18;
+    column.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:column];
+    NSLayoutConstraint* preferred = [column.widthAnchor constraintEqualToConstant:480];
+    preferred.priority = 749;
+    [NSLayoutConstraint activateConstraints:@[
+      [column.topAnchor constraintEqualToAnchor:self.topAnchor constant:24],
+      [column.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:28],
+      [column.bottomAnchor constraintLessThanOrEqualToAnchor:self.bottomAnchor constant:-24],
+      preferred,
+      [column.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor constant:-56],
+      [column.trailingAnchor constraintLessThanOrEqualToAnchor:self.trailingAnchor constant:-28],
+    ]];
 
-    _diskCard = [[NSView alloc] initWithFrame:NSZeroRect];
-    DCRoundLayer(_diskCard, 16, th::card(), th::stroke());
-    [self addSubview:_diskCard];
-    _ring = [[DCRingView alloc] initWithFrame:NSZeroRect];
-    [_diskCard addSubview:_ring];
-    _vol = DCLabel(@"Disk", th::heading(), th::text());
-    [_diskCard addSubview:_vol];
-    _free = DCLabel(@"", [NSFont systemFontOfSize:28 weight:NSFontWeightBold], th::text());
-    [_diskCard addSubview:_free];
-    _total = DCLabel(@"", th::body(), th::muted());
-    [_diskCard addSubview:_total];
-    _mem = DCLabel(@"", th::body(), th::muted());
-    [_diskCard addSubview:_mem];
-    _hint = DCLabel(@"Grant Full Disk Access in System Settings → Privacy for a deeper scan.",
-                    th::small(), th::dim());
-    _hint.usesSingleLineMode = NO;
-    _hint.cell.wraps = YES;
-    [_diskCard addSubview:_hint];
+    NSStackView* header = DCHeaderStack(
+        @"Overview", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Overview)]);
+    [column addArrangedSubview:header];
+    [header.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
 
-    _cards = [NSMutableArray new];
-    struct Spec {
-      ui::Module m;
-      const char* t;
-      const char* b;
-      const char* sy;
-    } specs[] = {
-        {ui::Module::SmartScan, "Smart Scan", "Caches, logs, and leftover junk in one pass.", "sparkles"},
-        {ui::Module::LargeFiles, "Large Files", "Oversized files you can review and trash.", "doc.badge.ellipsis"},
-        {ui::Module::Duplicates, "Duplicates", "Hash-matched copies under common folders.", "doc.on.doc.fill"},
-        {ui::Module::Uninstaller, "Uninstaller", "Apps together with leftover files.", "shippingbox.fill"},
-        {ui::Module::Privacy, "Privacy", "Browser caches — you choose what goes.", "eye.slash.fill"},
-        {ui::Module::Maintenance, "Maintenance", "Empty Trash, flush DNS, rebuild Launch Services.",
-         "wrench.and.screwdriver.fill"},
-    };
-    for (auto& sp : specs) {
-      DCDashCard* c = [[DCDashCard alloc] initWithFrame:NSZeroRect];
-      c.module = sp.m;
-      c.titleStr = [NSString stringWithUTF8String:sp.t];
-      c.bodyStr = [NSString stringWithUTF8String:sp.b];
-      c.symbol = [NSString stringWithUTF8String:sp.sy];
-      __weak DCDashboardView* weak = self;
-      c.onOpen = ^(ui::Module m) {
-        if (weak.onOpen) weak.onOpen(m);
+    NSImageView* diskIcon = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    diskIcon.image = [NSImage imageWithSystemSymbolName:@"internaldrive.fill"
+                               accessibilityDescription:@"Disk"];
+    diskIcon.contentTintColor = [NSColor controlAccentColor];
+    diskIcon.translatesAutoresizingMaskIntoConstraints = NO;
+    [diskIcon.widthAnchor constraintEqualToConstant:28].active = YES;
+    [diskIcon.heightAnchor constraintEqualToConstant:28].active = YES;
+
+    _volumeTitle = DCLabel(@"—");
+    _volumeTitle.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    _capacityLine = DCCaptionLabel(@"—");
+    NSStackView* volText = [NSStackView stackViewWithViews:@[ _volumeTitle, _capacityLine ]];
+    volText.orientation = NSUserInterfaceLayoutOrientationVertical;
+    volText.alignment = NSLayoutAttributeLeading;
+    volText.spacing = 1;
+    NSStackView* volRow = [NSStackView stackViewWithViews:@[ diskIcon, volText ]];
+    volRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    volRow.alignment = NSLayoutAttributeCenterY;
+    volRow.spacing = 10;
+
+    _bar = [[NSProgressIndicator alloc] initWithFrame:NSZeroRect];
+    _bar.style = NSProgressIndicatorStyleBar;
+    _bar.indeterminate = NO;
+    _bar.minValue = 0;
+    _bar.maxValue = 1;
+    _bar.controlSize = NSControlSizeSmall;
+    _bar.translatesAutoresizingMaskIntoConstraints = NO;
+    [_bar.widthAnchor constraintEqualToConstant:220].active = YES;
+    [_bar.heightAnchor constraintEqualToConstant:8].active = YES;
+    [_bar setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    _availableLine = DCCaptionLabel(@"—");
+    NSStackView* barRow = [NSStackView stackViewWithViews:@[ _bar, _availableLine ]];
+    barRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    barRow.alignment = NSLayoutAttributeCenterY;
+    barRow.spacing = 10;
+
+    NSStackView* cardBody = [NSStackView stackViewWithViews:@[ volRow, barRow ]];
+    cardBody.orientation = NSUserInterfaceLayoutOrientationVertical;
+    cardBody.alignment = NSLayoutAttributeLeading;
+    cardBody.spacing = 10;
+    cardBody.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
+
+    NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+    card.material = NSVisualEffectMaterialContentBackground;
+    card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    card.state = NSVisualEffectStateFollowsWindowActiveState;
+    card.wantsLayer = YES;
+    card.layer.cornerRadius = 10;
+    card.layer.masksToBounds = YES;
+    [card addSubview:cardBody];
+    DCPinEdges(cardBody, card);
+    [card setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [column addArrangedSubview:card];
+    [card.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
+
+    NSTextField* hint = DCCaptionLabel(
+        @"Grant Full Disk Access in System Settings → Privacy & Security for a deeper scan.");
+    [column addArrangedSubview:hint];
+    [hint.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
+
+    NSTextField* toolsLabel = DCLabel(@"Tools");
+    toolsLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    [column addArrangedSubview:toolsLabel];
+
+    NSStackView* toolList = [NSStackView stackViewWithViews:@[]];
+    toolList.orientation = NSUserInterfaceLayoutOrientationVertical;
+    toolList.alignment = NSLayoutAttributeLeading;
+    toolList.spacing = 2;
+    toolList.edgeInsets = NSEdgeInsetsMake(6, 4, 6, 4);
+    __weak DCDashboardView* weakSelf = self;
+    for (NSInteger i = 0; i < kToolCount; ++i) {
+      DCToolRowView* row = [[DCToolRowView alloc] initWithTool:kTools[i]];
+      row.onOpen = ^(ui::Module m) {
+        DCDashboardView* s = weakSelf;
+        if (s.onOpen) s.onOpen(m);
       };
-      [_cards addObject:c];
-      [self addSubview:c];
+      [toolList addArrangedSubview:row];
+      [row.widthAnchor constraintEqualToAnchor:toolList.widthAnchor
+                                      constant:-(toolList.edgeInsets.left + toolList.edgeInsets.right)]
+          .active = YES;
     }
+
+    NSVisualEffectView* toolsCard = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+    toolsCard.material = NSVisualEffectMaterialContentBackground;
+    toolsCard.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    toolsCard.state = NSVisualEffectStateFollowsWindowActiveState;
+    toolsCard.wantsLayer = YES;
+    toolsCard.layer.cornerRadius = 10;
+    toolsCard.layer.masksToBounds = YES;
+    [toolsCard addSubview:toolList];
+    DCPinEdges(toolList, toolsCard);
+    [column addArrangedSubview:toolsCard];
+    [toolsCard.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
+
     [self refreshStats];
   }
   return self;
 }
-- (BOOL)isFlipped {
-  return YES;
-}
+
 - (void)refreshStats {
   dcmm::Engine e;
   auto d = e.disk("/");
-  auto m = e.memory();
   double used = d.totalBytes ? 1.0 - (double)d.availableBytes / (double)d.totalBytes : 0;
-  _ring.progress = used;
-  _ring.centerText = DCNS(dcmm::formatBytes(d.availableBytes));
-  _vol.stringValue = DCNS(d.volumeName.empty() ? "System Disk" : d.volumeName);
-  _free.stringValue = [NSString stringWithFormat:@"%@ free", DCNS(dcmm::formatBytes(d.availableBytes))];
-  _total.stringValue = [NSString
-      stringWithFormat:@"%@ total  ·  %@ used", DCNS(dcmm::formatBytes(d.totalBytes)),
-                       DCNS(dcmm::formatBytes(d.totalBytes > d.availableBytes ? d.totalBytes - d.availableBytes
-                                                                             : 0))];
-  _mem.stringValue = [NSString stringWithFormat:@"Memory  %@ used of %@",
-                                                DCNS(dcmm::formatBytes(m.usedBytes)),
-                                                DCNS(dcmm::formatBytes(m.totalBytes))];
+  _bar.doubleValue = used;
+  _volumeTitle.stringValue = VolumeDisplayName();
+  uint64_t usedBytes = d.totalBytes > d.availableBytes ? d.totalBytes - d.availableBytes : 0;
+  _capacityLine.stringValue =
+      [NSString stringWithFormat:@"%@ of %@ used", DCNS(dcmm::formatBytes(usedBytes)),
+                                 DCNS(dcmm::formatBytes(d.totalBytes))];
+  _availableLine.stringValue =
+      [NSString stringWithFormat:@"%@ available", DCNS(dcmm::formatBytes(d.availableBytes))];
 }
-- (void)layout {
-  [super layout];
-  NSRect b = self.bounds;
-  CGFloat x = 8, w = b.size.width - 16;
-  [self viewWithTag:1].frame = NSMakeRect(x, 8, w, 34);
-  [self viewWithTag:2].frame = NSMakeRect(x, 44, w, 20);
-  _diskCard.frame = NSMakeRect(x, 72, w, 200);
-  _ring.frame = NSMakeRect(16, 16, 168, 168);
-  _vol.frame = NSMakeRect(200, 28, w - 220, 22);
-  _free.frame = NSMakeRect(200, 52, w - 220, 34);
-  _total.frame = NSMakeRect(200, 92, w - 220, 20);
-  _mem.frame = NSMakeRect(200, 116, w - 220, 20);
-  _hint.frame = NSMakeRect(200, 148, w - 230, 36);
-  CGFloat gridY = 292, gap = 14, cw = (w - gap) / 2.0, ch = 140;
-  for (NSUInteger i = 0; i < _cards.count; ++i) {
-    _cards[i].frame = NSMakeRect(x + (i % 2) * (cw + gap), gridY + (i / 2) * (ch + gap), cw, ch);
-  }
-}
+
 @end
