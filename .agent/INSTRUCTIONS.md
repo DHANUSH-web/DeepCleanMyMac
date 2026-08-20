@@ -105,6 +105,7 @@ The user wants **Apple aesthetic** using **native AppKit**, not a custom theme a
 - Tools: **icon well + semibold title + caption description + chevron**. Not stretched gray push buttons.
 - Maintenance: **2-column cards** with **Run at the bottom**, not a sparse title list and not one row stretched full height.
 - Sidebar: **frosted, full-height column** with a **real divider**, desktop visible through the glass.
+- Window **width is fixed** at 760 pt (the existing minimum / content width). Height stays resizable (`minSize`/`maxSize` same width; keep `NSWindowStyleMaskResizable`). Do not make the window freely resizable in both axes.
 
 **Do not**
 

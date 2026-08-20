@@ -26,6 +26,11 @@
 }
 @end
 
+namespace {
+constexpr CGFloat kWindowWidth = 760;
+constexpr CGFloat kWindowMinHeight = 520;
+}  // namespace
+
 @implementation DCMainWindowController {
   NSSplitView* _split;
   DCSidebarView* _sidebar;
@@ -35,14 +40,15 @@
 
 - (instancetype)init {
   NSWindow* win = [[NSWindow alloc]
-      initWithContentRect:NSMakeRect(0, 0, 1080, 700)
+      initWithContentRect:NSMakeRect(0, 0, kWindowWidth, 700)
                 styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
                           NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable |
                           NSWindowStyleMaskFullSizeContentView
                   backing:NSBackingStoreBuffered
                     defer:NO];
   win.title = @"DeepCleanMyMac";
-  win.minSize = NSMakeSize(760, 520);
+  win.minSize = NSMakeSize(kWindowWidth, kWindowMinHeight);
+  win.maxSize = NSMakeSize(kWindowWidth, CGFLOAT_MAX);
   win.releasedWhenClosed = NO;
   win.titlebarAppearsTransparent = YES;
   win.titleVisibility = NSWindowTitleVisible;
@@ -117,6 +123,13 @@
   [self.window center];
   [self.window makeKeyAndOrderFront:nil];
   [NSApp activateIgnoringOtherApps:YES];
+}
+
+- (NSSize)windowWillResize:(NSWindow*)sender toSize:(NSSize)frameSize {
+  (void)sender;
+  frameSize.width = kWindowWidth;
+  if (frameSize.height < kWindowMinHeight) frameSize.height = kWindowMinHeight;
+  return frameSize;
 }
 
 - (CGFloat)splitView:(NSSplitView*)splitView constrainMinCoordinate:(CGFloat)proposed
