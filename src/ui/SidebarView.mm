@@ -1,158 +1,224 @@
 #import "ui/SidebarView.h"
 #import "ui/Theme.h"
-#include <cstdio>
+
+#import <Collaboration/Collaboration.h>
 
 static NSArray<NSString*>* DCSymbols() {
   return @[
-    @"square.grid.2x2.fill", @"sparkles", @"internaldrive", @"doc.badge.ellipsis",
-    @"doc.on.doc.fill", @"shippingbox.fill", @"eye.slash.fill", @"chart.bar.fill",
-    @"wrench.and.screwdriver.fill"
+    @"square.grid.2x2", @"sparkles", @"internaldrive", @"doc.badge.ellipsis", @"doc.on.doc",
+    @"shippingbox", @"eye.slash", @"chart.bar", @"wrench.and.screwdriver"
   ];
 }
 
-@interface DCNavRow : NSView
-@property(nonatomic) ui::Module module;
-@property(nonatomic) BOOL selectedRow;
-@property(nonatomic) BOOL hover;
-@property(nonatomic, copy) void (^onClick)(ui::Module);
+static NSImage* DCUserProfileImage(void) {
+  CBIdentity* identity =
+      [CBIdentity identityWithName:NSUserName() authority:[CBIdentityAuthority defaultIdentityAuthority]];
+  NSImage* image = identity.image;
+  if (image && image.size.width > 0) return image;
+  NSImage* fallback = [NSImage imageWithSystemSymbolName:@"person.crop.circle.fill"
+                                accessibilityDescription:@"User"];
+  return fallback ?: [NSImage imageNamed:NSImageNameUser];
+}
+
+static NSString* DCHostDisplayName(void) {
+  NSString* name = [[NSHost currentHost] localizedName];
+  if (name.length) return name;
+  name = [[NSProcessInfo processInfo] hostName];
+  if (name.length) return name;
+  return @"Mac";
+}
+
+@interface DCUserFooterView : NSView
 @end
 
-@implementation DCNavRow
-- (BOOL)isFlipped {
-  return YES;
+@implementation DCUserFooterView
+
+- (void)mouseUp:(NSEvent*)event {
+  NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+  if (!NSPointInRect(p, self.bounds)) return;
+  [self openUserAccountSettings];
 }
-- (void)drawRect:(NSRect)dirty {
-  NSRect b = NSInsetRect(self.bounds, 12, 2);
-  if (self.selectedRow) {
-    [[NSBezierPath bezierPathWithRoundedRect:b xRadius:10 yRadius:10] fill];
-    [th::accentDim() setFill];
-    [[NSBezierPath bezierPathWithRoundedRect:b xRadius:10 yRadius:10] fill];
-  } else if (self.hover) {
-    [th::rgb(1, 1, 1, 0.04) setFill];
-    [[NSBezierPath bezierPathWithRoundedRect:b xRadius:10 yRadius:10] fill];
+
+- (void)openUserAccountSettings {
+  NSArray<NSString*>* urls = @[
+    @"x-apple.systempreferences:com.apple.Users-Groups-Settings.extension",
+    @"x-apple.systempreferences:com.apple.preferences.users",
+    @"x-apple.systempreferences:com.apple.systempreferences.AppleIDSettings",
+  ];
+  NSWorkspace* ws = [NSWorkspace sharedWorkspace];
+  for (NSString* s in urls) {
+    NSURL* url = [NSURL URLWithString:s];
+    if (url && [ws openURL:url]) return;
   }
-  NSImage* img = [NSImage imageWithSystemSymbolName:DCSymbols()[(int)self.module]
-                           accessibilityDescription:nil];
-  img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:14
-                                                                                         weight:NSFontWeightMedium]];
-  NSRect ir = NSMakeRect(b.origin.x + 12, b.origin.y + (b.size.height - 16) / 2, 16, 16);
-  [img drawInRect:ir];
-  NSString* title = [NSString stringWithUTF8String:ui::title(self.module)];
-  [title drawAtPoint:NSMakePoint(b.origin.x + 38, b.origin.y + (b.size.height - 18) / 2)
-      withAttributes:@{
-        NSFontAttributeName : [NSFont systemFontOfSize:13
-                                                weight:self.selectedRow ? NSFontWeightSemibold
-                                                                        : NSFontWeightMedium],
-        NSForegroundColorAttributeName : self.selectedRow ? th::text() : th::muted()
-      }];
+  NSURL* app = [ws URLForApplicationWithBundleIdentifier:@"com.apple.systempreferences"];
+  if (app) [ws openURL:app];
 }
-- (void)mouseDown:(NSEvent*)event {
-  if (self.onClick) self.onClick(self.module);
-}
-- (void)updateTrackingAreas {
-  [super updateTrackingAreas];
-  for (NSTrackingArea* a in self.trackingAreas) [self removeTrackingArea:a];
-  [self addTrackingArea:[[NSTrackingArea alloc]
-                            initWithRect:self.bounds
-                                 options:NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow
-                                   owner:self
-                                userInfo:nil]];
-}
-- (void)mouseEntered:(NSEvent*)event {
-  self.hover = YES;
-  self.needsDisplay = YES;
-}
-- (void)mouseExited:(NSEvent*)event {
-  self.hover = NO;
-  self.needsDisplay = YES;
-}
+
 - (void)resetCursorRects {
   [self addCursorRect:self.bounds cursor:[NSCursor pointingHandCursor]];
 }
+
+- (NSView*)hitTest:(NSPoint)point {
+  NSView* v = [super hitTest:point];
+  return v ? self : nil;
+}
+
+@end
+
+@interface DCSidebarView () <NSTableViewDataSource, NSTableViewDelegate>
 @end
 
 @implementation DCSidebarView {
-  NSMutableArray<DCNavRow*>* _rows;
-  DCRingView* _ring;
-  NSTextField* _freeLabel;
+  NSTableView* _table;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
   self = [super initWithFrame:frame];
   if (self) {
+    self.material = NSVisualEffectMaterialUnderWindowBackground;
+    self.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+    self.state = NSVisualEffectStateFollowsWindowActiveState;
+
     _selected = ui::Module::Overview;
-    _diskUsedFraction = 0.5;
-    _rows = [NSMutableArray new];
-    self.wantsLayer = YES;
-    self.layer.backgroundColor = th::sidebar().CGColor;
 
-    NSTextField* brand = DCLabel(@"DeepClean", th::heading(), th::text());
-    brand.tag = 10;
-    [self addSubview:brand];
-    NSTextField* brand2 = DCLabel(@"My Mac", th::heading(), th::accent());
-    brand2.tag = 11;
-    [self addSubview:brand2];
+    _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
+    _table.backgroundColor = [NSColor clearColor];
+    _table.headerView = nil;
+    _table.dataSource = self;
+    _table.delegate = self;
+    _table.allowsEmptySelection = NO;
+    _table.allowsMultipleSelection = NO;
+    _table.style = NSTableViewStyleSourceList;
+    _table.rowSizeStyle = NSTableViewRowSizeStyleDefault;
+    _table.floatsGroupRows = NO;
+    NSTableColumn* col = [[NSTableColumn alloc] initWithIdentifier:@"nav"];
+    [_table addTableColumn:col];
+    _table.columnAutoresizingStyle = NSTableViewLastColumnOnlyAutoresizingStyle;
 
-    _ring = [[DCRingView alloc] initWithFrame:NSZeroRect];
-    [self addSubview:_ring];
-    _freeLabel = DCLabel(@"", th::small(), th::muted());
-    _freeLabel.alignment = NSTextAlignmentCenter;
-    [self addSubview:_freeLabel];
+    NSScrollView* scroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+    scroll.documentView = _table;
+    scroll.drawsBackground = NO;
+    scroll.hasVerticalScroller = YES;
+    scroll.autohidesScrollers = YES;
+    scroll.borderType = NSNoBorder;
+    scroll.automaticallyAdjustsContentInsets = YES;
 
-    for (int i = 0; i < (int)ui::Module::Count; ++i) {
-      DCNavRow* row = [[DCNavRow alloc] initWithFrame:NSZeroRect];
-      row.module = (ui::Module)i;
-      __weak DCSidebarView* weak = self;
-      row.onClick = ^(ui::Module m) {
-        weak.selected = m;
-        [weak reload];
-        if (weak.onSelect) weak.onSelect(m);
-      };
-      [_rows addObject:row];
-      [self addSubview:row];
-    }
-    NSTextField* ver = DCLabel(@"v1.0.0  ·  powered by dcmmlib", th::small(), th::dim());
-    ver.tag = 99;
-    [self addSubview:ver];
+    NSBox* divider = [[NSBox alloc] initWithFrame:NSZeroRect];
+    divider.boxType = NSBoxSeparator;
+
+    NSImageView* avatar = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    avatar.image = DCUserProfileImage();
+    avatar.imageScaling = NSImageScaleProportionallyUpOrDown;
+    avatar.wantsLayer = YES;
+    avatar.layer.cornerRadius = 16;
+    avatar.layer.masksToBounds = YES;
+    avatar.translatesAutoresizingMaskIntoConstraints = NO;
+    [avatar.widthAnchor constraintEqualToConstant:32].active = YES;
+    [avatar.heightAnchor constraintEqualToConstant:32].active = YES;
+
+    NSString* fullName = NSFullUserName();
+    if (!fullName.length) fullName = NSUserName();
+    NSTextField* nameField = DCLabel(fullName);
+    nameField.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    nameField.lineBreakMode = NSLineBreakByTruncatingTail;
+
+    NSTextField* hostField = DCCaptionLabel(DCHostDisplayName());
+    hostField.lineBreakMode = NSLineBreakByTruncatingTail;
+
+    NSStackView* names = [NSStackView stackViewWithViews:@[ nameField, hostField ]];
+    names.orientation = NSUserInterfaceLayoutOrientationVertical;
+    names.alignment = NSLayoutAttributeLeading;
+    names.spacing = 1;
+
+    NSStackView* userRow = [NSStackView stackViewWithViews:@[ avatar, names ]];
+    userRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    userRow.alignment = NSLayoutAttributeCenterY;
+    userRow.spacing = 10;
+
+    DCUserFooterView* footerHit = [[DCUserFooterView alloc] initWithFrame:NSZeroRect];
+    footerHit.translatesAutoresizingMaskIntoConstraints = NO;
+    [footerHit addSubview:userRow];
+    DCPinEdges(userRow, footerHit);
+    [footerHit.heightAnchor constraintGreaterThanOrEqualToConstant:40].active = YES;
+    footerHit.toolTip = @"Open Users & Groups in System Settings";
+
+    NSStackView* footer = [NSStackView stackViewWithViews:@[ footerHit ]];
+    footer.orientation = NSUserInterfaceLayoutOrientationVertical;
+    footer.alignment = NSLayoutAttributeLeading;
+    footer.edgeInsets = NSEdgeInsetsMake(10, 10, 12, 10);
+
+    NSStackView* stack = [NSStackView stackViewWithViews:@[ scroll, divider, footer ]];
+    stack.orientation = NSUserInterfaceLayoutOrientationVertical;
+    stack.alignment = NSLayoutAttributeLeading;
+    stack.spacing = 0;
+    [self addSubview:stack];
+    DCPinEdges(stack, self);
+
+    [scroll setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
+    [scroll setContentCompressionResistancePriority:1
+                                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [scroll.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
+    [divider.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
+    [footer.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
+    [footerHit.widthAnchor constraintEqualToAnchor:footer.widthAnchor
+                                          constant:-(footer.edgeInsets.left + footer.edgeInsets.right)]
+        .active = YES;
+    [names setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    [_table selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
   }
   return self;
 }
-- (BOOL)isFlipped {
-  return YES;
-}
+
 - (void)setSelected:(ui::Module)selected {
   _selected = selected;
-  [self reload];
+  [_table selectRowIndexes:[NSIndexSet indexSetWithIndex:(NSInteger)selected] byExtendingSelection:NO];
 }
-- (void)setFreeCaption:(NSString*)freeCaption {
-  _freeCaption = [freeCaption copy];
-  _freeLabel.stringValue = _freeCaption ?: @"";
+
+- (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView {
+  return (NSInteger)ui::Module::Count;
 }
-- (void)setDiskUsedFraction:(double)diskUsedFraction {
-  _diskUsedFraction = diskUsedFraction;
-  _ring.progress = diskUsedFraction;
-}
-- (void)reload {
-  for (DCNavRow* r in _rows) {
-    r.selectedRow = (r.module == self.selected);
-    r.needsDisplay = YES;
+
+- (NSView*)tableView:(NSTableView*)tableView
+    viewForTableColumn:(NSTableColumn*)tableColumn
+                   row:(NSInteger)row {
+  NSTableCellView* cell = [tableView makeViewWithIdentifier:@"NavCell" owner:self];
+  if (!cell) {
+    cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
+    cell.identifier = @"NavCell";
+    NSImageView* img = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    img.translatesAutoresizingMaskIntoConstraints = NO;
+    img.imageScaling = NSImageScaleProportionallyDown;
+    cell.imageView = img;
+    [cell addSubview:img];
+    NSTextField* tf = DCLabel(@"");
+    tf.translatesAutoresizingMaskIntoConstraints = NO;
+    cell.textField = tf;
+    [cell addSubview:tf];
+    [NSLayoutConstraint activateConstraints:@[
+      [img.leadingAnchor constraintEqualToAnchor:cell.leadingAnchor constant:2],
+      [img.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
+      [img.widthAnchor constraintEqualToConstant:16],
+      [img.heightAnchor constraintEqualToConstant:16],
+      [tf.leadingAnchor constraintEqualToAnchor:img.trailingAnchor constant:6],
+      [tf.trailingAnchor constraintEqualToAnchor:cell.trailingAnchor constant:-4],
+      [tf.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
+    ]];
   }
+  ui::Module m = (ui::Module)row;
+  cell.textField.stringValue = [NSString stringWithUTF8String:ui::title(m)];
+  cell.imageView.image = [NSImage imageWithSystemSymbolName:DCSymbols()[row]
+                                   accessibilityDescription:cell.textField.stringValue];
+  return cell;
 }
-- (void)layout {
-  [super layout];
-  NSRect b = self.bounds;
-  [self viewWithTag:10].frame = NSMakeRect(24, 24, 200, 22);
-  [self viewWithTag:11].frame = NSMakeRect(24, 44, 200, 22);
-  [self viewWithTag:99].frame = NSMakeRect(24, b.size.height - 36, 200, 18);
-  _ring.frame = NSMakeRect((b.size.width - 130) / 2, 78, 130, 130);
-  char usedPct[32];
-  snprintf(usedPct, sizeof(usedPct), "%.0f%% used", self.diskUsedFraction * 100.0);
-  _ring.centerText = [NSString stringWithUTF8String:usedPct];
-  _freeLabel.frame = NSMakeRect(16, 210, b.size.width - 32, 18);
-  CGFloat y = 248;
-  for (DCNavRow* r in _rows) {
-    r.frame = NSMakeRect(0, y, b.size.width, 38);
-    y += 40;
-  }
+
+- (void)tableViewSelectionDidChange:(NSNotification*)notification {
+  NSInteger row = _table.selectedRow;
+  if (row < 0) return;
+  ui::Module m = (ui::Module)row;
+  if (m == _selected) return;
+  _selected = m;
+  if (self.onSelect) self.onSelect(m);
 }
+
 @end
