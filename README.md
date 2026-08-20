@@ -6,9 +6,10 @@ Native **DeepCleanMyMac** macOS app. The UI is AppKit (Objective-C++). All scann
 
 ```
 dcmm-desktop/
-  src/           AppKit GUI
-  tests/         GoogleTest (engine link + module titles)
-  dcmmlib/       git submodule (after `git submodule update --init`)
+  include/           App headers (AppDelegate, Modules, ui/)
+  src/               AppKit implementations
+  extras/dcmmlib/    git submodule (engine)
+  tests/             GoogleTest (engine link + module titles)
 ```
 
 If the submodule is missing, CMake will also accept a sibling `../dcmmlib` checkout.

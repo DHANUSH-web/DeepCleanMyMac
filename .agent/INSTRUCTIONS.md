@@ -14,14 +14,16 @@ Typical workspace:
 
 ```
 DeepCleanMyMac/
-  dcmmlib/          # engine (own git)
-  dcmm-desktop/     # this app (own git)
-    dcmmlib/        # git submodule → ../dcmmlib (or hosted URL)
+  dcmmlib/                 # engine (own git)
+  dcmm-desktop/            # this app (own git)
+    include/               # this app's headers only
+    src/                   # AppKit .mm
+    extras/dcmmlib/        # git submodule → ../dcmmlib
 ```
 
-CMake prefers `./dcmmlib` if present, else sibling `../dcmmlib`.
+CMake prefers `extras/dcmmlib` if present, else sibling `../dcmmlib`. Do **not** clone the engine at the desktop repo root.
 
-**If you change the engine**, edit the canonical `dcmmlib` repo and **sync** into `dcmm-desktop/dcmmlib` (they are often separate checkouts). Otherwise the app builds stale code.
+**If you change the engine**, edit the canonical `dcmmlib` repo and **sync** into `dcmm-desktop/extras/dcmmlib`. Otherwise the app builds stale code.
 
 ## Product
 
@@ -36,7 +38,7 @@ Entry: `src/main.mm` → `AppDelegate` → `DCMainWindowController`
 CMake + **Ninja** + **Apple Clang**. OBJCXX + ARC. Deployment target 13.0.
 
 ```bash
-git submodule update --init --recursive   # if using submodule
+git submodule update --init extras/dcmmlib   # if using submodule
 cmake --preset release
 cmake --build --preset release
 ctest --preset release
@@ -64,8 +66,8 @@ Links: `dcmm`, Cocoa, AppKit, Foundation, QuartzCore, Collaboration.
 
 | File | Role |
 |------|------|
-| `src/Modules.h` | Sidebar modules (GUI-only enum; not in the engine) |
-| `src/ui/Theme.h` + `Widgets.mm` | Native AppKit helpers, confirm/inform dialogs |
+| `include/Modules.h` | Sidebar modules (GUI-only enum; not in the engine) |
+| `include/ui/Theme.h` + `src/ui/Widgets.mm` | Native AppKit helpers, confirm/inform dialogs |
 | `src/ui/MainWindowController.mm` | Classic `NSSplitView`: frost sidebar + opaque content |
 | `src/ui/SidebarView.mm` | Nav source list + user profile footer |
 | `src/ui/DashboardView.mm` | Overview: compact storage card + tool rows |
@@ -143,9 +145,10 @@ Do not call `unlink`/`removeItem` from the GUI except through the engine. Do not
 
 ## How to work
 
-- UI-only requests: stay in `src/ui` and AppDelegate. Do not “fix” catalogs unless asked.
-- Behavior/safety/scan: change **dcmmlib**, then sync submodule, then wire UI if needed.
-- After UI changes, build the `.app` and relaunch (`pkill -x DeepCleanMyMac` then `open build/DeepCleanMyMac.app`).
+- UI-only requests: headers in `include/` (`include/ui/`), implementations in `src/` (`src/ui/`). Do not “fix” catalogs unless asked.
+- Third-party code and the engine submodule belong in `extras/`, never at the repo root.
+- Behavior/safety/scan: change **dcmmlib**, then sync `extras/dcmmlib`, then wire UI if needed.
+- After UI changes, build the `.app` and relaunch (`pkill -x DeepCleanMyMac` then `open build/release/DeepCleanMyMac.app`).
 - Match existing Objective-C++ style: ARC, helpers in `Theme.h`/`Widgets.mm`.
 
 ## Out of scope

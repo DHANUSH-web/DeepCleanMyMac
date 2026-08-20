@@ -17,15 +17,15 @@ endif()
 
 add_compile_options(-fobjc-arc -Wall -Wextra -Wno-unused-parameter)
 
-# dcmmlib as git submodule (preferred) or sibling checkout.
+# dcmmlib lives under extras/ (git submodule). Sibling ../dcmmlib is a fallback.
 set(DCMM_BUILD_TESTS OFF CACHE BOOL "Disable engine tests when nested" FORCE)
 set(DCMM_BUILD_CLI OFF CACHE BOOL "Disable engine CLI when nested" FORCE)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dcmmlib/CMakeLists.txt")
-  add_subdirectory(dcmmlib)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extras/dcmmlib/CMakeLists.txt")
+  add_subdirectory(extras/dcmmlib)
 elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../dcmmlib/CMakeLists.txt")
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../dcmmlib" ${CMAKE_BINARY_DIR}/dcmmlib)
 else()
-  message(FATAL_ERROR "dcmmlib not found. Run: git submodule update --init --recursive")
+  message(FATAL_ERROR "dcmmlib not found. Run: git submodule update --init extras/dcmmlib")
 endif()
 
 set(UI_SOURCES
@@ -44,7 +44,7 @@ set(UI_SOURCES
 )
 
 add_executable(DeepCleanMyMac MACOSX_BUNDLE ${UI_SOURCES})
-target_include_directories(DeepCleanMyMac PRIVATE src)
+target_include_directories(DeepCleanMyMac PRIVATE include)
 target_link_libraries(DeepCleanMyMac PRIVATE
   dcmm
   "-framework Cocoa"
@@ -86,7 +86,7 @@ if(DCMM_DESKTOP_BUILD_TESTS)
     tests/test_engine_link.cpp
     tests/test_modules.cpp
   )
-  target_include_directories(dcmm-desktop-tests PRIVATE src)
+  target_include_directories(dcmm-desktop-tests PRIVATE include)
   target_link_libraries(dcmm-desktop-tests PRIVATE dcmm GTest::gtest_main)
   include(GoogleTest)
   gtest_discover_tests(dcmm-desktop-tests)
