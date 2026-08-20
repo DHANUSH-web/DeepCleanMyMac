@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>DeepCleanMyMac</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.deepclean.DeepCleanMyMac</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>DeepCleanMyMac</string>
+  <key>CFBundleDisplayName</key>
+  <string>DeepCleanMyMac</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.utilities</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>DeepCleanMyMac scans your Desktop to find large and duplicate files you can review before moving them to Trash.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>DeepCleanMyMac scans Documents to find large and duplicate files you can review before moving them to Trash.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>DeepCleanMyMac scans Downloads to find large and duplicate files you can review before moving them to Trash.</string>
+</dict>
+</plist>
