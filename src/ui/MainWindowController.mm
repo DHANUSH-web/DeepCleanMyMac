@@ -10,8 +10,24 @@
 #import "ui/UninstallerView.h"
 
 #include "dcmm/dcmm.hpp"
+#include "Modules.h"
+
+@interface DCOpaquePane : NSView
+@end
+@implementation DCOpaquePane
+- (BOOL)isOpaque {
+  return YES;
+}
+- (BOOL)wantsUpdateLayer {
+  return YES;
+}
+- (void)updateLayer {
+  self.layer.backgroundColor = NSColor.windowBackgroundColor.CGColor;
+}
+@end
 
 @implementation DCMainWindowController {
+  NSSplitView* _split;
   DCSidebarView* _sidebar;
   NSView* _content;
   NSMutableDictionary<NSNumber*, NSView*>* _pages;
@@ -19,51 +35,58 @@
 
 - (instancetype)init {
   NSWindow* win = [[NSWindow alloc]
-      initWithContentRect:NSMakeRect(0, 0, 1240, 800)
+      initWithContentRect:NSMakeRect(0, 0, 1080, 700)
                 styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
                           NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable |
                           NSWindowStyleMaskFullSizeContentView
                   backing:NSBackingStoreBuffered
                     defer:NO];
   win.title = @"DeepCleanMyMac";
-  win.titlebarAppearsTransparent = YES;
-  win.backgroundColor = th::bg();
-  win.minSize = NSMakeSize(1000, 680);
+  win.minSize = NSMakeSize(760, 520);
   win.releasedWhenClosed = NO;
+  win.titlebarAppearsTransparent = YES;
+  win.titleVisibility = NSWindowTitleVisible;
+  win.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone;
+  win.opaque = NO;
+  win.backgroundColor = [NSColor clearColor];
   self = [super initWithWindow:win];
   if (self) {
     self.window.delegate = self;
-    NSView* root = win.contentView;
-    root.wantsLayer = YES;
-    root.layer.backgroundColor = th::bg().CGColor;
 
-    _sidebar = [[DCSidebarView alloc] initWithFrame:NSMakeRect(0, 0, 232, 800)];
-    [root addSubview:_sidebar];
-
-    _content = [[NSView alloc] initWithFrame:NSZeroRect];
+    _sidebar = [[DCSidebarView alloc] initWithFrame:NSMakeRect(0, 0, 220, 700)];
+    _content = [[DCOpaquePane alloc] initWithFrame:NSMakeRect(0, 0, 860, 700)];
     _content.wantsLayer = YES;
-    [root addSubview:_content];
+
+    _split = [[NSSplitView alloc] initWithFrame:NSZeroRect];
+    _split.vertical = YES;
+    _split.dividerStyle = NSSplitViewDividerStyleThin;
+    _split.delegate = self;
+    _split.autosaveName = @"DCMainSplit";
+    [_split addSubview:_sidebar];
+    [_split addSubview:_content];
+    win.contentView = _split;
+    [_split setPosition:220 ofDividerAtIndex:0];
 
     _pages = [NSMutableDictionary new];
     DCDashboardView* dash = [[DCDashboardView alloc] initWithFrame:NSZeroRect];
-    DCResultsView* scan = [[DCResultsView alloc] initWithMode:DCResultsModeJunk];
-    DCResultsView* junk = [[DCResultsView alloc] initWithMode:DCResultsModeJunk];
-    DCLargeFilesView* large = [[DCLargeFilesView alloc] initWithFrame:NSZeroRect];
-    DCDuplicatesView* dup = [[DCDuplicatesView alloc] initWithFrame:NSZeroRect];
-    DCUninstallerView* un = [[DCUninstallerView alloc] initWithFrame:NSZeroRect];
-    DCResultsView* priv = [[DCResultsView alloc] initWithMode:DCResultsModePrivacy];
-    DCSpaceLensView* lens = [[DCSpaceLensView alloc] initWithFrame:NSZeroRect];
-    DCMaintenanceView* maint = [[DCMaintenanceView alloc] initWithFrame:NSZeroRect];
-
     _pages[@((int)ui::Module::Overview)] = dash;
-    _pages[@((int)ui::Module::SmartScan)] = scan;
-    _pages[@((int)ui::Module::SystemJunk)] = junk;
-    _pages[@((int)ui::Module::LargeFiles)] = large;
-    _pages[@((int)ui::Module::Duplicates)] = dup;
-    _pages[@((int)ui::Module::Uninstaller)] = un;
-    _pages[@((int)ui::Module::Privacy)] = priv;
-    _pages[@((int)ui::Module::SpaceLens)] = lens;
-    _pages[@((int)ui::Module::Maintenance)] = maint;
+    _pages[@((int)ui::Module::SmartScan)] = [[DCResultsView alloc]
+        initWithMode:DCResultsModeJunk
+               title:@"Smart Scan"
+            subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SmartScan)]];
+    _pages[@((int)ui::Module::SystemJunk)] = [[DCResultsView alloc]
+        initWithMode:DCResultsModeJunk
+               title:@"System Junk"
+            subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SystemJunk)]];
+    _pages[@((int)ui::Module::LargeFiles)] = [[DCLargeFilesView alloc] initWithFrame:NSZeroRect];
+    _pages[@((int)ui::Module::Duplicates)] = [[DCDuplicatesView alloc] initWithFrame:NSZeroRect];
+    _pages[@((int)ui::Module::Uninstaller)] = [[DCUninstallerView alloc] initWithFrame:NSZeroRect];
+    _pages[@((int)ui::Module::Privacy)] = [[DCResultsView alloc]
+        initWithMode:DCResultsModePrivacy
+               title:@"Privacy"
+            subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::Privacy)]];
+    _pages[@((int)ui::Module::SpaceLens)] = [[DCSpaceLensView alloc] initWithFrame:NSZeroRect];
+    _pages[@((int)ui::Module::Maintenance)] = [[DCMaintenanceView alloc] initWithFrame:NSZeroRect];
 
     __weak DCMainWindowController* weakSelf = self;
     _sidebar.onSelect = ^(ui::Module m) {
@@ -77,12 +100,6 @@
       [s showModule:m];
     };
 
-    dcmm::Engine e;
-    auto d = e.disk("/");
-    double used = d.totalBytes ? 1.0 - (double)d.availableBytes / (double)d.totalBytes : 0;
-    _sidebar.diskUsedFraction = used;
-    _sidebar.freeCaption = [NSString stringWithFormat:@"%@ free", DCNS(dcmm::formatBytes(d.availableBytes))];
-
     [self showModule:ui::Module::Overview];
   }
   return self;
@@ -93,38 +110,39 @@
   NSView* page = _pages[@((int)m)];
   if (!page) return;
   [_content addSubview:page];
-  page.frame = _content.bounds;
-  page.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-}
-
-- (void)windowDidResize:(NSNotification*)notification {
-  [self layout];
+  DCPinEdges(page, _content);
 }
 
 - (void)showWindowAndActivate {
   [self.window center];
   [self.window makeKeyAndOrderFront:nil];
   [NSApp activateIgnoringOtherApps:YES];
-  [self layout];
 }
 
-- (void)layout {
-  NSView* root = self.window.contentView;
-  NSRect b = root.bounds;
-  const CGFloat side = 232;
-  _sidebar.frame = NSMakeRect(0, 0, side, b.size.height);
-  _content.frame = NSMakeRect(side + 16, 28, b.size.width - side - 32, b.size.height - 56);
-  for (NSView* v in _content.subviews) v.frame = _content.bounds;
+- (CGFloat)splitView:(NSSplitView*)splitView constrainMinCoordinate:(CGFloat)proposed
+         ofSubviewAt:(NSInteger)dividerIndex {
+  (void)proposed;
+  (void)dividerIndex;
+  (void)splitView;
+  return 180;
 }
 
-@end
-
-@interface DCRootView : NSView
-@property(nonatomic, weak) DCMainWindowController* controller;
-@end
-@implementation DCRootView
-- (void)setFrameSize:(NSSize)newSize {
-  [super setFrameSize:newSize];
-  [self.controller layout];
+- (CGFloat)splitView:(NSSplitView*)splitView constrainMaxCoordinate:(CGFloat)proposed
+         ofSubviewAt:(NSInteger)dividerIndex {
+  (void)proposed;
+  (void)dividerIndex;
+  return MIN(260, NSWidth(splitView.bounds) - 480);
 }
+
+- (BOOL)splitView:(NSSplitView*)splitView shouldAdjustSizeOfSubview:(NSView*)view {
+  (void)splitView;
+  return view != _sidebar;
+}
+
+- (BOOL)splitView:(NSSplitView*)splitView canCollapseSubview:(NSView*)subview {
+  (void)splitView;
+  (void)subview;
+  return NO;
+}
+
 @end

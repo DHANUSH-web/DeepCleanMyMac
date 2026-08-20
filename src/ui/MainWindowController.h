@@ -2,7 +2,6 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface DCMainWindowController : NSWindowController <NSWindowDelegate>
+@interface DCMainWindowController : NSWindowController <NSWindowDelegate, NSSplitViewDelegate>
 - (void)showWindowAndActivate;
-- (void)layout;
 @end
