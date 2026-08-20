@@ -155,6 +155,17 @@ Smart Scan **Select All** toggles to **Unselect All** when every listed item is 
 
 Do not call `unlink`/`removeItem` from the GUI except through the engine. Do not weaken `isSafeToTrash`.
 
+## Commits
+
+Every commit subject must be `KIND: message` with **KIND in uppercase**:
+
+- **FEAT:** new behavior, UI, tests, Makefile/presets, or docs that add capability
+- **FIX:** a bug, broken path, wrong default, or regression
+
+Examples: `FEAT: Add Smart Scan group recommendations.` / `FIX: Open the release app from make run.`
+
+Do not use Conventional Commits (`feat:` lowercase, scopes, types like `chore`). Split mixed work into a FEAT commit and a FIX commit. Subject after the colon is imperative, like the rest of this repo.
+
 ## How to work
 
 - UI-only requests: headers in `include/` (`include/ui/`), implementations in `src/` (`src/ui/`). Do not “fix” catalogs unless asked.
