@@ -38,5 +38,7 @@
   <string>DeepCleanMyMac scans Documents to find large and duplicate files you can review before moving them to Trash.</string>
   <key>NSDownloadsFolderUsageDescription</key>
   <string>DeepCleanMyMac scans Downloads to find large and duplicate files you can review before moving them to Trash.</string>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>DeepCleanMyMac asks Finder to count and empty Trash because macOS otherwise hides ~/.Trash from the app.</string>
 </dict>
 </plist>

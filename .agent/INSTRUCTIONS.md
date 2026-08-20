@@ -137,7 +137,7 @@ Never skip these, even if the engine would also block:
 2. **Confirm before any removal.** `DCConfirmMoveToTrash` / `DCConfirmDestructive`: **Cancel is the default (Return)**. Destructive button is second. List paths and size when moving to Trash.
 3. **Preview first.** Maintenance: `previewMaintenance`. If `nothingToDo`, show **`DCInformNothingToClean`** — do not run Empty Trash (or Quick Look) on an empty set.
 4. **Report outcome.** After a real clean: **`DCInformCleaned`** with **bytes freed** and item count. If zero items moved: Nothing to clean.
-5. Empty Trash copy must say it is **permanent** and only affects user Trash.
+5. Empty Trash copy must say it is **permanent** and only affects user Trash. macOS TCC often hides `~/.Trash`; the engine must not treat permission-denied as empty. Finder automation empties Trash; `NSAppleEventsUsageDescription` is required.
 6. DNS flush / Launch Services: they do **not** delete files; dialogs must say that (no fake byte counts).
 
 Smart Scan **Select All** toggles to **Unselect All** when every listed item is checked (including after individual checkbox changes).
