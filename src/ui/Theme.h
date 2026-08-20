@@ -9,41 +9,29 @@ inline NSString* DCNS(const std::string& s) {
   return [[NSString alloc] initWithBytes:s.data() length:s.size() encoding:NSUTF8StringEncoding] ?: @"";
 }
 
-namespace th {
+NSTextField* DCLabel(NSString* text);
+NSTextField* DCSecondaryLabel(NSString* text);
+NSTextField* DCCaptionLabel(NSString* text);
+NSTextField* DCTitleLabel(NSString* text);
 
-inline NSColor* rgb(double r, double g, double b, double a = 1.0) {
-  return [NSColor colorWithSRGBRed:r green:g blue:b alpha:a];
-}
-inline NSColor* bg() { return rgb(0.051, 0.063, 0.082); }
-inline NSColor* sidebar() { return rgb(0.062, 0.074, 0.098); }
-inline NSColor* card() { return rgb(0.098, 0.114, 0.149); }
-inline NSColor* cardHi() { return rgb(0.122, 0.141, 0.184); }
-inline NSColor* stroke() { return rgb(1, 1, 1, 0.08); }
-inline NSColor* accent() { return rgb(0.239, 0.863, 0.592); }
-inline NSColor* accentDim() { return rgb(0.239, 0.863, 0.592, 0.16); }
-inline NSColor* danger() { return rgb(1.0, 0.361, 0.478); }
-inline NSColor* warn() { return rgb(1.0, 0.757, 0.318); }
-inline NSColor* text() { return rgb(0.910, 0.925, 0.945); }
-inline NSColor* muted() { return rgb(0.545, 0.576, 0.655); }
-inline NSColor* dim() { return rgb(0.373, 0.404, 0.478); }
-inline NSFont* title() { return [NSFont systemFontOfSize:26 weight:NSFontWeightBold]; }
-inline NSFont* heading() { return [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold]; }
-inline NSFont* body() { return [NSFont systemFontOfSize:13 weight:NSFontWeightRegular]; }
-inline NSFont* small() { return [NSFont systemFontOfSize:11 weight:NSFontWeightMedium]; }
-inline NSFont* mono() { return [NSFont monospacedDigitSystemFontOfSize:13 weight:NSFontWeightMedium]; }
+NSButton* DCPushButton(NSString* title, id target, SEL action);
+NSButton* DCDefaultButton(NSString* title, id target, SEL action);
+NSButton* DCDestructiveButton(NSString* title, id target, SEL action);
 
-}  // namespace th
+void DCStyleTable(NSTableView* table);
+NSScrollView* DCWrapTable(NSTableView* table);
 
-@interface DCButton : NSButton
-@property(nonatomic) BOOL primary;
-@property(nonatomic) BOOL destructive;
-@end
+void DCPinEdges(NSView* child, NSView* parent);
+NSStackView* DCPageStack(NSView* host);
+NSStackView* DCHeaderStack(NSString* title, NSString* subtitle);
+NSStackView* DCTrailingButtons(NSArray<NSButton*>* buttons);
+NSStackView* DCEqualButtonRow(NSArray<NSButton*>* buttons);
+void DCStackFullWidth(NSStackView* stack, NSView* view);
+void DCStackExpand(NSStackView* stack, NSView* view);
+NSView* DCFlexibleSpace(void);
 
-@interface DCRingView : NSView
-@property(nonatomic) double progress;
-@property(nonatomic, copy) NSString* centerText;
-@property(nonatomic, strong) NSColor* ringColor;
-@end
-
-NSTextField* DCLabel(NSString* text, NSFont* font, NSColor* color);
-void DCRoundLayer(NSView* v, CGFloat radius, NSColor* fill, NSColor* border);
+/// Cancel is the default (Return). Returns YES only if the user chose Move to Trash.
+BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes);
+BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle);
+void DCInformNothingToClean(NSString* detail);
+void DCInformCleaned(NSString* title, NSString* detail);
