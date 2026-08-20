@@ -71,7 +71,7 @@
     DCDashboardView* dash = [[DCDashboardView alloc] initWithFrame:NSZeroRect];
     _pages[@((int)ui::Module::Overview)] = dash;
     _pages[@((int)ui::Module::SmartScan)] = [[DCResultsView alloc]
-        initWithMode:DCResultsModeJunk
+        initWithMode:DCResultsModeSmart
                title:@"Smart Scan"
             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SmartScan)]];
     _pages[@((int)ui::Module::SystemJunk)] = [[DCResultsView alloc]

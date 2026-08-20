@@ -116,7 +116,8 @@ Disk usage is **Overview only**, not duplicated in the sidebar.
 
 Never skip these, even if the engine would also block:
 
-1. **Opt-in.** Scan items start **unchecked**. Do not auto-select junk.
+1. **Opt-in for System Junk, Privacy, Large Files, Duplicates, Uninstaller.** Those lists start **unchecked**.
+   **Smart Scan is the exception:** `scanSmart()` returns **recommended groups already selected**. The user still confirms before Trash. Do not list per-file rows on Smart Scan — one row per group (User Caches, Logs, Saved Application State). System Junk is the item-by-item picker (`scanJunk`).
 2. **Confirm before any removal.** `DCConfirmMoveToTrash` / `DCConfirmDestructive`: **Cancel is the default (Return)**. Destructive button is second. List paths and size when moving to Trash.
 3. **Preview first.** Maintenance: `previewMaintenance`. If `nothingToDo`, show **`DCInformNothingToClean`** — do not run Empty Trash (or Quick Look) on an empty set.
 4. **Report outcome.** After a real clean: **`DCInformCleaned`** with **bytes freed** and item count. If zero items moved: Nothing to clean.
@@ -131,7 +132,7 @@ Smart Scan **Select All** toggles to **Unselect All** when every listed item is 
 #include <dcmm/dcmm.hpp>
 ```
 
-- `scanJunk` / `scanPrivacy`
+- `scanSmart` / `scanJunk` / `scanPrivacy`
 - `trashPaths`
 - `findLargeFiles` / `findDuplicates` / `spaceLens`
 - `listApps` / `attachLeftovers`

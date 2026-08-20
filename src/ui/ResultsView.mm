@@ -32,11 +32,15 @@ struct FlatRow {
 }
 
 - (instancetype)initWithMode:(DCResultsMode)mode {
-  NSString* title = mode == DCResultsModePrivacy ? @"Privacy" : @"Smart Scan";
-  NSString* sub =
-      mode == DCResultsModePrivacy
-          ? @"Browser caches and tracking leftovers. Cookies stay off unless you opt in."
-          : @"Caches, logs, developer leftovers, and Trash — review, then move to Trash.";
+  NSString* title = @"Smart Scan";
+  NSString* sub = @"Recommended caches and logs. Clean whole groups, not individual files.";
+  if (mode == DCResultsModePrivacy) {
+    title = @"Privacy";
+    sub = @"Browser caches and tracking leftovers. Cookies stay off unless you opt in.";
+  } else if (mode == DCResultsModeJunk) {
+    title = @"System Junk";
+    sub = @"Every cache and leftover, listed so you can pick.";
+  }
   return [self initWithMode:mode title:title subtitle:sub];
 }
 
@@ -103,7 +107,7 @@ struct FlatRow {
 - (void)rebuildRows {
   _rows.clear();
   for (int g = 0; g < (int)_report.groups.size(); ++g) {
-    _rows.push_back({true, g, -1});
+    if (_mode != DCResultsModeSmart) _rows.push_back({true, g, -1});
     for (int i = 0; i < (int)_report.groups[g].items.size(); ++i) _rows.push_back({false, g, i});
   }
 }
@@ -134,8 +138,13 @@ struct FlatRow {
                                        (unsigned long long)vis];
       });
     };
-    auto r = (strong->_mode == DCResultsModePrivacy) ? strong->_engine.scanPrivacy(cb)
-                                                     : strong->_engine.scanJunk(cb);
+    dcmm::ScanReport r;
+    if (strong->_mode == DCResultsModePrivacy)
+      r = strong->_engine.scanPrivacy(cb);
+    else if (strong->_mode == DCResultsModeSmart)
+      r = strong->_engine.scanSmart(cb);
+    else
+      r = strong->_engine.scanJunk(cb);
     dispatch_async(dispatch_get_main_queue(), ^{
       DCResultsView* s = weakSelf;
       if (s) [s finishWithReport:r];
@@ -153,8 +162,9 @@ struct FlatRow {
   _scanBtn.keyEquivalentModifierMask = 0;
   _cleanBtn.hidden = NO;
   _selAll.hidden = NO;
+  NSString* verb = _mode == DCResultsModeSmart ? @"Recommended" : @"Found";
   _status.stringValue =
-      [NSString stringWithFormat:@"Found %@ in %lu groups (%.1f s)",
+      [NSString stringWithFormat:@"%@ %@ in %lu groups (%.1f s)", verb,
                                  DCNS(dcmm::formatBytes(_report.totalBytes())),
                                  (unsigned long)_report.groups.size(), _report.elapsedMs / 1000.0];
   [_table reloadData];
@@ -265,8 +275,14 @@ struct FlatRow {
   NSTextField* t = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
   if ([ident isEqualToString:@"name"]) {
-    t.stringValue = DCNS(it.displayName);
-    t.toolTip = DCNS(it.path);
+    if (_mode == DCResultsModeSmart) {
+      const auto& g = _report.groups[fr.g];
+      t.stringValue = DCNS(g.title);
+      t.toolTip = [NSString stringWithFormat:@"%s\n%s", g.subtitle.c_str(), it.path.c_str()];
+    } else {
+      t.stringValue = DCNS(it.displayName);
+      t.toolTip = DCNS(it.path);
+    }
   } else if ([ident isEqualToString:@"files"]) {
     t.stringValue = [NSString stringWithFormat:@"%llu", (unsigned long long)it.fileCount];
     t.alignment = NSTextAlignmentRight;

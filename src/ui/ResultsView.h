@@ -5,6 +5,7 @@
 typedef NS_ENUM(NSInteger, DCResultsMode) {
   DCResultsModeJunk = 0,
   DCResultsModePrivacy = 1,
+  DCResultsModeSmart = 2,
 };
 
 @interface DCResultsView : NSView

@@ -33,8 +33,8 @@ inline const char* title(Module m) {
 inline const char* subtitle(Module m) {
   switch (m) {
     case Module::Overview: return "Disk health at a glance";
-    case Module::SmartScan: return "Find reclaimable space in one pass";
-    case Module::SystemJunk: return "Caches, logs, and leftover files";
+    case Module::SmartScan: return "Recommended safe groups — no file picking";
+    case Module::SystemJunk: return "Every cache and leftover, item by item";
     case Module::LargeFiles: return "Oversized files hogging the disk";
     case Module::Duplicates: return "Copies you no longer need";
     case Module::Uninstaller: return "Apps and their leftover files";

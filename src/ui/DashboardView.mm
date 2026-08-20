@@ -16,7 +16,7 @@ struct ToolRow {
 
 const ToolRow kTools[] = {
     {ui::Module::SmartScan, "sparkles", "Smart Scan",
-     "Find caches, logs, and leftover junk in one pass."},
+     "Recommended caches and logs. Clean whole groups, not individual files."},
     {ui::Module::LargeFiles, "doc.badge.ellipsis", "Large Files",
      "Surface oversized files you can review and remove."},
     {ui::Module::Duplicates, "doc.on.doc", "Duplicates",

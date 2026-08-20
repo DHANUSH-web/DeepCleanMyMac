@@ -38,7 +38,8 @@ open build/DeepCleanMyMac.app
 
 ## What the app does
 
-- Smart Scan / System Junk — regenerable caches, logs, Xcode leftovers, Homebrew, package-manager caches
+- Smart Scan — recommended groups only (`~/Library/Caches`, logs, saved state)
+- System Junk — every cache and leftover, item by item (npm, Cargo, Xcode, Darwin tmp, …)
 - Large files and SHA-256 duplicates
 - App uninstaller + leftover files
 - Privacy (browser caches)
