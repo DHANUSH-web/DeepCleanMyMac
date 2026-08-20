@@ -87,7 +87,7 @@
     lv.minValue = 0;
     lv.maxValue = 100;
     lv.doubleValue = _max ? (100.0 * n.bytes / _max) : 0;
-    return lv;
+    return DCCenteredFillCell(lv);
   }
   NSTextField* t = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
@@ -98,7 +98,7 @@
     t.alignment = NSTextAlignmentRight;
     t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
   }
-  return t;
+  return DCCenteredTextCell(t);
 }
 
 @end

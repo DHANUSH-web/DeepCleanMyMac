@@ -256,14 +256,14 @@ struct FlatRow {
     } else {
       t.stringValue = @"";
     }
-    return t;
+    return DCCenteredTextCell(t);
   }
   auto& it = _report.groups[fr.g].items[fr.i];
   if ([ident isEqualToString:@"check"]) {
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(checkToggled:)];
     b.state = it.selected ? NSControlStateValueOn : NSControlStateValueOff;
     b.tag = row;
-    return b;
+    return DCCenteredCheckCell(b);
   }
   NSTextField* t = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
@@ -284,7 +284,7 @@ struct FlatRow {
     t.alignment = NSTextAlignmentRight;
     t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
   }
-  return t;
+  return DCCenteredTextCell(t);
 }
 
 - (void)checkToggled:(NSButton*)sender {

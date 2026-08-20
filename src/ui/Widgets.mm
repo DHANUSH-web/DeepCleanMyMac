@@ -60,6 +60,38 @@ void DCStyleTable(NSTableView* table) {
   table.columnAutoresizingStyle = NSTableViewUniformColumnAutoresizingStyle;
   table.allowsColumnReordering = YES;
   table.allowsEmptySelection = YES;
+  table.usesAutomaticRowHeights = NO;
+}
+
+NSTableCellView* DCCenteredFillCell(NSView* content) {
+  NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
+  content.translatesAutoresizingMaskIntoConstraints = NO;
+  [cell addSubview:content];
+  [content setContentHuggingPriority:NSLayoutPriorityDefaultHigh
+                      forOrientation:NSLayoutConstraintOrientationVertical];
+  [NSLayoutConstraint activateConstraints:@[
+    [content.leadingAnchor constraintEqualToAnchor:cell.leadingAnchor],
+    [content.trailingAnchor constraintEqualToAnchor:cell.trailingAnchor],
+    [content.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
+  ]];
+  return cell;
+}
+
+NSTableCellView* DCCenteredTextCell(NSTextField* field) {
+  NSTableCellView* cell = DCCenteredFillCell(field);
+  cell.textField = field;
+  return cell;
+}
+
+NSTableCellView* DCCenteredCheckCell(NSButton* checkbox) {
+  NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
+  checkbox.translatesAutoresizingMaskIntoConstraints = NO;
+  [cell addSubview:checkbox];
+  [NSLayoutConstraint activateConstraints:@[
+    [checkbox.centerXAnchor constraintEqualToAnchor:cell.centerXAnchor],
+    [checkbox.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
+  ]];
+  return cell;
 }
 
 NSScrollView* DCWrapTable(NSTableView* table) {

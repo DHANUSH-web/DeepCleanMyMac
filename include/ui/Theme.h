@@ -20,6 +20,9 @@ NSButton* DCDestructiveButton(NSString* title, id target, SEL action);
 
 void DCStyleTable(NSTableView* table);
 NSScrollView* DCWrapTable(NSTableView* table);
+NSTableCellView* DCCenteredTextCell(NSTextField* field);
+NSTableCellView* DCCenteredCheckCell(NSButton* checkbox);
+NSTableCellView* DCCenteredFillCell(NSView* content);
 
 void DCPinEdges(NSView* child, NSView* parent);
 NSStackView* DCPageStack(NSView* host);

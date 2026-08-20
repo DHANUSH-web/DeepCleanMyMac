@@ -157,14 +157,14 @@
       t.alignment = NSTextAlignmentRight;
       t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
     }
-    return t;
+    return DCCenteredTextCell(t);
   }
   auto& it = _apps[(size_t)_sel].leftovers[(size_t)row];
   if ([col.identifier isEqualToString:@"check"]) {
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
     b.state = it.selected ? NSControlStateValueOn : NSControlStateValueOff;
     b.tag = row;
-    return b;
+    return DCCenteredCheckCell(b);
   }
   NSTextField* t = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
@@ -176,7 +176,7 @@
     t.alignment = NSTextAlignmentRight;
     t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
   }
-  return t;
+  return DCCenteredTextCell(t);
 }
 
 - (void)tog:(NSButton*)s {

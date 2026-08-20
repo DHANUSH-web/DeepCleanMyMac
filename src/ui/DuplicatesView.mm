@@ -125,7 +125,7 @@
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(keep:)];
     b.state = f.keep ? NSControlStateValueOn : NSControlStateValueOff;
     b.tag = row;
-    return b;
+    return DCCenteredCheckCell(b);
   }
   NSTextField* t = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
@@ -136,7 +136,7 @@
     t.alignment = NSTextAlignmentRight;
     t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
   }
-  return t;
+  return DCCenteredTextCell(t);
 }
 
 - (void)keep:(NSButton*)s {
