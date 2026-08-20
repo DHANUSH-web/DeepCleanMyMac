@@ -37,6 +37,17 @@ CMake + **Ninja** + **Apple Clang**. OBJCXX + ARC. Deployment target 13.0.
 
 ```bash
 git submodule update --init --recursive   # if using submodule
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
+open build/release/DeepCleanMyMac.app
+```
+
+Debug: `--preset debug` (`build/debug`). Presets are in `CMakePresets.json` (Ninja + Clang). Do not commit `CMakeUserPresets.json`.
+
+Equivalent without presets:
+
+```bash
 cmake -S . -B build -G Ninja \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_CXX_COMPILER=clang++ \

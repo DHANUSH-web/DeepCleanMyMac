@@ -17,6 +17,17 @@ If the submodule is missing, CMake will also accept a sibling `../dcmmlib` check
 
 ```bash
 git submodule update --init --recursive
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
+open build/release/DeepCleanMyMac.app
+```
+
+Debug: `--preset debug` (output in `build/debug`).
+
+Equivalent without presets:
+
+```bash
 cmake -S . -B build -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-clang.cmake \
   -DCMAKE_BUILD_TYPE=Release
