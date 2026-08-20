@@ -17,7 +17,20 @@ If the submodule is missing, CMake will also accept a sibling `../dcmmlib` check
 ## Build (LLVM + Clang + Ninja)
 
 ```bash
-git submodule update --init --recursive
+make init                 # first time: extras/dcmmlib submodule
+make                      # debug (default)
+make build release
+make test
+make run                  # open DeepCleanMyMac.app
+make clean
+```
+
+`make help` lists presets (`debug` / `release` / `all`), `relaunch`, and `test release`.
+
+Equivalent with CMake presets:
+
+```bash
+git submodule update --init extras/dcmmlib
 cmake --preset release
 cmake --build --preset release
 ctest --preset release
