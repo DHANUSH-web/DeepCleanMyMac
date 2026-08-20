@@ -85,8 +85,18 @@ if(DCMM_DESKTOP_BUILD_TESTS)
   add_executable(dcmm-desktop-tests
     tests/test_engine_link.cpp
     tests/test_modules.cpp
+    tests/test_navigation.cpp
+    tests/test_overview.cpp
+    tests/test_smart_scan.cpp
+    tests/test_system_junk.cpp
+    tests/test_privacy.cpp
+    tests/test_large_files.cpp
+    tests/test_duplicates.cpp
+    tests/test_space_lens.cpp
+    tests/test_uninstaller.cpp
+    tests/test_maintenance.cpp
   )
-  target_include_directories(dcmm-desktop-tests PRIVATE include)
+  target_include_directories(dcmm-desktop-tests PRIVATE include tests)
   target_link_libraries(dcmm-desktop-tests PRIVATE dcmm GTest::gtest_main)
   include(GoogleTest)
   gtest_discover_tests(dcmm-desktop-tests)

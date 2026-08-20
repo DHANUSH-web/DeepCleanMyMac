@@ -1,34 +1,12 @@
 #import "ui/DashboardView.h"
 #import "ui/Theme.h"
 
+#include "AppFeatures.hpp"
 #include "dcmm/dcmm.hpp"
 
 #import <QuartzCore/QuartzCore.h>
 
 namespace {
-
-struct ToolRow {
-  ui::Module module;
-  const char* symbol;
-  const char* title;
-  const char* subtitle;
-};
-
-const ToolRow kTools[] = {
-    {ui::Module::SmartScan, "sparkles", "Smart Scan",
-     "Recommended caches and logs. Clean whole groups, not individual files."},
-    {ui::Module::LargeFiles, "doc.badge.ellipsis", "Large Files",
-     "Surface oversized files you can review and remove."},
-    {ui::Module::Duplicates, "doc.on.doc", "Duplicates",
-     "Hash-matched copies under common folders."},
-    {ui::Module::Uninstaller, "shippingbox", "Uninstaller",
-     "Remove an app together with leftover files."},
-    {ui::Module::Privacy, "eye.slash", "Privacy",
-     "Browser caches and tracking leftovers you choose."},
-    {ui::Module::Maintenance, "wrench.and.screwdriver", "Maintenance",
-     "Empty Trash, flush DNS, rebuild Launch Services."},
-};
-constexpr NSInteger kToolCount = 6;
 
 NSString* VolumeDisplayName() {
   NSURL* url = [NSURL fileURLWithPath:@"/"];
@@ -59,7 +37,7 @@ void DCApplyFill(NSView* v, NSColor* color) {
   BOOL _hover;
 }
 
-- (instancetype)initWithTool:(const ToolRow&)tool {
+- (instancetype)initWithTool:(const ui::DashboardTool&)tool {
   self = [super initWithFrame:NSZeroRect];
   if (self) {
     _module = tool.module;
@@ -273,8 +251,8 @@ void DCApplyFill(NSView* v, NSColor* color) {
     toolList.spacing = 2;
     toolList.edgeInsets = NSEdgeInsetsMake(6, 4, 6, 4);
     __weak DCDashboardView* weakSelf = self;
-    for (NSInteger i = 0; i < kToolCount; ++i) {
-      DCToolRowView* row = [[DCToolRowView alloc] initWithTool:kTools[i]];
+    for (const auto& tool : ui::dashboardTools()) {
+      DCToolRowView* row = [[DCToolRowView alloc] initWithTool:tool];
       row.onOpen = ^(ui::Module m) {
         DCDashboardView* s = weakSelf;
         if (s.onOpen) s.onOpen(m);

@@ -1,5 +1,6 @@
 #import "ui/LargeFilesView.h"
 #import "ui/Theme.h"
+#include "AppFeatures.hpp"
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
@@ -62,11 +63,7 @@
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCLargeFilesView* strong = weakSelf;
     if (!strong) return;
-    dcmm::LargeFileOptions opt;
-    auto home = dcmm::homeDirectory();
-    opt.roots = {dcmm::joinPath(home, "Desktop"), dcmm::joinPath(home, "Documents"),
-                 dcmm::joinPath(home, "Downloads"), dcmm::joinPath(home, "Movies")};
-    auto files = strong->_engine.findLargeFiles(opt);
+    auto files = strong->_engine.findLargeFiles(ui::largeFileOptions());
     dispatch_async(dispatch_get_main_queue(), ^{
       DCLargeFilesView* s = weakSelf;
       if (!s) return;
@@ -93,9 +90,7 @@
 }
 
 - (void)cleanSelected {
-  std::vector<std::string> paths;
-  for (auto& f : _files)
-    if (f.selected) paths.push_back(f.path);
+  auto paths = ui::selectedLargeFilePaths(_files);
   if (paths.empty()) {
     DCInformNothingToClean(@"Select files in the list first. Nothing was deleted.");
     return;

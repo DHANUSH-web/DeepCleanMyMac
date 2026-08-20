@@ -1,6 +1,8 @@
 #import "ui/ResultsView.h"
 #import "ui/Theme.h"
 
+#include "AppFeatures.hpp"
+#include "Modules.h"
 #include "dcmm/dcmm.hpp"
 
 #include <vector>
@@ -138,13 +140,12 @@ struct FlatRow {
                                        (unsigned long long)vis];
       });
     };
-    dcmm::ScanReport r;
+    ui::Module page = ui::Module::SystemJunk;
     if (strong->_mode == DCResultsModePrivacy)
-      r = strong->_engine.scanPrivacy(cb);
+      page = ui::Module::Privacy;
     else if (strong->_mode == DCResultsModeSmart)
-      r = strong->_engine.scanSmart(cb);
-    else
-      r = strong->_engine.scanJunk(cb);
+      page = ui::Module::SmartScan;
+    auto r = ui::runScan(strong->_engine, page, cb);
     dispatch_async(dispatch_get_main_queue(), ^{
       DCResultsView* s = weakSelf;
       if (s) [s finishWithReport:r];
@@ -173,13 +174,7 @@ struct FlatRow {
 }
 
 - (BOOL)allItemsSelected {
-  bool any = false;
-  for (const auto& g : _report.groups)
-    for (const auto& it : g.items) {
-      any = true;
-      if (!it.selected) return NO;
-    }
-  return any;
+  return ui::allScanItemsSelected(_report) ? YES : NO;
 }
 
 - (void)refreshSelectAllTitle {
@@ -193,9 +188,7 @@ struct FlatRow {
 }
 
 - (void)toggleAll {
-  bool select = ![self allItemsSelected];
-  for (auto& g : _report.groups)
-    for (auto& it : g.items) it.selected = select;
+  ui::setAllScanItemsSelected(_report, ![self allItemsSelected]);
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];

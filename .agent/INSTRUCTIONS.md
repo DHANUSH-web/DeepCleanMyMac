@@ -77,7 +77,8 @@ Links: `dcmm`, Cocoa, AppKit, Foundation, QuartzCore, Collaboration.
 | `src/ui/UninstallerView.mm` | Apps + leftovers |
 | `src/ui/SpaceLensView.mm` | Home folder sizes |
 | `src/ui/MaintenanceView.mm` | Housekeeping cards |
-| `tests/` | GoogleTest: engine link, module titles, trash-root reject |
+| `include/AppFeatures.hpp` | Desktop feature contracts (scan dispatch, roots, Select All) |
+| `tests/` | Regression tests for every sidebar module (isolated `DCMM_HOME`) |
 
 ## UI design rules (hard-won — do not regress)
 

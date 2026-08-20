@@ -1,5 +1,6 @@
 #import "ui/DuplicatesView.h"
 #import "ui/Theme.h"
+#include "AppFeatures.hpp"
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
@@ -70,11 +71,7 @@
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCDuplicatesView* strong = weakSelf;
     if (!strong) return;
-    dcmm::DuplicateOptions opt;
-    auto home = dcmm::homeDirectory();
-    opt.roots = {dcmm::joinPath(home, "Downloads"), dcmm::joinPath(home, "Desktop"),
-                 dcmm::joinPath(home, "Documents")};
-    auto g = strong->_engine.findDuplicates(opt);
+    auto g = strong->_engine.findDuplicates(ui::duplicateOptions());
     dispatch_async(dispatch_get_main_queue(), ^{
       DCDuplicatesView* s = weakSelf;
       if (!s) return;
@@ -89,10 +86,7 @@
 }
 
 - (void)cleanSelected {
-  std::vector<std::string> paths;
-  for (auto& g : _groups)
-    for (auto& f : g.files)
-      if (!f.keep) paths.push_back(f.path);
+  auto paths = ui::duplicatePathsToTrash(_groups);
   if (paths.empty()) {
     DCInformNothingToClean(@"Every copy is marked Keep. Nothing was deleted.");
     return;

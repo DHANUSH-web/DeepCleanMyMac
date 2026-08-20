@@ -1,14 +1,9 @@
 #import "ui/SidebarView.h"
 #import "ui/Theme.h"
 
-#import <Collaboration/Collaboration.h>
+#include "AppFeatures.hpp"
 
-static NSArray<NSString*>* DCSymbols() {
-  return @[
-    @"square.grid.2x2", @"sparkles", @"internaldrive", @"doc.badge.ellipsis", @"doc.on.doc",
-    @"shippingbox", @"eye.slash", @"chart.bar", @"wrench.and.screwdriver"
-  ];
-}
+#import <Collaboration/Collaboration.h>
 
 static NSImage* DCUserProfileImage(void) {
   CBIdentity* identity =
@@ -207,8 +202,9 @@ static NSString* DCHostDisplayName(void) {
   }
   ui::Module m = (ui::Module)row;
   cell.textField.stringValue = [NSString stringWithUTF8String:ui::title(m)];
-  cell.imageView.image = [NSImage imageWithSystemSymbolName:DCSymbols()[row]
-                                   accessibilityDescription:cell.textField.stringValue];
+  cell.imageView.image =
+      [NSImage imageWithSystemSymbolName:[NSString stringWithUTF8String:ui::sidebarSymbol(m)]
+                accessibilityDescription:cell.textField.stringValue];
   return cell;
 }
 
