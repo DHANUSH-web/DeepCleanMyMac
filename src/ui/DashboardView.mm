@@ -5,6 +5,7 @@
 #include "SystemInfo.hpp"
 #include "dcmm/dcmm.hpp"
 
+#import <LocalAuthentication/LocalAuthentication.h>
 #import <QuartzCore/QuartzCore.h>
 
 namespace {
@@ -154,38 +155,96 @@ void DCApplyFill(NSView* v, NSColor* color) {
 }
 @end
 
-namespace {
+@interface DCSerialFactCard : NSVisualEffectView
+- (instancetype)initWithSerial:(NSString*)serial;
+@end
 
-NSStackView* DCFactRow(NSString* label, NSString* value) {
-  NSTextField* l = DCCaptionLabel(label);
-  l.font = [NSFont systemFontOfSize:12];
-  l.alignment = NSTextAlignmentRight;
-  [l.widthAnchor constraintEqualToConstant:96].active = YES;
-  [l setContentHuggingPriority:NSLayoutPriorityRequired
-                forOrientation:NSLayoutConstraintOrientationHorizontal];
-  [l setContentCompressionResistancePriority:NSLayoutPriorityRequired
-                              forOrientation:NSLayoutConstraintOrientationHorizontal];
-  NSTextField* v = DCLabel(value);
-  v.font = [NSFont systemFontOfSize:12];
-  v.selectable = YES;
-  v.lineBreakMode = NSLineBreakByTruncatingMiddle;
-  NSStackView* row = [NSStackView stackViewWithViews:@[ l, v ]];
-  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-  row.alignment = NSLayoutAttributeFirstBaseline;
-  row.spacing = 10;
-  [row setContentHuggingPriority:NSLayoutPriorityRequired
-                  forOrientation:NSLayoutConstraintOrientationVertical];
-  return row;
+@implementation DCSerialFactCard {
+  NSTextField* _value;
+  NSString* _secret;
+  BOOL _revealed;
+  BOOL _busy;
 }
 
-void DCSetFacts(NSStackView* stack, const std::vector<std::pair<std::string, std::string>>& facts) {
-  NSArray<NSView*>* old = [stack.arrangedSubviews copy];
-  for (NSView* v in old) {
-    [stack removeArrangedSubview:v];
-    [v removeFromSuperview];
+- (instancetype)initWithSerial:(NSString*)serial {
+  self = [super initWithFrame:NSZeroRect];
+  if (self) {
+    _secret = [serial copy];
+    self.material = NSVisualEffectMaterialContentBackground;
+    self.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    self.state = NSVisualEffectStateFollowsWindowActiveState;
+    self.wantsLayer = YES;
+    self.layer.cornerRadius = 10;
+    self.layer.masksToBounds = YES;
+    [self setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+
+    NSTextField* l = DCCaptionLabel(@"Serial Number");
+    l.font = [NSFont systemFontOfSize:11];
+    _value = DCLabel(@(ui::kMaskedSerial));
+    _value.font = [NSFont monospacedDigitSystemFontOfSize:13 weight:NSFontWeightSemibold];
+    _value.selectable = NO;
+    NSStackView* body = [NSStackView stackViewWithViews:@[ l, _value ]];
+    body.orientation = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment = NSLayoutAttributeLeading;
+    body.spacing = 2;
+    body.edgeInsets = NSEdgeInsetsMake(10, 12, 10, 12);
+    [self addSubview:body];
+    DCPinEdges(body, self);
+    self.toolTip = @"Click to reveal with Touch ID or your password.";
+    self.accessibilityRole = NSAccessibilityButtonRole;
+    self.accessibilityLabel = @"Serial number, hidden. Click to reveal with Touch ID.";
   }
-  for (const auto& f : facts) [stack addArrangedSubview:DCFactRow(DCNS(f.first), DCNS(f.second))];
+  return self;
 }
+
+- (void)resetCursorRects {
+  if (!_revealed) [self addCursorRect:self.bounds cursor:[NSCursor pointingHandCursor]];
+}
+
+- (void)mouseUp:(NSEvent*)event {
+  NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+  if (!NSPointInRect(p, self.bounds)) return;
+  if (_revealed || _busy || _secret.length == 0) return;
+  [self revealAfterAuth];
+}
+
+- (BOOL)accessibilityPerformPress {
+  if (_revealed || _busy || _secret.length == 0) return NO;
+  [self revealAfterAuth];
+  return YES;
+}
+
+- (void)revealAfterAuth {
+  LAContext* ctx = [[LAContext alloc] init];
+  NSError* err = nil;
+  if (![ctx canEvaluatePolicy:LAPolicyDeviceOwnerAuthentication error:&err]) return;
+  _busy = YES;
+  __weak DCSerialFactCard* weakSelf = self;
+  [ctx evaluatePolicy:LAPolicyDeviceOwnerAuthentication
+      localizedReason:@"Reveal the Mac serial number."
+                reply:^(BOOL success, NSError* error) {
+                  dispatch_async(dispatch_get_main_queue(), ^{
+                    DCSerialFactCard* s = weakSelf;
+                    if (!s) return;
+                    s->_busy = NO;
+                    if (!success) return;
+                    s->_revealed = YES;
+                    s->_value.stringValue = s->_secret;
+                    s->_value.selectable = YES;
+                    s.toolTip = nil;
+                    s.accessibilityRole = NSAccessibilityGroupRole;
+                    s.accessibilityLabel = @"Serial number";
+                    [s.window invalidateCursorRectsForView:s];
+                  });
+                }];
+}
+
+@end
+
+namespace {
 
 NSVisualEffectView* DCOverviewCard(NSView* body) {
   body.translatesAutoresizingMaskIntoConstraints = NO;
@@ -201,6 +260,68 @@ NSVisualEffectView* DCOverviewCard(NSView* body) {
   [card setContentHuggingPriority:NSLayoutPriorityRequired
                    forOrientation:NSLayoutConstraintOrientationVertical];
   return card;
+}
+
+NSView* DCMiniFactCard(NSString* label, NSString* value) {
+  NSTextField* l = DCCaptionLabel(label);
+  l.font = [NSFont systemFontOfSize:11];
+  NSTextField* v = DCLabel(value);
+  v.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+  v.selectable = YES;
+  v.maximumNumberOfLines = 3;
+  v.lineBreakMode = NSLineBreakByWordWrapping;
+  NSStackView* body = [NSStackView stackViewWithViews:@[ l, v ]];
+  body.orientation = NSUserInterfaceLayoutOrientationVertical;
+  body.alignment = NSLayoutAttributeLeading;
+  body.spacing = 2;
+  body.edgeInsets = NSEdgeInsetsMake(10, 12, 10, 12);
+  NSVisualEffectView* card = DCOverviewCard(body);
+  [card setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+  return card;
+}
+
+void DCClearStack(NSStackView* stack) {
+  NSArray<NSView*>* old = [stack.arrangedSubviews copy];
+  for (NSView* v in old) {
+    [stack removeArrangedSubview:v];
+    [v removeFromSuperview];
+  }
+}
+
+NSView* DCFactCard(const std::pair<std::string, std::string>& fact) {
+  if (fact.first == "Serial Number")
+    return [[DCSerialFactCard alloc] initWithSerial:DCNS(fact.second)];
+  return DCMiniFactCard(DCNS(fact.first), DCNS(fact.second));
+}
+
+void DCSetFactCards(NSStackView* stack,
+                    const std::vector<std::pair<std::string, std::string>>& facts) {
+  DCClearStack(stack);
+  for (size_t i = 0; i < facts.size();) {
+    NSMutableArray<NSView*>* views = [NSMutableArray array];
+    [views addObject:DCFactCard(facts[i])];
+    ++i;
+    if (i < facts.size()) {
+      [views addObject:DCFactCard(facts[i])];
+      ++i;
+    } else {
+      [views addObject:[[NSView alloc] initWithFrame:NSZeroRect]];
+    }
+    NSStackView* row = [NSStackView stackViewWithViews:views];
+    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    row.alignment = NSLayoutAttributeTop;
+    row.distribution = NSStackViewDistributionFillEqually;
+    row.spacing = 8;
+    [stack addArrangedSubview:row];
+    [row.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
+  }
+}
+
+NSTextField* DCSectionLabel(NSString* title) {
+  NSTextField* t = DCLabel(title);
+  t.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+  return t;
 }
 
 NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
@@ -219,8 +340,6 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
   NSScrollView* _scroll;
   DCFlippedDoc* _doc;
   NSStackView* _column;
-  NSTextField* _machineTitle;
-  NSTextField* _machineSub;
   NSStackView* _machineFacts;
   NSTextField* _volumeTitle;
   NSTextField* _capacityLine;
@@ -264,35 +383,18 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
     [_column addArrangedSubview:header];
     DCStackFullWidth(_column, header);
 
-    NSImageView* macIcon = DCCardSymbol(@"laptopcomputer", @"This Mac");
-    _machineTitle = DCLabel(@"—");
-    _machineTitle.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
-    _machineSub = DCCaptionLabel(@"—");
-    NSStackView* macText = [NSStackView stackViewWithViews:@[ _machineTitle, _machineSub ]];
-    macText.orientation = NSUserInterfaceLayoutOrientationVertical;
-    macText.alignment = NSLayoutAttributeLeading;
-    macText.spacing = 1;
-    NSStackView* macRow = [NSStackView stackViewWithViews:@[ macIcon, macText ]];
-    macRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    macRow.alignment = NSLayoutAttributeCenterY;
-    macRow.spacing = 10;
+    NSTextField* macLabel = DCSectionLabel(@"This Mac");
+    [_column addArrangedSubview:macLabel];
 
     _machineFacts = [NSStackView stackViewWithViews:@[]];
     _machineFacts.orientation = NSUserInterfaceLayoutOrientationVertical;
     _machineFacts.alignment = NSLayoutAttributeLeading;
-    _machineFacts.spacing = 5;
+    _machineFacts.spacing = 8;
+    [_column addArrangedSubview:_machineFacts];
+    DCStackFullWidth(_column, _machineFacts);
 
-    NSStackView* macBody = [NSStackView stackViewWithViews:@[ macRow, _machineFacts ]];
-    macBody.orientation = NSUserInterfaceLayoutOrientationVertical;
-    macBody.alignment = NSLayoutAttributeLeading;
-    macBody.spacing = 10;
-    macBody.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
-    NSVisualEffectView* macCard = DCOverviewCard(macBody);
-    [_column addArrangedSubview:macCard];
-    DCStackFullWidth(_column, macCard);
-    [_machineFacts.widthAnchor constraintEqualToAnchor:macBody.widthAnchor
-                                              constant:-(macBody.edgeInsets.left + macBody.edgeInsets.right)]
-        .active = YES;
+    NSTextField* diskLabel = DCSectionLabel(@"Startup disk");
+    [_column addArrangedSubview:diskLabel];
 
     NSImageView* diskIcon = DCCardSymbol(@"internaldrive.fill", @"Disk");
     _volumeTitle = DCLabel(@"—");
@@ -324,23 +426,24 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
     [_bar setContentHuggingPriority:1
                      forOrientation:NSLayoutConstraintOrientationHorizontal];
 
+    NSStackView* usageBody = [NSStackView stackViewWithViews:@[ volRow, barRow ]];
+    usageBody.orientation = NSUserInterfaceLayoutOrientationVertical;
+    usageBody.alignment = NSLayoutAttributeLeading;
+    usageBody.spacing = 10;
+    usageBody.edgeInsets = NSEdgeInsetsMake(12, 12, 12, 12);
+    NSVisualEffectView* usageCard = DCOverviewCard(usageBody);
+    [_column addArrangedSubview:usageCard];
+    DCStackFullWidth(_column, usageCard);
+    [barRow.widthAnchor constraintEqualToAnchor:usageBody.widthAnchor
+                                       constant:-(usageBody.edgeInsets.left + usageBody.edgeInsets.right)]
+        .active = YES;
+
     _storageFacts = [NSStackView stackViewWithViews:@[]];
     _storageFacts.orientation = NSUserInterfaceLayoutOrientationVertical;
     _storageFacts.alignment = NSLayoutAttributeLeading;
-    _storageFacts.spacing = 5;
-
-    NSStackView* diskBody = [NSStackView stackViewWithViews:@[ volRow, barRow, _storageFacts ]];
-    diskBody.orientation = NSUserInterfaceLayoutOrientationVertical;
-    diskBody.alignment = NSLayoutAttributeLeading;
-    diskBody.spacing = 10;
-    diskBody.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
-    NSVisualEffectView* diskCard = DCOverviewCard(diskBody);
-    [_column addArrangedSubview:diskCard];
-    DCStackFullWidth(_column, diskCard);
-    [_storageFacts.widthAnchor constraintEqualToAnchor:diskBody.widthAnchor
-                                              constant:-(diskBody.edgeInsets.left + diskBody.edgeInsets.right)]
-        .active = YES;
-    [barRow.widthAnchor constraintEqualToAnchor:_storageFacts.widthAnchor].active = YES;
+    _storageFacts.spacing = 8;
+    [_column addArrangedSubview:_storageFacts];
+    DCStackFullWidth(_column, _storageFacts);
 
     NSTextField* hint = DCCaptionLabel(
         @"Grant Full Disk Access in System Settings → Privacy & Security for a deeper scan.");
@@ -390,11 +493,10 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
   ui::HostInfo host = ui::hostInfo();
   ui::VolumeInfo vol = ui::volumeInfo("/");
 
-  _machineTitle.stringValue =
-      host.computerName.empty() ? @"This Mac" : DCNS(host.computerName);
-  NSString* model = host.modelName.empty() ? DCNS(host.modelId) : DCNS(host.modelName);
-  _machineSub.stringValue = model.length ? model : @"Mac";
-  DCSetFacts(_machineFacts, ui::machineFacts(host));
+  auto mac = ui::machineFacts(host);
+  if (!host.modelName.empty()) mac.insert(mac.begin(), {"Mac", host.modelName});
+  if (!host.computerName.empty()) mac.insert(mac.begin(), {"Name", host.computerName});
+  DCSetFactCards(_machineFacts, mac);
 
   _volumeTitle.stringValue =
       vol.volumeName.empty() ? VolumeDisplayName() : DCNS(vol.volumeName);
@@ -407,7 +509,7 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
                                  DCNS(dcmm::formatBytes(total))];
   _availableLine.stringValue =
       [NSString stringWithFormat:@"%@ available", DCNS(dcmm::formatBytes(avail))];
-  DCSetFacts(_storageFacts, ui::storageFacts(vol));
+  DCSetFactCards(_storageFacts, ui::storageFacts(vol));
   [self setNeedsLayout:YES];
 }
 

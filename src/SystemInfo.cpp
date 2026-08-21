@@ -428,16 +428,9 @@ std::vector<std::pair<std::string, std::string>> machineFacts(const HostInfo& h)
   addFact(out, "Cores", formatCoreSummary(h.physicalCpus, h.performanceCpus, h.efficiencyCpus));
   if (h.memoryBytes)
     addFact(out, "Memory", dcmm::formatBytes(h.memoryBytes));
-  if (h.memoryUsedBytes && h.memoryBytes) {
-    std::string used = dcmm::formatBytes(h.memoryUsedBytes) + " used";
-    if (h.memoryWiredBytes) used += " · " + dcmm::formatBytes(h.memoryWiredBytes) + " wired";
-    if (h.memoryCompressedBytes)
-      used += " · " + dcmm::formatBytes(h.memoryCompressedBytes) + " compressed";
-    addFact(out, "In use", used);
-  }
   addFact(out, "macOS", formatOsLine(h));
   addFact(out, "Model", h.modelId);
-  addFact(out, "Serial", h.serial);
+  addFact(out, "Serial Number", h.serial);
   if (!h.hostname.empty() && h.hostname != h.computerName) addFact(out, "Hostname", h.hostname);
   return out;
 }
@@ -458,7 +451,6 @@ std::vector<std::pair<std::string, std::string>> storageFacts(const VolumeInfo& 
   if (v.blockSize) addFact(out, "Block size", std::to_string(v.blockSize) + " bytes");
   addFact(out, "SMART", v.smartStatus);
   addFact(out, "TRIM", v.trim);
-  addFact(out, "UUID", v.volumeUUID);
   return out;
 }
 

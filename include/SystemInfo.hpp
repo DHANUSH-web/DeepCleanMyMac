@@ -54,6 +54,8 @@ struct VolumeInfo {
 HostInfo hostInfo();
 VolumeInfo volumeInfo(const std::string& path = "/");
 
+inline constexpr const char* kMaskedSerial = "********";
+
 std::string formatCoreSummary(int physical, int performance, int efficiency);
 std::string formatOsLine(const HostInfo& h);
 std::string formatStorageKind(const VolumeInfo& v);

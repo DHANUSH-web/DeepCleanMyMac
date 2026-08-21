@@ -54,6 +54,15 @@ TEST(Overview, HostInfoHasModelChipMemoryAndOs) {
   EXPECT_TRUE(hasFact(facts, "Model"));
 }
 
+TEST(Overview, SerialStaysMaskedUntilAuth) {
+  EXPECT_STREQ(ui::kMaskedSerial, "********");
+  auto h = ui::hostInfo();
+  if (!h.serial.empty()) {
+    EXPECT_TRUE(hasFact(ui::machineFacts(h), "Serial Number"));
+    EXPECT_NE(h.serial, ui::kMaskedSerial);
+  }
+}
+
 TEST(Overview, VolumeInfoHasStartupDiskAndSsdFacts) {
   auto v = ui::volumeInfo("/");
   EXPECT_GT(v.totalBytes, 0u);

@@ -56,6 +56,7 @@ target_link_libraries(DeepCleanMyMac PRIVATE
   "-framework DiskArbitration"
   "-framework SystemConfiguration"
   "-framework CoreFoundation"
+  "-framework LocalAuthentication"
 )
 
 set(ICON_FILE "${CMAKE_SOURCE_DIR}/resources/AppIcon.icns")
