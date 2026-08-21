@@ -33,8 +33,14 @@ all:
 	$(MAKE) build PRESET=debug
 	$(MAKE) build PRESET=release
 
+ENGINE_GIT := https://github.com/DHANUSH-web/dcmmlib.git
+
 init:
+	git submodule sync -- extras/dcmmlib
 	git submodule update --init extras/dcmmlib
+	git -C extras/dcmmlib remote set-url origin "$(ENGINE_GIT)"
+	git -C extras/dcmmlib fetch origin main
+	git -C extras/dcmmlib checkout -B main origin/main
 
 build:
 	@if [ ! -f extras/dcmmlib/CMakeLists.txt ]; then \
@@ -81,6 +87,6 @@ help:
 	@echo "  make relaunch        pkill + open (after UI changes)"
 	@echo "  make clean           remove build/"
 	@echo "  make clean debug     remove build/debug"
-	@echo "  make init            git submodule update --init extras/dcmmlib"
+	@echo "  make init            clone/update extras/dcmmlib from GitHub main"
 	@echo
 	@echo "PRESET=$(PRESET)  APP=$(APP)"

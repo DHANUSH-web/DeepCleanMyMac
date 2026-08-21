@@ -21,4 +21,4 @@
 
 ## Submodule
 
-- [ ] `extras/dcmmlib` updated if this needs a new engine commit (from dcmmlib `dev`)
+- [ ] `extras/dcmmlib` is GitHub `main` (`make init`) if this needs a new engine release

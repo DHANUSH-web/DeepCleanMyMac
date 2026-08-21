@@ -15,12 +15,18 @@ dcmm-desktop/
   tests/             GoogleTest (engine link + module titles)
 ```
 
-The submodule is cloned from [dcmmlib on GitHub](https://github.com/DHANUSH-web/dcmmlib). If it is missing, CMake will also accept a sibling `../dcmmlib` checkout for local engine work.
+You do **not** need a separate dcmmlib clone. The engine lives only at `extras/dcmmlib`, pulled from [GitHub `main`](https://github.com/DHANUSH-web/dcmmlib).
+
+```bash
+git clone --recurse-submodules https://github.com/DHANUSH-web/DeepCleanMyMac.git
+cd DeepCleanMyMac
+make init                 # extras/dcmmlib from GitHub main (also if you cloned without --recurse-submodules)
+```
 
 ## Build (LLVM + Clang + Ninja)
 
 ```bash
-make init                 # first time: extras/dcmmlib submodule
+make init                 # extras/dcmmlib from GitHub main
 make                      # debug (default)
 make build release
 make test
@@ -33,7 +39,7 @@ make clean
 Equivalent with CMake presets:
 
 ```bash
-git submodule update --init extras/dcmmlib
+make init   # or: git submodule update --init extras/dcmmlib && git -C extras/dcmmlib checkout main
 cmake --preset release
 cmake --build --preset release
 ctest --preset release
