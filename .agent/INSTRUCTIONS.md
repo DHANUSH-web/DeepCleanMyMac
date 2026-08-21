@@ -157,6 +157,13 @@ Smart Scan **Select All** toggles to **Unselect All** when every listed item is 
 
 Do not call `unlink`/`removeItem` from the GUI except through the engine. Do not weaken `isSafeToTrash`.
 
+## Branches
+
+- **`beta`** — default development branch. Make all new commits here.
+- **`main`** — functional stable line. Do not land new work on `main` unless the user explicitly asks.
+
+Check `git status` / `git branch` at the start of a session. If you are on `main`, switch to `beta` before editing.
+
 ## Commits
 
 Every commit subject must be `KIND: message` with **KIND in uppercase**:
