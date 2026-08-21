@@ -164,6 +164,8 @@ Do not call `unlink`/`removeItem` from the GUI except through the engine. Do not
 
 Check `git status` / `git branch` at the start of a session. If you are on `main`, switch to `beta` before editing.
 
+The engine repo **dcmmlib** develops on **`dev`**. After engine changes, point `extras/dcmmlib` at that `dev` commit (not `main`).
+
 ## Commits
 
 Every commit subject must be `KIND: message` with **KIND in uppercase**:
@@ -179,7 +181,7 @@ Do not use Conventional Commits (`feat:` lowercase, scopes, types like `chore`).
 
 - UI-only requests: headers in `include/` (`include/ui/`), implementations in `src/` (`src/ui/`). Do not “fix” catalogs unless asked.
 - Third-party code and the engine submodule belong in `extras/`, never at the repo root.
-- Behavior/safety/scan: change **dcmmlib**, then sync `extras/dcmmlib`, then wire UI if needed.
+- Behavior/safety/scan: change **dcmmlib** on **`dev`**, then sync `extras/dcmmlib`, then wire UI on **`beta`**.
 - After UI changes, `make relaunch` (or `pkill -x DeepCleanMyMac` then `open build/release/DeepCleanMyMac.app`).
 - Match existing Objective-C++ style: ARC, helpers in `Theme.h`/`Widgets.mm`.
 
