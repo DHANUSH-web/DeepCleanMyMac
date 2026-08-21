@@ -18,12 +18,12 @@ DeepCleanMyMac/
   dcmm-desktop/            # this app (own git)
     include/               # this app's headers only
     src/                   # AppKit .mm
-    extras/dcmmlib/        # git submodule → ../dcmmlib
+    extras/dcmmlib/        # git submodule → https://github.com/DHANUSH-web/dcmmlib.git
 ```
 
-CMake prefers `extras/dcmmlib` if present, else sibling `../dcmmlib`. Do **not** clone the engine at the desktop repo root.
+CMake prefers `extras/dcmmlib` if present, else sibling `../dcmmlib` as a local fallback. Do **not** clone the engine at the desktop repo root.
 
-**If you change the engine**, edit the canonical `dcmmlib` repo and **sync** into `dcmm-desktop/extras/dcmmlib`. Otherwise the app builds stale code.
+The submodule URL is GitHub, not a local `file://` or `../dcmmlib` path. After engine changes on **dcmmlib `dev`**, fetch and pin `extras/dcmmlib` to that commit.
 
 ## Product
 

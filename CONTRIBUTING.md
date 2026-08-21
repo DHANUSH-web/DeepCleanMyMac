@@ -11,7 +11,7 @@ Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.
 | `beta` | Default for PRs and new work |
 | `main` | Stable releases — do not open feature PRs against `main` |
 
-The engine uses `dev` / `main`. After an engine change, update the submodule:
+The engine uses `dev` / `main` at https://github.com/DHANUSH-web/dcmmlib.git (this is the submodule URL). After an engine change, update the submodule:
 
 ```bash
 git -C extras/dcmmlib fetch origin

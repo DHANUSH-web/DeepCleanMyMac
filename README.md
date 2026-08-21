@@ -15,7 +15,7 @@ dcmm-desktop/
   tests/             GoogleTest (engine link + module titles)
 ```
 
-If the submodule is missing, CMake will also accept a sibling `../dcmmlib` checkout.
+The submodule is cloned from [dcmmlib on GitHub](https://github.com/DHANUSH-web/dcmmlib). If it is missing, CMake will also accept a sibling `../dcmmlib` checkout for local engine work.
 
 ## Build (LLVM + Clang + Ninja)
 
