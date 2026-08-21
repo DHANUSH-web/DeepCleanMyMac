@@ -29,7 +29,8 @@ NSTextField* DCCaptionLabel(NSString* text) {
 
 NSTextField* DCTitleLabel(NSString* text) {
   NSTextField* t = [NSTextField labelWithString:text ?: @""];
-  t.font = [NSFont preferredFontForTextStyle:NSFontTextStyleTitle1 options:@{}];
+  NSFont* title1 = [NSFont preferredFontForTextStyle:NSFontTextStyleTitle1 options:@{}];
+  t.font = [NSFont systemFontOfSize:title1.pointSize weight:NSFontWeightBold];
   return t;
 }
 
@@ -135,16 +136,21 @@ NSStackView* DCPageStack(NSView* host) {
 NSStackView* DCHeaderStack(NSString* title, NSString* subtitle) {
   NSTextField* t = DCTitleLabel(title);
   NSTextField* s = DCSecondaryLabel(subtitle);
-  NSStackView* header = [NSStackView stackViewWithViews:@[ t, s ]];
+  NSBox* rule = [[NSBox alloc] initWithFrame:NSZeroRect];
+  rule.boxType = NSBoxSeparator;
+  rule.translatesAutoresizingMaskIntoConstraints = NO;
+  [rule.heightAnchor constraintEqualToConstant:1].active = YES;
+  NSStackView* header = [NSStackView stackViewWithViews:@[ t, s, rule ]];
   header.orientation = NSUserInterfaceLayoutOrientationVertical;
   header.alignment = NSLayoutAttributeLeading;
-  header.spacing = 3;
+  header.spacing = 10;
   [t setContentHuggingPriority:NSLayoutPriorityRequired
                 forOrientation:NSLayoutConstraintOrientationVertical];
   [s setContentHuggingPriority:NSLayoutPriorityRequired
                 forOrientation:NSLayoutConstraintOrientationVertical];
   [header setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationVertical];
+  [rule.widthAnchor constraintEqualToAnchor:header.widthAnchor].active = YES;
   return header;
 }
 
