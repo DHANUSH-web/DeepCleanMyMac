@@ -36,7 +36,6 @@ void DCApplyFill(NSView* v, NSColor* color) {
   NSTextField* _title;
   NSTextField* _sub;
   NSImageView* _chev;
-  BOOL _hover;
 }
 
 - (instancetype)initWithTool:(const ui::DashboardTool&)tool {
@@ -107,33 +106,10 @@ void DCApplyFill(NSView* v, NSColor* color) {
 - (void)applyColors {
   DCApplyFill(_well, [[NSColor controlAccentColor] colorWithAlphaComponent:0.14]);
   _icon.contentTintColor = [NSColor controlAccentColor];
-  DCApplyFill(self, _hover ? [NSColor unemphasizedSelectedContentBackgroundColor]
-                           : [NSColor clearColor]);
 }
 
 - (void)viewDidChangeEffectiveAppearance {
   [super viewDidChangeEffectiveAppearance];
-  [self applyColors];
-}
-
-- (void)updateTrackingAreas {
-  [super updateTrackingAreas];
-  for (NSTrackingArea* a in self.trackingAreas) [self removeTrackingArea:a];
-  [self addTrackingArea:[[NSTrackingArea alloc]
-                            initWithRect:self.bounds
-                                 options:NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow |
-                                         NSTrackingInVisibleRect
-                                   owner:self
-                                userInfo:nil]];
-}
-
-- (void)mouseEntered:(NSEvent*)event {
-  _hover = YES;
-  [self applyColors];
-}
-
-- (void)mouseExited:(NSEvent*)event {
-  _hover = NO;
   [self applyColors];
 }
 
