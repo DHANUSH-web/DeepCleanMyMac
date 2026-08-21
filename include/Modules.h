@@ -32,7 +32,7 @@ inline const char* title(Module m) {
 
 inline const char* subtitle(Module m) {
   switch (m) {
-    case Module::Overview: return "Disk health at a glance";
+    case Module::Overview: return "This Mac and the startup disk";
     case Module::SmartScan: return "Recommended safe groups — no file picking";
     case Module::SystemJunk: return "Every cache and leftover, item by item";
     case Module::LargeFiles: return "Oversized files hogging the disk";

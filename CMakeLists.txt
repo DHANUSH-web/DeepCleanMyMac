@@ -29,6 +29,7 @@ endif()
 set(UI_SOURCES
   src/main.mm
   src/AppDelegate.mm
+  src/SystemInfo.cpp
   src/ui/Widgets.mm
   src/ui/SidebarView.mm
   src/ui/DashboardView.mm
@@ -51,6 +52,10 @@ target_link_libraries(DeepCleanMyMac PRIVATE
   "-framework QuartzCore"
   "-framework Quartz"
   "-framework Collaboration"
+  "-framework IOKit"
+  "-framework DiskArbitration"
+  "-framework SystemConfiguration"
+  "-framework CoreFoundation"
 )
 
 set(ICON_FILE "${CMAKE_SOURCE_DIR}/resources/AppIcon.icns")
@@ -82,6 +87,7 @@ if(DCMM_DESKTOP_BUILD_TESTS)
   FetchContent_MakeAvailable(googletest)
   enable_testing()
   add_executable(dcmm-desktop-tests
+    src/SystemInfo.cpp
     tests/test_engine_link.cpp
     tests/test_modules.cpp
     tests/test_navigation.cpp
@@ -96,7 +102,14 @@ if(DCMM_DESKTOP_BUILD_TESTS)
     tests/test_maintenance.cpp
   )
   target_include_directories(dcmm-desktop-tests PRIVATE include tests)
-  target_link_libraries(dcmm-desktop-tests PRIVATE dcmm GTest::gtest_main)
+  target_link_libraries(dcmm-desktop-tests PRIVATE
+    dcmm
+    GTest::gtest_main
+    "-framework IOKit"
+    "-framework DiskArbitration"
+    "-framework SystemConfiguration"
+    "-framework CoreFoundation"
+  )
   include(GoogleTest)
   gtest_discover_tests(dcmm-desktop-tests)
 endif()

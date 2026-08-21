@@ -45,7 +45,7 @@ TEST(Modules, Titles) {
 }
 
 TEST(Modules, Subtitles) {
-  EXPECT_STREQ(ui::subtitle(ui::Module::Overview), "Disk health at a glance");
+  EXPECT_STREQ(ui::subtitle(ui::Module::Overview), "This Mac and the startup disk");
   EXPECT_STREQ(ui::subtitle(ui::Module::SmartScan), "Recommended safe groups — no file picking");
   EXPECT_STREQ(ui::subtitle(ui::Module::SystemJunk), "Every cache and leftover, item by item");
   EXPECT_STREQ(ui::subtitle(ui::Module::LargeFiles), "Oversized files hogging the disk");

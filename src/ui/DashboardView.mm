@@ -2,6 +2,7 @@
 #import "ui/Theme.h"
 
 #include "AppFeatures.hpp"
+#include "SystemInfo.hpp"
 #include "dcmm/dcmm.hpp"
 
 #import <QuartzCore/QuartzCore.h>
@@ -145,47 +146,155 @@ void DCApplyFill(NSView* v, NSColor* color) {
 
 @end
 
+@interface DCFlippedDoc : NSView
+@end
+@implementation DCFlippedDoc
+- (BOOL)isFlipped {
+  return YES;
+}
+@end
+
+namespace {
+
+NSStackView* DCFactRow(NSString* label, NSString* value) {
+  NSTextField* l = DCCaptionLabel(label);
+  l.font = [NSFont systemFontOfSize:12];
+  l.alignment = NSTextAlignmentRight;
+  [l.widthAnchor constraintEqualToConstant:96].active = YES;
+  [l setContentHuggingPriority:NSLayoutPriorityRequired
+                forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [l setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                              forOrientation:NSLayoutConstraintOrientationHorizontal];
+  NSTextField* v = DCLabel(value);
+  v.font = [NSFont systemFontOfSize:12];
+  v.selectable = YES;
+  v.lineBreakMode = NSLineBreakByTruncatingMiddle;
+  NSStackView* row = [NSStackView stackViewWithViews:@[ l, v ]];
+  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+  row.alignment = NSLayoutAttributeFirstBaseline;
+  row.spacing = 10;
+  [row setContentHuggingPriority:NSLayoutPriorityRequired
+                  forOrientation:NSLayoutConstraintOrientationVertical];
+  return row;
+}
+
+void DCSetFacts(NSStackView* stack, const std::vector<std::pair<std::string, std::string>>& facts) {
+  NSArray<NSView*>* old = [stack.arrangedSubviews copy];
+  for (NSView* v in old) {
+    [stack removeArrangedSubview:v];
+    [v removeFromSuperview];
+  }
+  for (const auto& f : facts) [stack addArrangedSubview:DCFactRow(DCNS(f.first), DCNS(f.second))];
+}
+
+NSVisualEffectView* DCOverviewCard(NSView* body) {
+  body.translatesAutoresizingMaskIntoConstraints = NO;
+  NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+  card.material = NSVisualEffectMaterialContentBackground;
+  card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+  card.state = NSVisualEffectStateFollowsWindowActiveState;
+  card.wantsLayer = YES;
+  card.layer.cornerRadius = 10;
+  card.layer.masksToBounds = YES;
+  [card addSubview:body];
+  DCPinEdges(body, card);
+  [card setContentHuggingPriority:NSLayoutPriorityRequired
+                   forOrientation:NSLayoutConstraintOrientationVertical];
+  return card;
+}
+
+NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
+  NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
+  icon.image = [NSImage imageWithSystemSymbolName:name accessibilityDescription:a11y];
+  icon.contentTintColor = [NSColor controlAccentColor];
+  icon.translatesAutoresizingMaskIntoConstraints = NO;
+  [icon.widthAnchor constraintEqualToConstant:28].active = YES;
+  [icon.heightAnchor constraintEqualToConstant:28].active = YES;
+  return icon;
+}
+
+}  // namespace
+
 @implementation DCDashboardView {
+  NSScrollView* _scroll;
+  DCFlippedDoc* _doc;
+  NSStackView* _column;
+  NSTextField* _machineTitle;
+  NSTextField* _machineSub;
+  NSStackView* _machineFacts;
   NSTextField* _volumeTitle;
   NSTextField* _capacityLine;
   NSTextField* _availableLine;
   NSProgressIndicator* _bar;
+  NSStackView* _storageFacts;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
   self = [super initWithFrame:frame];
   if (self) {
-    NSStackView* column = [NSStackView stackViewWithViews:@[]];
-    column.orientation = NSUserInterfaceLayoutOrientationVertical;
-    column.alignment = NSLayoutAttributeLeading;
-    column.distribution = NSStackViewDistributionFill;
-    column.spacing = 18;
-    column.translatesAutoresizingMaskIntoConstraints = NO;
-    [self addSubview:column];
-    NSLayoutConstraint* preferred = [column.widthAnchor constraintEqualToConstant:480];
-    preferred.priority = 749;
+    _scroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+    _scroll.drawsBackground = NO;
+    _scroll.hasVerticalScroller = YES;
+    _scroll.hasHorizontalScroller = NO;
+    _scroll.autohidesScrollers = YES;
+    _scroll.borderType = NSNoBorder;
+    _scroll.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:_scroll];
+    DCPinEdges(_scroll, self);
+
+    _doc = [[DCFlippedDoc alloc] initWithFrame:NSZeroRect];
+    _column = [NSStackView stackViewWithViews:@[]];
+    _column.orientation = NSUserInterfaceLayoutOrientationVertical;
+    _column.alignment = NSLayoutAttributeLeading;
+    _column.distribution = NSStackViewDistributionFill;
+    _column.spacing = 18;
+    _column.edgeInsets = NSEdgeInsetsMake(24, 28, 24, 28);
+    _column.translatesAutoresizingMaskIntoConstraints = NO;
+    [_doc addSubview:_column];
     [NSLayoutConstraint activateConstraints:@[
-      [column.topAnchor constraintEqualToAnchor:self.topAnchor constant:24],
-      [column.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:28],
-      [column.bottomAnchor constraintLessThanOrEqualToAnchor:self.bottomAnchor constant:-24],
-      preferred,
-      [column.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor constant:-56],
-      [column.trailingAnchor constraintLessThanOrEqualToAnchor:self.trailingAnchor constant:-28],
+      [_column.topAnchor constraintEqualToAnchor:_doc.topAnchor],
+      [_column.leadingAnchor constraintEqualToAnchor:_doc.leadingAnchor],
+      [_column.trailingAnchor constraintEqualToAnchor:_doc.trailingAnchor],
+      [_column.bottomAnchor constraintEqualToAnchor:_doc.bottomAnchor],
     ]];
+    _scroll.documentView = _doc;
 
     NSStackView* header = DCHeaderStack(
         @"Overview", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Overview)]);
-    [column addArrangedSubview:header];
-    [header.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
+    [_column addArrangedSubview:header];
+    DCStackFullWidth(_column, header);
 
-    NSImageView* diskIcon = [[NSImageView alloc] initWithFrame:NSZeroRect];
-    diskIcon.image = [NSImage imageWithSystemSymbolName:@"internaldrive.fill"
-                               accessibilityDescription:@"Disk"];
-    diskIcon.contentTintColor = [NSColor controlAccentColor];
-    diskIcon.translatesAutoresizingMaskIntoConstraints = NO;
-    [diskIcon.widthAnchor constraintEqualToConstant:28].active = YES;
-    [diskIcon.heightAnchor constraintEqualToConstant:28].active = YES;
+    NSImageView* macIcon = DCCardSymbol(@"laptopcomputer", @"This Mac");
+    _machineTitle = DCLabel(@"—");
+    _machineTitle.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    _machineSub = DCCaptionLabel(@"—");
+    NSStackView* macText = [NSStackView stackViewWithViews:@[ _machineTitle, _machineSub ]];
+    macText.orientation = NSUserInterfaceLayoutOrientationVertical;
+    macText.alignment = NSLayoutAttributeLeading;
+    macText.spacing = 1;
+    NSStackView* macRow = [NSStackView stackViewWithViews:@[ macIcon, macText ]];
+    macRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    macRow.alignment = NSLayoutAttributeCenterY;
+    macRow.spacing = 10;
 
+    _machineFacts = [NSStackView stackViewWithViews:@[]];
+    _machineFacts.orientation = NSUserInterfaceLayoutOrientationVertical;
+    _machineFacts.alignment = NSLayoutAttributeLeading;
+    _machineFacts.spacing = 5;
+
+    NSStackView* macBody = [NSStackView stackViewWithViews:@[ macRow, _machineFacts ]];
+    macBody.orientation = NSUserInterfaceLayoutOrientationVertical;
+    macBody.alignment = NSLayoutAttributeLeading;
+    macBody.spacing = 10;
+    macBody.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
+    NSVisualEffectView* macCard = DCOverviewCard(macBody);
+    [_column addArrangedSubview:macCard];
+    DCStackFullWidth(_column, macCard);
+    [_machineFacts.widthAnchor constraintEqualToAnchor:macBody.widthAnchor
+                                              constant:-(macBody.edgeInsets.left + macBody.edgeInsets.right)]
+        .active = YES;
+
+    NSImageView* diskIcon = DCCardSymbol(@"internaldrive.fill", @"Disk");
     _volumeTitle = DCLabel(@"—");
     _volumeTitle.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
     _capacityLine = DCCaptionLabel(@"—");
@@ -205,45 +314,42 @@ void DCApplyFill(NSView* v, NSColor* color) {
     _bar.maxValue = 1;
     _bar.controlSize = NSControlSizeSmall;
     _bar.translatesAutoresizingMaskIntoConstraints = NO;
-    [_bar.widthAnchor constraintEqualToConstant:220].active = YES;
     [_bar.heightAnchor constraintEqualToConstant:8].active = YES;
-    [_bar setContentHuggingPriority:NSLayoutPriorityRequired
-                     forOrientation:NSLayoutConstraintOrientationHorizontal];
 
     _availableLine = DCCaptionLabel(@"—");
     NSStackView* barRow = [NSStackView stackViewWithViews:@[ _bar, _availableLine ]];
     barRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     barRow.alignment = NSLayoutAttributeCenterY;
     barRow.spacing = 10;
+    [_bar setContentHuggingPriority:1
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-    NSStackView* cardBody = [NSStackView stackViewWithViews:@[ volRow, barRow ]];
-    cardBody.orientation = NSUserInterfaceLayoutOrientationVertical;
-    cardBody.alignment = NSLayoutAttributeLeading;
-    cardBody.spacing = 10;
-    cardBody.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
+    _storageFacts = [NSStackView stackViewWithViews:@[]];
+    _storageFacts.orientation = NSUserInterfaceLayoutOrientationVertical;
+    _storageFacts.alignment = NSLayoutAttributeLeading;
+    _storageFacts.spacing = 5;
 
-    NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-    card.material = NSVisualEffectMaterialContentBackground;
-    card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-    card.state = NSVisualEffectStateFollowsWindowActiveState;
-    card.wantsLayer = YES;
-    card.layer.cornerRadius = 10;
-    card.layer.masksToBounds = YES;
-    [card addSubview:cardBody];
-    DCPinEdges(cardBody, card);
-    [card setContentHuggingPriority:NSLayoutPriorityRequired
-                     forOrientation:NSLayoutConstraintOrientationVertical];
-    [column addArrangedSubview:card];
-    [card.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
+    NSStackView* diskBody = [NSStackView stackViewWithViews:@[ volRow, barRow, _storageFacts ]];
+    diskBody.orientation = NSUserInterfaceLayoutOrientationVertical;
+    diskBody.alignment = NSLayoutAttributeLeading;
+    diskBody.spacing = 10;
+    diskBody.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
+    NSVisualEffectView* diskCard = DCOverviewCard(diskBody);
+    [_column addArrangedSubview:diskCard];
+    DCStackFullWidth(_column, diskCard);
+    [_storageFacts.widthAnchor constraintEqualToAnchor:diskBody.widthAnchor
+                                              constant:-(diskBody.edgeInsets.left + diskBody.edgeInsets.right)]
+        .active = YES;
+    [barRow.widthAnchor constraintEqualToAnchor:_storageFacts.widthAnchor].active = YES;
 
     NSTextField* hint = DCCaptionLabel(
         @"Grant Full Disk Access in System Settings → Privacy & Security for a deeper scan.");
-    [column addArrangedSubview:hint];
-    [hint.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
+    [_column addArrangedSubview:hint];
+    DCStackFullWidth(_column, hint);
 
     NSTextField* toolsLabel = DCLabel(@"Tools");
     toolsLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
-    [column addArrangedSubview:toolsLabel];
+    [_column addArrangedSubview:toolsLabel];
 
     NSStackView* toolList = [NSStackView stackViewWithViews:@[]];
     toolList.orientation = NSUserInterfaceLayoutOrientationVertical;
@@ -263,35 +369,46 @@ void DCApplyFill(NSView* v, NSColor* color) {
           .active = YES;
     }
 
-    NSVisualEffectView* toolsCard = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-    toolsCard.material = NSVisualEffectMaterialContentBackground;
-    toolsCard.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-    toolsCard.state = NSVisualEffectStateFollowsWindowActiveState;
-    toolsCard.wantsLayer = YES;
-    toolsCard.layer.cornerRadius = 10;
-    toolsCard.layer.masksToBounds = YES;
-    [toolsCard addSubview:toolList];
-    DCPinEdges(toolList, toolsCard);
-    [column addArrangedSubview:toolsCard];
-    [toolsCard.widthAnchor constraintEqualToAnchor:column.widthAnchor].active = YES;
+    NSVisualEffectView* toolsCard = DCOverviewCard(toolList);
+    [_column addArrangedSubview:toolsCard];
+    DCStackFullWidth(_column, toolsCard);
 
     [self refreshStats];
   }
   return self;
 }
 
+- (void)layout {
+  [super layout];
+  CGFloat w = NSWidth(_scroll.contentView.bounds);
+  if (w < 1) return;
+  CGFloat h = MAX(_column.fittingSize.height, 1);
+  _doc.frame = NSMakeRect(0, 0, w, h);
+}
+
 - (void)refreshStats {
-  dcmm::Engine e;
-  auto d = e.disk("/");
-  double used = d.totalBytes ? 1.0 - (double)d.availableBytes / (double)d.totalBytes : 0;
-  _bar.doubleValue = used;
-  _volumeTitle.stringValue = VolumeDisplayName();
-  uint64_t usedBytes = d.totalBytes > d.availableBytes ? d.totalBytes - d.availableBytes : 0;
+  ui::HostInfo host = ui::hostInfo();
+  ui::VolumeInfo vol = ui::volumeInfo("/");
+
+  _machineTitle.stringValue =
+      host.computerName.empty() ? @"This Mac" : DCNS(host.computerName);
+  NSString* model = host.modelName.empty() ? DCNS(host.modelId) : DCNS(host.modelName);
+  _machineSub.stringValue = model.length ? model : @"Mac";
+  DCSetFacts(_machineFacts, ui::machineFacts(host));
+
+  _volumeTitle.stringValue =
+      vol.volumeName.empty() ? VolumeDisplayName() : DCNS(vol.volumeName);
+  uint64_t avail = vol.importantAvailableBytes ? vol.importantAvailableBytes : vol.availableBytes;
+  uint64_t total = vol.totalBytes;
+  uint64_t usedBytes = total > avail ? total - avail : 0;
+  _bar.doubleValue = total ? (double)usedBytes / (double)total : 0;
   _capacityLine.stringValue =
       [NSString stringWithFormat:@"%@ of %@ used", DCNS(dcmm::formatBytes(usedBytes)),
-                                 DCNS(dcmm::formatBytes(d.totalBytes))];
+                                 DCNS(dcmm::formatBytes(total))];
   _availableLine.stringValue =
-      [NSString stringWithFormat:@"%@ available", DCNS(dcmm::formatBytes(d.availableBytes))];
+      [NSString stringWithFormat:@"%@ available", DCNS(dcmm::formatBytes(avail))];
+  DCSetFacts(_storageFacts, ui::storageFacts(vol));
+  [self setNeedsLayout:YES];
 }
 
 @end
