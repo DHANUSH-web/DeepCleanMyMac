@@ -2,10 +2,11 @@
 #import "ui/Theme.h"
 #include "AppFeatures.hpp"
 #include "dcmm/dcmm.hpp"
+#include "dcmm/safety.hpp"
 #include "Modules.h"
 #include <vector>
 
-@interface DCSpaceLensView () <NSTableViewDataSource, NSTableViewDelegate>
+@interface DCSpaceLensView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
 @implementation DCSpaceLensView {
@@ -37,6 +38,7 @@
     DCStyleTable(_table);
     _table.dataSource = self;
     _table.delegate = self;
+    DCAttachTableMenu(_table, self);
     NSTableColumn* c1 = [[NSTableColumn alloc] initWithIdentifier:@"name"];
     c1.title = @"Folder";
     [_table addTableColumn:c1];
@@ -96,6 +98,38 @@
     t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
   }
   return DCCenteredTextCell(t);
+}
+
+- (void)menuNeedsUpdate:(NSMenu*)menu {
+  [menu removeAllItems];
+  NSInteger row = _table.clickedRow;
+  if (row < 0 || row >= (NSInteger)_nodes.size()) return;
+  const auto& n = _nodes[(size_t)row];
+  DCAddPathMenuItems(menu, DCNS(n.path));
+  if (dcmm::isSafeToTrash(n.path)) {
+    [menu addItem:[NSMenuItem separatorItem]];
+    NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+                                                   action:@selector(ctxTrashRow:)
+                                            keyEquivalent:@""];
+    trash.target = self;
+    trash.tag = row;
+    [menu addItem:trash];
+  }
+}
+
+- (void)ctxTrashRow:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_nodes.size()) return;
+  const auto& n = _nodes[(size_t)row];
+  if (!DCConfirmMoveToTrash(@[ DCNS(n.path) ], n.bytes)) return;
+  auto r = _engine.trashPaths({n.path});
+  if (r.trashedItems == 0) {
+    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    return;
+  }
+  DCInformCleaned(@"Clean finished",
+                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  [self startScan];
 }
 
 @end

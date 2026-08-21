@@ -2,6 +2,8 @@
 
 #include "dcmm/path.hpp"
 
+#import <Quartz/Quartz.h>
+
 NSTextField* DCLabel(NSString* text) {
   NSTextField* t = [NSTextField labelWithString:text ?: @""];
   t.lineBreakMode = NSLineBreakByTruncatingTail;
@@ -270,4 +272,91 @@ void DCInformCleaned(NSString* title, NSString* detail) {
   a.informativeText = detail ?: @"";
   [a addButtonWithTitle:@"OK"];
   DCPresentAlert(a);
+}
+
+@interface DCQLHost : NSObject <QLPreviewPanelDataSource>
+@property(nonatomic, copy) NSURL* url;
+@end
+@implementation DCQLHost
+- (NSInteger)numberOfPreviewItemsInPreviewPanel:(QLPreviewPanel*)panel {
+  (void)panel;
+  return self.url ? 1 : 0;
+}
+- (id<QLPreviewItem>)previewPanel:(QLPreviewPanel*)panel previewItemAtIndex:(NSInteger)index {
+  (void)panel;
+  (void)index;
+  return self.url;
+}
+@end
+
+@interface DCPathActions : NSObject
+@end
+@implementation DCPathActions
++ (instancetype)shared {
+  static DCPathActions* s;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{ s = [DCPathActions new]; });
+  return s;
+}
+- (void)reveal:(NSMenuItem*)item {
+  DCRevealInFinder(item.representedObject);
+}
+- (void)open:(NSMenuItem*)item {
+  NSString* path = item.representedObject;
+  if (path.length) [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:path]];
+}
+- (void)quickLook:(NSMenuItem*)item {
+  NSString* path = item.representedObject;
+  if (!path.length) return;
+  static DCQLHost* host;
+  if (!host) host = [DCQLHost new];
+  host.url = [NSURL fileURLWithPath:path];
+  QLPreviewPanel* panel = [QLPreviewPanel sharedPreviewPanel];
+  panel.dataSource = host;
+  [panel reloadData];
+  [panel makeKeyAndOrderFront:nil];
+}
+- (void)copyPath:(NSMenuItem*)item {
+  NSString* path = item.representedObject;
+  if (!path.length) return;
+  NSPasteboard* pb = [NSPasteboard generalPasteboard];
+  [pb clearContents];
+  [pb setString:path forType:NSPasteboardTypeString];
+}
+- (void)copyName:(NSMenuItem*)item {
+  NSString* path = item.representedObject;
+  if (!path.length) return;
+  NSPasteboard* pb = [NSPasteboard generalPasteboard];
+  [pb clearContents];
+  [pb setString:path.lastPathComponent forType:NSPasteboardTypeString];
+}
+@end
+
+void DCRevealInFinder(NSString* path) {
+  if (!path.length) return;
+  [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[ [NSURL fileURLWithPath:path] ]];
+}
+
+void DCAttachTableMenu(NSTableView* table, id<NSMenuDelegate> delegate) {
+  NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
+  menu.delegate = delegate;
+  menu.autoenablesItems = YES;
+  table.menu = menu;
+}
+
+void DCAddPathMenuItems(NSMenu* menu, NSString* path) {
+  if (!path.length) return;
+  DCPathActions* actions = [DCPathActions shared];
+  auto add = ^(NSString* title, SEL sel) {
+    NSMenuItem* it = [[NSMenuItem alloc] initWithTitle:title action:sel keyEquivalent:@""];
+    it.target = actions;
+    it.representedObject = path;
+    [menu addItem:it];
+  };
+  add(@"Show in Finder", @selector(reveal:));
+  add(@"Quick Look", @selector(quickLook:));
+  add(@"Open", @selector(open:));
+  [menu addItem:[NSMenuItem separatorItem]];
+  add(@"Copy Path", @selector(copyPath:));
+  add(@"Copy Name", @selector(copyName:));
 }

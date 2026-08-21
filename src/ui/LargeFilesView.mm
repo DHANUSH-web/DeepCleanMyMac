@@ -5,7 +5,7 @@
 #include "Modules.h"
 #include <vector>
 
-@interface DCLargeFilesView () <NSTableViewDataSource, NSTableViewDelegate>
+@interface DCLargeFilesView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
 @implementation DCLargeFilesView {
@@ -38,6 +38,7 @@
     DCStyleTable(_table);
     _table.dataSource = self;
     _table.delegate = self;
+    DCAttachTableMenu(_table, self);
     NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"check"];
     c0.width = 24;
     c0.minWidth = 24;
@@ -147,6 +148,50 @@
     _files[(size_t)s.tag].selected = s.state == NSControlStateValueOn;
     [self refreshClean];
   }
+}
+
+- (void)menuNeedsUpdate:(NSMenu*)menu {
+  [menu removeAllItems];
+  NSInteger row = _table.clickedRow;
+  if (row < 0 || row >= (NSInteger)_files.size()) return;
+  auto& f = _files[(size_t)row];
+  DCAddPathMenuItems(menu, DCNS(f.path));
+  [menu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:f.selected ? @"Unselect" : @"Select"
+                                               action:@selector(ctxToggleSelect:)
+                                        keyEquivalent:@""];
+  sel.target = self;
+  sel.tag = row;
+  [menu addItem:sel];
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+                                                 action:@selector(ctxTrashRow:)
+                                          keyEquivalent:@""];
+  trash.target = self;
+  trash.tag = row;
+  [menu addItem:trash];
+}
+
+- (void)ctxToggleSelect:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_files.size()) return;
+  _files[(size_t)row].selected = !_files[(size_t)row].selected;
+  [_table reloadData];
+  [self refreshClean];
+}
+
+- (void)ctxTrashRow:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_files.size()) return;
+  auto& f = _files[(size_t)row];
+  if (!DCConfirmMoveToTrash(@[ DCNS(f.path) ], f.bytes)) return;
+  auto r = _engine.trashPaths({f.path});
+  if (r.trashedItems == 0) {
+    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    return;
+  }
+  DCInformCleaned(@"Clean finished",
+                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  [self startScan];
 }
 
 @end

@@ -51,6 +51,7 @@ target_link_libraries(DeepCleanMyMac PRIVATE
   "-framework AppKit"
   "-framework Foundation"
   "-framework QuartzCore"
+  "-framework Quartz"
   "-framework Collaboration"
 )
 

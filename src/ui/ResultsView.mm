@@ -15,7 +15,7 @@ struct FlatRow {
 };
 }  // namespace
 
-@interface DCResultsView () <NSTableViewDataSource, NSTableViewDelegate>
+@interface DCResultsView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
 @implementation DCResultsView {
@@ -81,6 +81,7 @@ struct FlatRow {
     DCStyleTable(_table);
     _table.dataSource = self;
     _table.delegate = self;
+    DCAttachTableMenu(_table, self);
 
     NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"check"];
     c0.width = 24;
@@ -295,6 +296,93 @@ struct FlatRow {
   _report.groups[fr.g].items[fr.i].selected = sender.state == NSControlStateValueOn;
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
+}
+
+- (void)menuNeedsUpdate:(NSMenu*)menu {
+  [menu removeAllItems];
+  NSInteger row = _table.clickedRow;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  FlatRow fr = _rows[(size_t)row];
+  if (fr.group) {
+    NSMenuItem* all = [[NSMenuItem alloc] initWithTitle:@"Select Group"
+                                                 action:@selector(ctxSelectGroup:)
+                                          keyEquivalent:@""];
+    all.target = self;
+    all.tag = row;
+    [menu addItem:all];
+    NSMenuItem* none = [[NSMenuItem alloc] initWithTitle:@"Unselect Group"
+                                                  action:@selector(ctxUnselectGroup:)
+                                           keyEquivalent:@""];
+    none.target = self;
+    none.tag = row;
+    [menu addItem:none];
+    return;
+  }
+  const auto& it = _report.groups[fr.g].items[fr.i];
+  DCAddPathMenuItems(menu, DCNS(it.path));
+  [menu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:it.selected ? @"Unselect" : @"Select"
+                                               action:@selector(ctxToggleSelect:)
+                                        keyEquivalent:@""];
+  sel.target = self;
+  sel.tag = row;
+  [menu addItem:sel];
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+                                                 action:@selector(ctxTrashRow:)
+                                          keyEquivalent:@""];
+  trash.target = self;
+  trash.tag = row;
+  [menu addItem:trash];
+}
+
+- (void)ctxSelectGroup:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  int g = _rows[(size_t)row].g;
+  for (auto& it : _report.groups[g].items) it.selected = true;
+  [_table reloadData];
+  [self refreshCleanTitle];
+  [self refreshSelectAllTitle];
+}
+
+- (void)ctxUnselectGroup:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  int g = _rows[(size_t)row].g;
+  for (auto& it : _report.groups[g].items) it.selected = false;
+  [_table reloadData];
+  [self refreshCleanTitle];
+  [self refreshSelectAllTitle];
+}
+
+- (void)ctxToggleSelect:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  FlatRow fr = _rows[(size_t)row];
+  if (fr.group) return;
+  auto& it = _report.groups[fr.g].items[fr.i];
+  it.selected = !it.selected;
+  [_table reloadData];
+  [self refreshCleanTitle];
+  [self refreshSelectAllTitle];
+}
+
+- (void)ctxTrashRow:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  FlatRow fr = _rows[(size_t)row];
+  if (fr.group) return;
+  auto& it = _report.groups[fr.g].items[fr.i];
+  NSArray<NSString*>* list = @[ DCNS(it.path) ];
+  if (!DCConfirmMoveToTrash(list, it.bytes)) return;
+  auto result = _engine.trashPaths({it.path});
+  if (result.trashedItems == 0) {
+    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    return;
+  }
+  DCInformCleaned(@"Clean finished",
+                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(result.trashedBytes))]);
+  [self startScan];
 }
 
 @end

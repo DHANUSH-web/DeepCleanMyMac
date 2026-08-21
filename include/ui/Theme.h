@@ -41,3 +41,7 @@ BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle);
 void DCInformNothingToClean(NSString* detail);
 void DCInformCleaned(NSString* title, NSString* detail);
+
+void DCAttachTableMenu(NSTableView* table, id<NSMenuDelegate> delegate);
+void DCAddPathMenuItems(NSMenu* menu, NSString* path);
+void DCRevealInFinder(NSString* path);

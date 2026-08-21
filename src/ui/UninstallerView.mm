@@ -4,7 +4,7 @@
 #include "Modules.h"
 #include <vector>
 
-@interface DCUninstallerView () <NSTableViewDataSource, NSTableViewDelegate>
+@interface DCUninstallerView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
 @implementation DCUninstallerView {
@@ -40,6 +40,7 @@
     DCStyleTable(_appsTable);
     _appsTable.dataSource = self;
     _appsTable.delegate = self;
+    DCAttachTableMenu(_appsTable, self);
     NSTableColumn* n = [[NSTableColumn alloc] initWithIdentifier:@"app"];
     n.title = @"Application";
     [_appsTable addTableColumn:n];
@@ -52,6 +53,7 @@
     DCStyleTable(_leftTable);
     _leftTable.dataSource = self;
     _leftTable.delegate = self;
+    DCAttachTableMenu(_leftTable, self);
     NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"check"];
     c0.width = 24;
     c0.minWidth = 24;
@@ -183,6 +185,56 @@
   if (_sel < 0) return;
   auto& it = _apps[(size_t)_sel].leftovers[(size_t)s.tag];
   it.selected = s.state == NSControlStateValueOn;
+}
+
+- (void)menuNeedsUpdate:(NSMenu*)menu {
+  [menu removeAllItems];
+  if (menu == _appsTable.menu) {
+    NSInteger row = _appsTable.clickedRow;
+    if (row < 0 || row >= (NSInteger)_apps.size()) return;
+    DCAddPathMenuItems(menu, DCNS(_apps[(size_t)row].appPath));
+    return;
+  }
+  NSInteger row = _leftTable.clickedRow;
+  if (_sel < 0 || row < 0) return;
+  auto& leftovers = _apps[(size_t)_sel].leftovers;
+  if (row >= (NSInteger)leftovers.size()) return;
+  auto& it = leftovers[(size_t)row];
+  DCAddPathMenuItems(menu, DCNS(it.path));
+  [menu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:it.selected ? @"Unselect" : @"Select"
+                                               action:@selector(ctxToggleSelect:)
+                                        keyEquivalent:@""];
+  sel.target = self;
+  sel.tag = row;
+  [menu addItem:sel];
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+                                                 action:@selector(ctxTrashLeftover:)
+                                          keyEquivalent:@""];
+  trash.target = self;
+  trash.tag = row;
+  [menu addItem:trash];
+}
+
+- (void)ctxToggleSelect:(NSMenuItem*)sender {
+  if (_sel < 0) return;
+  auto& it = _apps[(size_t)_sel].leftovers[(size_t)sender.tag];
+  it.selected = !it.selected;
+  [_leftTable reloadData];
+}
+
+- (void)ctxTrashLeftover:(NSMenuItem*)sender {
+  if (_sel < 0) return;
+  auto& it = _apps[(size_t)_sel].leftovers[(size_t)sender.tag];
+  if (!DCConfirmMoveToTrash(@[ DCNS(it.path) ], it.bytes)) return;
+  auto r = _engine.trashPaths({it.path});
+  if (r.trashedItems == 0) {
+    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    return;
+  }
+  DCInformCleaned(@"Clean finished",
+                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  [self reloadApps];
 }
 
 @end

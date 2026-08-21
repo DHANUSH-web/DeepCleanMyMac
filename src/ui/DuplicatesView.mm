@@ -5,7 +5,7 @@
 #include "Modules.h"
 #include <vector>
 
-@interface DCDuplicatesView () <NSTableViewDataSource, NSTableViewDelegate>
+@interface DCDuplicatesView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
 @implementation DCDuplicatesView {
@@ -42,6 +42,7 @@
     DCStyleTable(_table);
     _table.dataSource = self;
     _table.delegate = self;
+    DCAttachTableMenu(_table, self);
     NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"keep"];
     c0.width = 48;
     c0.title = @"Keep";
@@ -143,6 +144,53 @@
   if (s.tag < 0 || s.tag >= (NSInteger)_rows.size()) return;
   auto rr = _rows[(size_t)s.tag];
   _groups[rr.g].files[rr.f].keep = s.state == NSControlStateValueOn;
+}
+
+- (void)menuNeedsUpdate:(NSMenu*)menu {
+  [menu removeAllItems];
+  NSInteger row = _table.clickedRow;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  auto rr = _rows[(size_t)row];
+  auto& f = _groups[rr.g].files[rr.f];
+  DCAddPathMenuItems(menu, DCNS(f.path));
+  [menu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem* keep = [[NSMenuItem alloc] initWithTitle:f.keep ? @"Don't Keep This Copy" : @"Keep This Copy"
+                                                action:@selector(ctxToggleKeep:)
+                                         keyEquivalent:@""];
+  keep.target = self;
+  keep.tag = row;
+  [menu addItem:keep];
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move This Copy to Trash…"
+                                                 action:@selector(ctxTrashRow:)
+                                          keyEquivalent:@""];
+  trash.target = self;
+  trash.tag = row;
+  [menu addItem:trash];
+}
+
+- (void)ctxToggleKeep:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  auto rr = _rows[(size_t)row];
+  auto& f = _groups[rr.g].files[rr.f];
+  f.keep = !f.keep;
+  [_table reloadData];
+}
+
+- (void)ctxTrashRow:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  auto rr = _rows[(size_t)row];
+  auto& f = _groups[rr.g].files[rr.f];
+  if (!DCConfirmMoveToTrash(@[ DCNS(f.path) ], f.bytes)) return;
+  auto r = _engine.trashPaths({f.path});
+  if (r.trashedItems == 0) {
+    DCInformNothingToClean(@"No copies were moved. Protected paths are skipped.");
+    return;
+  }
+  DCInformCleaned(@"Clean finished",
+                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  [self startScan];
 }
 
 @end
