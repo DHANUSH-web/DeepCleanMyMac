@@ -77,8 +77,29 @@
   });
 }
 
+static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
+  if (band == ui::SpaceSizeBand::Normal) return NSColor.clearColor;
+  NSColor* base =
+      band == ui::SpaceSizeBand::TooBig ? NSColor.systemRedColor : NSColor.systemOrangeColor;
+  return [NSColor colorWithName:nil
+               dynamicProvider:^NSColor*(NSAppearance* appearance) {
+                 NSAppearanceName match =
+                     [appearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
+                 const CGFloat alpha =
+                     [match isEqualToString:NSAppearanceNameDarkAqua] ? 0.18 : 0.10;
+                 return [base colorWithAlphaComponent:alpha];
+               }];
+}
+
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
   return (NSInteger)_nodes.size();
+}
+
+- (void)tableView:(NSTableView*)tv didAddRowView:(NSTableRowView*)rowView forRow:(NSInteger)row {
+  ui::SpaceSizeBand band = ui::SpaceSizeBand::Normal;
+  if (row >= 0 && row < (NSInteger)_nodes.size())
+    band = ui::spaceSizeBand(_nodes[(size_t)row].bytes);
+  rowView.backgroundColor = DCSpaceSizeBandFill(band);
 }
 
 - (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row {

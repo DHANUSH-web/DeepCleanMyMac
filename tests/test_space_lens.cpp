@@ -23,6 +23,14 @@ TEST_F(HomeFixture, SpaceLensMeasuresHomeFolders) {
   for (std::size_t i = 1; i < nodes.size(); ++i) EXPECT_GE(nodes[i - 1].bytes, nodes[i].bytes);
 }
 
+TEST(SpaceLens, SizeBandByBytes) {
+  EXPECT_EQ(ui::spaceSizeBand(0), ui::SpaceSizeBand::Normal);
+  EXPECT_EQ(ui::spaceSizeBand(500ull * 1024ull * 1024ull), ui::SpaceSizeBand::Normal);
+  EXPECT_EQ(ui::spaceSizeBand(500ull * 1024ull * 1024ull + 1), ui::SpaceSizeBand::Big);
+  EXPECT_EQ(ui::spaceSizeBand(1024ull * 1024ull * 1024ull), ui::SpaceSizeBand::Big);
+  EXPECT_EQ(ui::spaceSizeBand(1024ull * 1024ull * 1024ull + 1), ui::SpaceSizeBand::TooBig);
+}
+
 TEST(SpaceLens, SharePercentOfListedTotal) {
   EXPECT_EQ(ui::spaceSharePercent(0, 100), "0%");
   EXPECT_EQ(ui::spaceSharePercent(50, 100), "50%");

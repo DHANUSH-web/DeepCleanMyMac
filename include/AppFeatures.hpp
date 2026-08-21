@@ -112,6 +112,17 @@ inline std::array<const char*, 4> maintenanceIds() {
   return {"empty_trash", "flush_dns", "launch_services", "quicklook"};
 }
 
+enum class SpaceSizeBand { Normal, Big, TooBig };
+
+inline constexpr uint64_t kSpaceBigBytes = 500ull * 1024ull * 1024ull;
+inline constexpr uint64_t kSpaceTooBigBytes = 1024ull * 1024ull * 1024ull;
+
+inline SpaceSizeBand spaceSizeBand(uint64_t bytes) {
+  if (bytes > kSpaceTooBigBytes) return SpaceSizeBand::TooBig;
+  if (bytes > kSpaceBigBytes) return SpaceSizeBand::Big;
+  return SpaceSizeBand::Normal;
+}
+
 inline std::string spaceSharePercent(uint64_t bytes, uint64_t total) {
   if (total == 0 || bytes == 0) return "0%";
   const double p = 100.0 * static_cast<double>(bytes) / static_cast<double>(total);
