@@ -1,3 +1,4 @@
+#include "AppFeatures.hpp"
 #include "home_fixture.hpp"
 
 #include "dcmm/dcmm.hpp"
@@ -20,4 +21,11 @@ TEST_F(HomeFixture, SpaceLensMeasuresHomeFolders) {
   EXPECT_TRUE(sawCaches);
   EXPECT_FALSE(sawLibraryRoot);
   for (std::size_t i = 1; i < nodes.size(); ++i) EXPECT_GE(nodes[i - 1].bytes, nodes[i].bytes);
+}
+
+TEST(SpaceLens, SharePercentOfListedTotal) {
+  EXPECT_EQ(ui::spaceSharePercent(0, 100), "0%");
+  EXPECT_EQ(ui::spaceSharePercent(50, 100), "50%");
+  EXPECT_EQ(ui::spaceSharePercent(1, 1000), "0.1%");
+  EXPECT_EQ(ui::spaceSharePercent(1, 10000), "<0.1%");
 }

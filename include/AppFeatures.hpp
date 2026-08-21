@@ -5,6 +5,7 @@
 #include "dcmm/dcmm.hpp"
 
 #include <array>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -109,6 +110,19 @@ inline std::vector<std::string> duplicatePathsToTrash(
 
 inline std::array<const char*, 4> maintenanceIds() {
   return {"empty_trash", "flush_dns", "launch_services", "quicklook"};
+}
+
+inline std::string spaceSharePercent(uint64_t bytes, uint64_t total) {
+  if (total == 0 || bytes == 0) return "0%";
+  const double p = 100.0 * static_cast<double>(bytes) / static_cast<double>(total);
+  char buf[32];
+  if (p >= 9.95)
+    std::snprintf(buf, sizeof(buf), "%.0f%%", p);
+  else if (p >= 0.05)
+    std::snprintf(buf, sizeof(buf), "%.1f%%", p);
+  else
+    std::snprintf(buf, sizeof(buf), "<0.1%%");
+  return buf;
 }
 
 }  // namespace ui
