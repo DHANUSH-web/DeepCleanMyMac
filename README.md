@@ -1,6 +1,9 @@
-# dcmm-desktop
+# DeepCleanMyMac
 
-Native **DeepCleanMyMac** macOS app. The UI is AppKit (Objective-C++). All scanning, hashing, safety checks, and trashing go through **[dcmmlib](https://github.com)** as a Git submodule — no engine logic lives here.
+[![CI](https://github.com/DHANUSH-web/DeepCleanMyMac/actions/workflows/ci.yml/badge.svg)](https://github.com/DHANUSH-web/DeepCleanMyMac/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+Native **macOS** cleaner (AppKit, Objective-C++). All scanning, hashing, safety checks, and trashing go through **[dcmmlib](https://github.com/DHANUSH-web/dcmmlib)** as a Git submodule (`extras/dcmmlib`) — no engine logic lives here.
 
 ## Layout
 
@@ -61,3 +64,13 @@ open build/DeepCleanMyMac.app
 - Maintenance (empty Trash, flush DNS, rebuild Launch Services)
 
 Selected items are **moved to Trash** by `dcmmlib`. Protected paths are rejected by the engine.
+
+## Contributing
+
+Development happens on **`beta`**. `main` is stable. See [CONTRIBUTING.md](CONTRIBUTING.md). Please follow the [code of conduct](CODE_OF_CONDUCT.md). Security issues: [SECURITY.md](SECURITY.md).
+
+Engine PRs go to [dcmmlib](https://github.com/DHANUSH-web/dcmmlib) on **`dev`**.
+
+## License
+
+[MIT](LICENSE).

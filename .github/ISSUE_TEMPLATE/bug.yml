@@ -1,0 +1,33 @@
+name: Bug report
+description: Something in the Mac app is wrong (UI, scan screens, dialogs).
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Engine-only bugs (allowlist, sizes, trash) go to [dcmmlib](https://github.com/DHANUSH-web/dcmmlib/issues).
+        Safety bypasses: [Security Advisories](https://github.com/DHANUSH-web/DeepCleanMyMac/security/advisories/new).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Expected vs actual. Attach a screenshot if it is visual.
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App commit or build
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps
+    validations:
+      required: true

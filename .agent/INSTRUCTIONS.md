@@ -177,6 +177,8 @@ Examples: `FEAT: Add Smart Scan group recommendations.` / `FIX: Open the release
 
 Do not use Conventional Commits (`feat:` lowercase, scopes, types like `chore`). Split mixed work into a FEAT commit and a FIX commit. Subject after the colon is imperative, like the rest of this repo.
 
+Public contribution docs: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`. PRs target **`beta`**.
+
 ## How to work
 
 - UI-only requests: headers in `include/` (`include/ui/`), implementations in `src/` (`src/ui/`). Do not “fix” catalogs unless asked.

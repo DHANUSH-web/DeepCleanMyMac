@@ -1,0 +1,25 @@
+name: Feature request
+description: A Mac app UI or workflow change.
+title: "[Feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: AppKit only. Engine logic should land in dcmmlib first.
+    validations:
+      required: true
+  - type: checkboxes
+    id: ui
+    attributes:
+      label: UI
+      options:
+        - label: This uses native AppKit (no custom theme / no Tahoe floating sidebar).
+          required: true

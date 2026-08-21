@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main, beta]
+  pull_request:
+    branches: [main, beta]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Ninja
+        run: brew install ninja
+      - name: Configure
+        run: cmake --preset release
+      - name: Build
+        run: cmake --build --preset release
+      - name: Test
+        run: ctest --preset release --output-on-failure

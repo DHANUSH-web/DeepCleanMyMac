@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: dcmmlib (engine)
+    url: https://github.com/DHANUSH-web/dcmmlib/issues
+    about: Scan, safety, trash, and catalog bugs belong in the engine repo.
+  - name: Security vulnerability
+    url: https://github.com/DHANUSH-web/DeepCleanMyMac/security/advisories/new
+    about: Privately report surprise-delete or confirm-bypass bugs.
