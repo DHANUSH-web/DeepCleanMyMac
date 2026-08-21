@@ -1,5 +1,6 @@
 #import "AppDelegate.h"
 #import "ui/MainWindowController.h"
+#import "ui/Theme.h"
 
 @implementation AppDelegate {
   DCMainWindowController* _main;
@@ -57,7 +58,7 @@
   a.informativeText = @"Free macOS cleaner. Engine: dcmmlib 1.0.0\n"
                        @"Moves files to Trash after you review them. No telemetry.";
   [a addButtonWithTitle:@"OK"];
-  [a runModal];
+  DCPresentAlert(a);
 }
 
 @end

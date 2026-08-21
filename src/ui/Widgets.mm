@@ -191,6 +191,40 @@ NSView* DCFlexibleSpace(void) {
   return spacer;
 }
 
+NSModalResponse DCPresentAlert(NSAlert* alert) {
+  NSWindow* parent = NSApp.mainWindow;
+  if (!parent || !parent.isVisible) parent = NSApp.keyWindow;
+  if (!parent) {
+    for (NSWindow* w in NSApp.windows) {
+      if (w.isVisible) {
+        parent = w;
+        break;
+      }
+    }
+  }
+
+  [alert layout];
+  if (!parent) {
+    [alert.window center];
+    return [alert runModal];
+  }
+
+  __block BOOL done = NO;
+  __block NSModalResponse result = NSAlertFirstButtonReturn;
+  [alert beginSheetModalForWindow:parent completionHandler:^(NSModalResponse code) {
+    result = code;
+    done = YES;
+  }];
+  while (!done) {
+    NSEvent* e = [NSApp nextEventMatchingMask:NSEventMaskAny
+                                    untilDate:[NSDate dateWithTimeIntervalSinceNow:0.1]
+                                       inMode:NSDefaultRunLoopMode
+                                      dequeue:YES];
+    if (e) [NSApp sendEvent:e];
+  }
+  return result;
+}
+
 BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle) {
   NSAlert* a = [[NSAlert alloc] init];
   a.alertStyle = NSAlertStyleWarning;
@@ -199,7 +233,7 @@ BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitl
   [a addButtonWithTitle:@"Cancel"];
   NSButton* proceed = [a addButtonWithTitle:proceedTitle ?: @"Continue"];
   proceed.hasDestructiveAction = YES;
-  return [a runModal] == NSAlertSecondButtonReturn;
+  return DCPresentAlert(a) == NSAlertSecondButtonReturn;
 }
 
 BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes) {
@@ -226,7 +260,7 @@ void DCInformNothingToClean(NSString* detail) {
   a.messageText = @"Nothing to clean";
   a.informativeText = detail.length ? detail : @"There is nothing here to remove.";
   [a addButtonWithTitle:@"OK"];
-  [a runModal];
+  DCPresentAlert(a);
 }
 
 void DCInformCleaned(NSString* title, NSString* detail) {
@@ -235,5 +269,5 @@ void DCInformCleaned(NSString* title, NSString* detail) {
   a.messageText = title ?: @"Clean finished";
   a.informativeText = detail ?: @"";
   [a addButtonWithTitle:@"OK"];
-  [a runModal];
+  DCPresentAlert(a);
 }

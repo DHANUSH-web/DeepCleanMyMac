@@ -33,6 +33,9 @@ void DCStackFullWidth(NSStackView* stack, NSView* view);
 void DCStackExpand(NSStackView* stack, NSView* view);
 NSView* DCFlexibleSpace(void);
 
+/// Sheet on the main window when possible; otherwise a centered modal.
+NSModalResponse DCPresentAlert(NSAlert* alert);
+
 /// Cancel is the default (Return). Returns YES only if the user chose Move to Trash.
 BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle);
