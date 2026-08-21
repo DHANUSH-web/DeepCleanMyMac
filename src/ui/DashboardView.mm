@@ -333,6 +333,8 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
     _scroll.hasHorizontalScroller = NO;
     _scroll.autohidesScrollers = YES;
     _scroll.borderType = NSNoBorder;
+    _scroll.automaticallyAdjustsContentInsets = NO;
+    _scroll.contentInsets = NSEdgeInsetsZero;
     _scroll.translatesAutoresizingMaskIntoConstraints = NO;
     [self addSubview:_scroll];
     DCPinEdges(_scroll, self);
