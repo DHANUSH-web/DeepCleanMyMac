@@ -15,7 +15,8 @@ TEST(Modules, CountAndOrder) {
   EXPECT_EQ(static_cast<int>(ui::Module::Privacy), 6);
   EXPECT_EQ(static_cast<int>(ui::Module::SpaceLens), 7);
   EXPECT_EQ(static_cast<int>(ui::Module::Maintenance), 8);
-  EXPECT_EQ(static_cast<int>(ui::Module::Count), 9);
+  EXPECT_EQ(static_cast<int>(ui::Module::Settings), 9);
+  EXPECT_EQ(static_cast<int>(ui::Module::Count), 10);
 }
 
 TEST(Modules, EveryPageHasTitleAndSubtitle) {
@@ -42,6 +43,7 @@ TEST(Modules, Titles) {
   EXPECT_STREQ(ui::title(ui::Module::Privacy), "Privacy");
   EXPECT_STREQ(ui::title(ui::Module::SpaceLens), "Space Lens");
   EXPECT_STREQ(ui::title(ui::Module::Maintenance), "Maintenance");
+  EXPECT_STREQ(ui::title(ui::Module::Settings), "Settings");
 }
 
 TEST(Modules, Subtitles) {
@@ -54,6 +56,7 @@ TEST(Modules, Subtitles) {
   EXPECT_STREQ(ui::subtitle(ui::Module::Privacy), "Browser traces and tracking leftovers");
   EXPECT_STREQ(ui::subtitle(ui::Module::SpaceLens), "Where your home folder went");
   EXPECT_STREQ(ui::subtitle(ui::Module::Maintenance), "Housekeeping tasks");
+  EXPECT_STREQ(ui::subtitle(ui::Module::Settings), "How the app looks and how cleaning works");
 }
 
 TEST(Modules, UnknownIsEmpty) {

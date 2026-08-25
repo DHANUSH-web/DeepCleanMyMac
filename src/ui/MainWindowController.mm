@@ -5,6 +5,7 @@
 #import "ui/MaintenanceView.h"
 #import "ui/ResultsView.h"
 #import "ui/SidebarView.h"
+#import "ui/SettingsView.h"
 #import "ui/SpaceLensView.h"
 #import "ui/Theme.h"
 #import "ui/UninstallerView.h"
@@ -95,6 +96,7 @@ constexpr CGFloat kWindowMinHeight = 520;
             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::Privacy)]];
     _pages[@((int)ui::Module::SpaceLens)] = [[DCSpaceLensView alloc] initWithFrame:NSZeroRect];
     _pages[@((int)ui::Module::Maintenance)] = [[DCMaintenanceView alloc] initWithFrame:NSZeroRect];
+    _pages[@((int)ui::Module::Settings)] = [[DCSettingsView alloc] initWithFrame:NSZeroRect];
 
     __weak DCMainWindowController* weakSelf = self;
     _sidebar.onSelect = ^(ui::Module m) {
@@ -119,6 +121,11 @@ constexpr CGFloat kWindowMinHeight = 520;
   if (!page) return;
   [_content addSubview:page];
   DCPinEdges(page, _content);
+}
+
+- (void)showSettings {
+  _sidebar.selected = ui::Module::Settings;
+  [self showModule:ui::Module::Settings];
 }
 
 - (void)showWindowAndActivate {

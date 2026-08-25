@@ -1,5 +1,6 @@
 #import "ui/UninstallerView.h"
 #import "ui/Theme.h"
+#include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
@@ -127,15 +128,13 @@
       [list addObject:DCNS(it.path)];
       bytes += it.bytes;
     }
-  if (!DCConfirmMoveToTrash(list, bytes)) return;
-  auto r = _engine.trashPaths(paths);
+  if (!DCConfirmClean(list, bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applyClean(_engine, paths, mode);
   if (r.trashedItems == 0) {
-    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
   } else {
-    NSString* msg = [NSString stringWithFormat:@"Freed %@ by moving %llu item%s to Trash.",
-                                               DCNS(dcmm::formatBytes(r.trashedBytes)),
-                                               (unsigned long long)r.trashedItems,
-                                               r.trashedItems == 1 ? "" : "s"];
+    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
     _status.stringValue = msg;
     DCInformCleaned(@"Uninstall finished", msg);
   }
@@ -208,7 +207,7 @@
   sel.target = self;
   sel.tag = row;
   [menu addItem:sel];
-  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrashLeftover:)
                                           keyEquivalent:@""];
   trash.target = self;
@@ -226,14 +225,14 @@
 - (void)ctxTrashLeftover:(NSMenuItem*)sender {
   if (_sel < 0) return;
   auto& it = _apps[(size_t)_sel].leftovers[(size_t)sender.tag];
-  if (!DCConfirmMoveToTrash(@[ DCNS(it.path) ], it.bytes)) return;
-  auto r = _engine.trashPaths({it.path});
+  if (!DCConfirmClean(@[ DCNS(it.path) ], it.bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applyClean(_engine, {it.path}, mode);
   if (r.trashedItems == 0) {
-    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     return;
   }
-  DCInformCleaned(@"Clean finished",
-                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
   [self reloadApps];
 }
 

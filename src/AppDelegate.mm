@@ -7,6 +7,7 @@
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification*)notification {
+  DCApplyStoredAppearance();
   [self buildMenu];
   _main = [[DCMainWindowController alloc] init];
   [_main showWindowAndActivate];
@@ -22,6 +23,8 @@
   [menubar addItem:appItem];
   NSMenu* app = [[NSMenu alloc] initWithTitle:@"DeepCleanMyMac"];
   [app addItemWithTitle:@"About DeepCleanMyMac" action:@selector(showAbout:) keyEquivalent:@""];
+  [app addItem:[NSMenuItem separatorItem]];
+  [app addItemWithTitle:@"Settings…" action:@selector(showSettings:) keyEquivalent:@","];
   [app addItem:[NSMenuItem separatorItem]];
   [app addItemWithTitle:@"Hide DeepCleanMyMac" action:@selector(hide:) keyEquivalent:@"h"];
   NSMenuItem* hideOthers = [[NSMenuItem alloc] initWithTitle:@"Hide Others"
@@ -50,6 +53,10 @@
   winItem.submenu = win;
   NSApp.windowsMenu = win;
   NSApp.mainMenu = menubar;
+}
+
+- (void)showSettings:(id)sender {
+  [_main showSettings];
 }
 
 - (void)showAbout:(id)sender {

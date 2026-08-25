@@ -1,6 +1,7 @@
 #import "ui/SpaceLensView.h"
 #import "ui/Theme.h"
 #include "AppFeatures.hpp"
+#include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
 #include "dcmm/safety.hpp"
 #include "Modules.h"
@@ -129,7 +130,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   DCAddPathMenuItems(menu, DCNS(n.path));
   if (dcmm::isSafeToTrash(n.path)) {
     [menu addItem:[NSMenuItem separatorItem]];
-    NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+    NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                    action:@selector(ctxTrashRow:)
                                             keyEquivalent:@""];
     trash.target = self;
@@ -142,14 +143,14 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   NSInteger row = sender.tag;
   if (row < 0 || row >= (NSInteger)_nodes.size()) return;
   const auto& n = _nodes[(size_t)row];
-  if (!DCConfirmMoveToTrash(@[ DCNS(n.path) ], n.bytes)) return;
-  auto r = _engine.trashPaths({n.path});
+  if (!DCConfirmClean(@[ DCNS(n.path) ], n.bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applyClean(_engine, {n.path}, mode);
   if (r.trashedItems == 0) {
-    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     return;
   }
-  DCInformCleaned(@"Clean finished",
-                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
   [self startScan];
 }
 

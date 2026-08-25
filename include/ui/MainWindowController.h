@@ -4,4 +4,5 @@
 
 @interface DCMainWindowController : NSWindowController <NSWindowDelegate, NSSplitViewDelegate>
 - (void)showWindowAndActivate;
+- (void)showSettings;
 @end

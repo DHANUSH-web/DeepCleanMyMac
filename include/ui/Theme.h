@@ -2,6 +2,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+#include "AppSettings.hpp"
+
 #include <string>
 
 inline NSString* DCNS(const std::string& s) {
@@ -36,7 +38,17 @@ NSView* DCFlexibleSpace(void);
 /// Sheet on the main window when possible; otherwise a centered modal.
 NSModalResponse DCPresentAlert(NSAlert* alert);
 
-/// Cancel is the default (Return). Returns YES only if the user chose Move to Trash.
+extern NSNotificationName const DCSettingsDidChangeNotification;
+
+ui::AppearancePref DCAppearancePref(void);
+void DCSetAppearancePref(ui::AppearancePref pref);
+void DCApplyStoredAppearance(void);
+
+ui::CleanPref DCCleanPref(void);
+void DCSetCleanPref(ui::CleanPref pref);
+
+/// Cancel is the default (Return). Copy follows the Cleaning setting.
+BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle);
 void DCInformNothingToClean(NSString* detail);

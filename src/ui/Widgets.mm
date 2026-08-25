@@ -4,6 +4,53 @@
 
 #import <Quartz/Quartz.h>
 
+NSNotificationName const DCSettingsDidChangeNotification = @"DCSettingsDidChangeNotification";
+
+static NSString* const kDCAppearanceKey = @"DCAppearance";
+static NSString* const kDCCleanPrefKey = @"DCCleanPref";
+
+ui::AppearancePref DCAppearancePref(void) {
+  NSString* id = [[NSUserDefaults standardUserDefaults] stringForKey:kDCAppearanceKey];
+  return ui::appearancePrefFromId(id ? id.UTF8String : "");
+}
+
+void DCApplyStoredAppearance(void) {
+  switch (DCAppearancePref()) {
+    case ui::AppearancePref::Light:
+      NSApp.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+      break;
+    case ui::AppearancePref::Dark:
+      NSApp.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+      break;
+    case ui::AppearancePref::System:
+    default:
+      NSApp.appearance = nil;
+      break;
+  }
+}
+
+void DCSetAppearancePref(ui::AppearancePref pref) {
+  [[NSUserDefaults standardUserDefaults]
+      setObject:[NSString stringWithUTF8String:ui::appearancePrefId(pref)]
+         forKey:kDCAppearanceKey];
+  DCApplyStoredAppearance();
+  [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
+                                                      object:nil];
+}
+
+ui::CleanPref DCCleanPref(void) {
+  NSString* id = [[NSUserDefaults standardUserDefaults] stringForKey:kDCCleanPrefKey];
+  return ui::cleanPrefFromId(id ? id.UTF8String : "");
+}
+
+void DCSetCleanPref(ui::CleanPref pref) {
+  [[NSUserDefaults standardUserDefaults]
+      setObject:[NSString stringWithUTF8String:ui::cleanPrefId(pref)]
+         forKey:kDCCleanPrefKey];
+  [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
+                                                      object:nil];
+}
+
 NSTextField* DCLabel(NSString* text) {
   NSTextField* t = [NSTextField labelWithString:text ?: @""];
   t.lineBreakMode = NSLineBreakByTruncatingTail;
@@ -244,14 +291,23 @@ BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitl
   return DCPresentAlert(a) == NSAlertSecondButtonReturn;
 }
 
-BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes) {
+BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes) {
   if (paths.count == 0) return NO;
+  const bool perm = DCCleanPref() == ui::CleanPref::DeletePermanently;
   NSMutableString* info = [NSMutableString string];
-  [info appendFormat:@"%lu item%s (%@) will be moved to Trash. You can restore them from Trash "
-                     @"until it is emptied.\n\nProtected system files, keys, and personal libraries "
-                     @"are never touched.\n",
-                     (unsigned long)paths.count, paths.count == 1 ? "" : "s",
-                     DCNS(dcmm::formatBytes(bytes))];
+  if (perm) {
+    [info appendFormat:@"%lu item%s (%@) will be deleted permanently. This cannot be undone from "
+                       @"Trash.\n\nProtected system files, keys, and personal libraries are never "
+                       @"touched.\n",
+                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
+                       DCNS(dcmm::formatBytes(bytes))];
+  } else {
+    [info appendFormat:@"%lu item%s (%@) will be moved to Trash. You can restore them from Trash "
+                       @"until it is emptied.\n\nProtected system files, keys, and personal libraries "
+                       @"are never touched.\n",
+                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
+                       DCNS(dcmm::formatBytes(bytes))];
+  }
   NSUInteger shown = MIN((NSUInteger)8, paths.count);
   for (NSUInteger i = 0; i < shown; ++i) {
     [info appendFormat:@"\n• %@", paths[i]];
@@ -259,7 +315,13 @@ BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes) {
   if (paths.count > shown) {
     [info appendFormat:@"\n• …and %lu more", (unsigned long)(paths.count - shown)];
   }
-  return DCConfirmDestructive(@"Move these items to Trash?", info, @"Move to Trash");
+  NSString* title = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
+  NSString* proceed = perm ? @"Delete Permanently" : @"Move to Trash";
+  return DCConfirmDestructive(title, info, proceed);
+}
+
+BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes) {
+  return DCConfirmClean(paths, bytes);
 }
 
 void DCInformNothingToClean(NSString* detail) {

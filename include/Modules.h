@@ -12,6 +12,7 @@ enum class Module : int {
   Privacy,
   SpaceLens,
   Maintenance,
+  Settings,
   Count
 };
 
@@ -26,6 +27,7 @@ inline const char* title(Module m) {
     case Module::Privacy: return "Privacy";
     case Module::SpaceLens: return "Space Lens";
     case Module::Maintenance: return "Maintenance";
+    case Module::Settings: return "Settings";
     default: return "";
   }
 }
@@ -41,6 +43,7 @@ inline const char* subtitle(Module m) {
     case Module::Privacy: return "Browser traces and tracking leftovers";
     case Module::SpaceLens: return "Where your home folder went";
     case Module::Maintenance: return "Housekeeping tasks";
+    case Module::Settings: return "How the app looks and how cleaning works";
     default: return "";
   }
 }

@@ -2,6 +2,7 @@
 #import "ui/Theme.h"
 
 #include "AppFeatures.hpp"
+#include "AppSettings.hpp"
 #include "Modules.h"
 #include "dcmm/dcmm.hpp"
 
@@ -103,8 +104,16 @@ struct FlatRow {
     [_table addTableColumn:c3];
 
     DCStackExpand(page, DCWrapTable(_table));
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(refreshCleanTitle)
+                                                 name:DCSettingsDidChangeNotification
+                                               object:nil];
   }
   return self;
+}
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void)rebuildRows {
@@ -184,7 +193,7 @@ struct FlatRow {
 
 - (void)refreshCleanTitle {
   uint64_t b = _report.selectedBytes();
-  _cleanBtn.title = [NSString stringWithFormat:@"Move %@ to Trash", DCNS(dcmm::formatBytes(b))];
+  _cleanBtn.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), b));
   _cleanBtn.enabled = b > 0;
 }
 
@@ -203,29 +212,21 @@ struct FlatRow {
   }
   NSMutableArray<NSString*>* list = [NSMutableArray arrayWithCapacity:paths.size()];
   for (const auto& p : paths) [list addObject:DCNS(p)];
-  if (!DCConfirmMoveToTrash(list, _report.selectedBytes())) return;
+  if (!DCConfirmClean(list, _report.selectedBytes())) return;
   _cleanBtn.enabled = NO;
+  const auto mode = DCCleanPref();
   __weak DCResultsView* weakSelf = self;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCResultsView* strong = weakSelf;
     if (!strong) return;
-    auto result = strong->_engine.trashPaths(paths);
+    auto result = ui::applyClean(strong->_engine, paths, mode);
     dispatch_async(dispatch_get_main_queue(), ^{
       DCResultsView* s = weakSelf;
       if (!s) return;
       if (result.trashedItems == 0 && result.trashedBytes == 0) {
-        DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+        DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
       } else {
-        NSString* detail =
-            [NSString stringWithFormat:@"Freed %@ by moving %llu item%s to Trash.%@",
-                                       DCNS(dcmm::formatBytes(result.trashedBytes)),
-                                       (unsigned long long)result.trashedItems,
-                                       result.trashedItems == 1 ? "" : "s",
-                                       result.failedItems
-                                           ? [NSString stringWithFormat:@" %llu skipped.",
-                                                                        (unsigned long long)result.failedItems]
-                                           : @""];
-        DCInformCleaned(@"Clean finished", detail);
+        DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
       }
       [s startScan];
     });
@@ -327,7 +328,7 @@ struct FlatRow {
   sel.target = self;
   sel.tag = row;
   [menu addItem:sel];
-  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrashRow:)
                                           keyEquivalent:@""];
   trash.target = self;
@@ -374,14 +375,14 @@ struct FlatRow {
   if (fr.group) return;
   auto& it = _report.groups[fr.g].items[fr.i];
   NSArray<NSString*>* list = @[ DCNS(it.path) ];
-  if (!DCConfirmMoveToTrash(list, it.bytes)) return;
-  auto result = _engine.trashPaths({it.path});
+  if (!DCConfirmClean(list, it.bytes)) return;
+  const auto mode = DCCleanPref();
+  auto result = ui::applyClean(_engine, {it.path}, mode);
   if (result.trashedItems == 0) {
-    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     return;
   }
-  DCInformCleaned(@"Clean finished",
-                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(result.trashedBytes))]);
+  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
   [self startScan];
 }
 

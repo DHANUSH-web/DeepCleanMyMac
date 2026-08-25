@@ -1,6 +1,7 @@
 #import "ui/DuplicatesView.h"
 #import "ui/Theme.h"
 #include "AppFeatures.hpp"
+#include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
@@ -55,8 +56,22 @@
     c2.width = 90;
     [_table addTableColumn:c2];
     DCStackExpand(page, DCWrapTable(_table));
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(refreshCleanTitle)
+                                                 name:DCSettingsDidChangeNotification
+                                               object:nil];
+    [self refreshCleanTitle];
   }
   return self;
+}
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)refreshCleanTitle {
+  _clean.title = DCCleanPref() == ui::CleanPref::DeletePermanently ? @"Delete Copies Permanently"
+                                                                   : @"Move Copies to Trash";
 }
 
 - (void)rebuild {
@@ -100,15 +115,13 @@
         [list addObject:DCNS(f.path)];
         bytes += f.bytes;
       }
-  if (!DCConfirmMoveToTrash(list, bytes)) return;
-  auto r = _engine.trashPaths(paths);
+  if (!DCConfirmClean(list, bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applyClean(_engine, paths, mode);
   if (r.trashedItems == 0) {
-    DCInformNothingToClean(@"No copies were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
   } else {
-    NSString* msg = [NSString stringWithFormat:@"Freed %@ by moving %llu cop%s to Trash.",
-                                               DCNS(dcmm::formatBytes(r.trashedBytes)),
-                                               (unsigned long long)r.trashedItems,
-                                               r.trashedItems == 1 ? "y" : "ies"];
+    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
     _status.stringValue = msg;
     DCInformCleaned(@"Clean finished", msg);
   }
@@ -160,7 +173,7 @@
   keep.target = self;
   keep.tag = row;
   [menu addItem:keep];
-  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move This Copy to Trash…"
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrashRow:)
                                           keyEquivalent:@""];
   trash.target = self;
@@ -182,14 +195,14 @@
   if (row < 0 || row >= (NSInteger)_rows.size()) return;
   auto rr = _rows[(size_t)row];
   auto& f = _groups[rr.g].files[rr.f];
-  if (!DCConfirmMoveToTrash(@[ DCNS(f.path) ], f.bytes)) return;
-  auto r = _engine.trashPaths({f.path});
+  if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applyClean(_engine, {f.path}, mode);
   if (r.trashedItems == 0) {
-    DCInformNothingToClean(@"No copies were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     return;
   }
-  DCInformCleaned(@"Clean finished",
-                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
   [self startScan];
 }
 

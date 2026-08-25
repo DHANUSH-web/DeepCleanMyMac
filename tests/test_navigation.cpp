@@ -26,17 +26,19 @@ TEST(Navigation, DashboardToolsAreASubsetOfSidebar) {
 }
 
 TEST(Navigation, DashboardDoesNotReplaceSystemJunkOrSpaceLens) {
-  bool hasJunk = false, hasLens = false, hasOverview = false, hasSmart = false;
+  bool hasJunk = false, hasLens = false, hasOverview = false, hasSmart = false, hasSettings = false;
   for (const auto& t : ui::dashboardTools()) {
     if (t.module == ui::Module::SystemJunk) hasJunk = true;
     if (t.module == ui::Module::SpaceLens) hasLens = true;
     if (t.module == ui::Module::Overview) hasOverview = true;
     if (t.module == ui::Module::SmartScan) hasSmart = true;
+    if (t.module == ui::Module::Settings) hasSettings = true;
   }
   EXPECT_TRUE(hasSmart);
   EXPECT_FALSE(hasJunk);
   EXPECT_FALSE(hasLens);
   EXPECT_FALSE(hasOverview);
+  EXPECT_FALSE(hasSettings);
 }
 
 TEST(Navigation, ScanDispatchOnlyForScanPages) {

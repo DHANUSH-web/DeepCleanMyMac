@@ -22,6 +22,7 @@ inline const char* sidebarSymbol(Module m) {
     case Module::Privacy: return "eye.slash";
     case Module::SpaceLens: return "chart.bar";
     case Module::Maintenance: return "wrench.and.screwdriver";
+    case Module::Settings: return "gearshape";
     default: return "questionmark.circle";
   }
 }

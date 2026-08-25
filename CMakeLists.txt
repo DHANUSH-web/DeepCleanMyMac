@@ -39,6 +39,7 @@ set(UI_SOURCES
   src/ui/UninstallerView.mm
   src/ui/SpaceLensView.mm
   src/ui/MaintenanceView.mm
+  src/ui/SettingsView.mm
   src/ui/MainWindowController.mm
 )
 
@@ -101,6 +102,7 @@ if(DCMM_DESKTOP_BUILD_TESTS)
     tests/test_space_lens.cpp
     tests/test_uninstaller.cpp
     tests/test_maintenance.cpp
+    tests/test_settings.cpp
   )
   target_include_directories(dcmm-desktop-tests PRIVATE include tests)
   target_link_libraries(dcmm-desktop-tests PRIVATE

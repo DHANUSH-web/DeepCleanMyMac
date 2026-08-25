@@ -1,6 +1,7 @@
 #import "ui/LargeFilesView.h"
 #import "ui/Theme.h"
 #include "AppFeatures.hpp"
+#include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
@@ -53,8 +54,16 @@
     c2.width = 100;
     [_table addTableColumn:c2];
     DCStackExpand(page, DCWrapTable(_table));
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(refreshClean)
+                                                 name:DCSettingsDidChangeNotification
+                                               object:nil];
   }
   return self;
+}
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void)startScan {
@@ -86,8 +95,7 @@
       b += f.bytes;
     }
   _clean.enabled = n > 0;
-  _clean.title = n ? [NSString stringWithFormat:@"Move %@ to Trash", DCNS(dcmm::formatBytes(b))]
-                   : @"Move to Trash";
+  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), n ? b : 0));
 }
 
 - (void)cleanSelected {
@@ -103,15 +111,13 @@
       [list addObject:DCNS(f.path)];
       bytes += f.bytes;
     }
-  if (!DCConfirmMoveToTrash(list, bytes)) return;
-  auto r = _engine.trashPaths(paths);
+  if (!DCConfirmClean(list, bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applyClean(_engine, paths, mode);
   if (r.trashedItems == 0) {
-    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
   } else {
-    NSString* msg = [NSString stringWithFormat:@"Freed %@ by moving %llu item%s to Trash.",
-                                               DCNS(dcmm::formatBytes(r.trashedBytes)),
-                                               (unsigned long long)r.trashedItems,
-                                               r.trashedItems == 1 ? "" : "s"];
+    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
     _status.stringValue = msg;
     DCInformCleaned(@"Clean finished", msg);
   }
@@ -163,7 +169,7 @@
   sel.target = self;
   sel.tag = row;
   [menu addItem:sel];
-  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:@"Move to Trash…"
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrashRow:)
                                           keyEquivalent:@""];
   trash.target = self;
@@ -183,14 +189,14 @@
   NSInteger row = sender.tag;
   if (row < 0 || row >= (NSInteger)_files.size()) return;
   auto& f = _files[(size_t)row];
-  if (!DCConfirmMoveToTrash(@[ DCNS(f.path) ], f.bytes)) return;
-  auto r = _engine.trashPaths({f.path});
+  if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applyClean(_engine, {f.path}, mode);
   if (r.trashedItems == 0) {
-    DCInformNothingToClean(@"No items were moved. Protected paths are skipped.");
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     return;
   }
-  DCInformCleaned(@"Clean finished",
-                  [NSString stringWithFormat:@"Freed %@.", DCNS(dcmm::formatBytes(r.trashedBytes))]);
+  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
   [self startScan];
 }
 
