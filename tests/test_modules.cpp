@@ -36,7 +36,7 @@ TEST(Modules, EveryPageHasTitleAndSubtitle) {
 TEST(Modules, Titles) {
   EXPECT_STREQ(ui::title(ui::Module::Overview), "Overview");
   EXPECT_STREQ(ui::title(ui::Module::SmartScan), "Smart Scan");
-  EXPECT_STREQ(ui::title(ui::Module::SystemJunk), "System Junk");
+  EXPECT_STREQ(ui::title(ui::Module::SystemJunk), "System Wide Scan");
   EXPECT_STREQ(ui::title(ui::Module::LargeFiles), "Large Files");
   EXPECT_STREQ(ui::title(ui::Module::Duplicates), "Duplicates");
   EXPECT_STREQ(ui::title(ui::Module::Uninstaller), "Uninstaller");
@@ -49,7 +49,8 @@ TEST(Modules, Titles) {
 TEST(Modules, Subtitles) {
   EXPECT_STREQ(ui::subtitle(ui::Module::Overview), "This Mac and the startup disk");
   EXPECT_STREQ(ui::subtitle(ui::Module::SmartScan), "Recommended safe groups — no file picking");
-  EXPECT_STREQ(ui::subtitle(ui::Module::SystemJunk), "Every cache and leftover, item by item");
+  EXPECT_STREQ(ui::subtitle(ui::Module::SystemJunk),
+               "Item-by-item scan — review before cleaning. Not everything here is safe to remove");
   EXPECT_STREQ(ui::subtitle(ui::Module::LargeFiles), "Oversized files hogging the disk");
   EXPECT_STREQ(ui::subtitle(ui::Module::Duplicates), "Copies you no longer need");
   EXPECT_STREQ(ui::subtitle(ui::Module::Uninstaller), "Apps and their leftover files");

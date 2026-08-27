@@ -41,8 +41,8 @@ struct FlatRow {
     title = @"Privacy";
     sub = @"Browser caches and tracking leftovers. Cookies stay off unless you opt in.";
   } else if (mode == DCResultsModeJunk) {
-    title = @"System Junk";
-    sub = @"Every cache and leftover, listed so you can pick.";
+    title = @"System Wide Scan";
+    sub = @"Item-by-item scan — review before cleaning. Not everything here is safe to remove";
   }
   return [self initWithMode:mode title:title subtitle:sub];
 }

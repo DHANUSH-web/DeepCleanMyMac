@@ -27,7 +27,7 @@ Engine code is **only** `extras/dcmmlib`, a submodule of `https://github.com/DHA
 
 ## Product
 
-Free CleanMyMac-style utility: Smart Scan, System Junk, Large Files, Duplicates, Uninstaller, Privacy, Space Lens, Maintenance. Moves **checked** items to Trash after confirmation. No telemetry.
+Free CleanMyMac-style utility: Smart Scan, System Wide Scan, Large Files, Duplicates, Uninstaller, Privacy, Space Lens, Maintenance, Settings. Moves **checked** items to Trash after confirmation. No telemetry.
 
 Bundle ID: `com.deepclean.DeepCleanMyMac`  
 App name: DeepCleanMyMac  
@@ -82,7 +82,7 @@ Links: `dcmm`, Cocoa, AppKit, Foundation, QuartzCore, Collaboration.
 | `src/ui/MainWindowController.mm` | Classic `NSSplitView`: frost sidebar + opaque content |
 | `src/ui/SidebarView.mm` | Nav source list + user profile footer |
 | `src/ui/DashboardView.mm` | Overview: compact storage card + tool rows |
-| `src/ui/ResultsView.mm` | Smart Scan / System Junk / Privacy lists |
+| `src/ui/ResultsView.mm` | Smart Scan / System Wide Scan / Privacy lists |
 | `src/ui/LargeFilesView.mm` | Large files |
 | `src/ui/DuplicatesView.mm` | SHA-256 duplicates |
 | `src/ui/UninstallerView.mm` | Apps + leftovers |
@@ -132,8 +132,8 @@ Disk usage is **Overview only**, not duplicated in the sidebar.
 
 Never skip these, even if the engine would also block:
 
-1. **Opt-in for System Junk, Privacy, Large Files, Duplicates, Uninstaller.** Those lists start **unchecked**.
-   **Smart Scan is the exception:** `scanSmart()` returns **recommended groups already selected**. The user still confirms before Trash. Do not list per-file rows on Smart Scan — one row per group (User Caches, Logs, Saved Application State). System Junk is the item-by-item picker (`scanJunk`).
+1. **Opt-in for System Wide Scan, Privacy, Large Files, Duplicates, Uninstaller.** Those lists start **unchecked**.
+   **Smart Scan is the exception:** `scanSmart()` returns **recommended groups already selected**. The user still confirms before Trash. Do not list per-file rows on Smart Scan — one row per group (User Caches, Logs, Saved Application State). System Wide Scan is the item-by-item picker (`scanJunk`); it is **not** safe to Select All — keep the caution on that page.
 2. **Confirm before any removal.** `DCConfirmMoveToTrash` / `DCConfirmDestructive`: **Cancel is the default (Return)**. Destructive button is second. List paths and size when moving to Trash.
 3. **Preview first.** Maintenance: `previewMaintenance`. If `nothingToDo`, show **`DCInformNothingToClean`** — do not run Empty Trash (or Quick Look) on an empty set.
 4. **Report outcome.** After a real clean: **`DCInformCleaned`** with **bytes freed** and item count. If zero items moved: Nothing to clean.
