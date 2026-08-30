@@ -33,8 +33,7 @@
     _cleaning.target = self;
     _cleaning.action = @selector(cleaningChanged:);
     NSView* cleaningCard = [self cardTitle:@"Cleaning"
-                                    detail:@"Permanent delete cannot be undone. Protected paths "
-                                            @"are still skipped. Empty Trash stays permanent."
+                                    detail:@"Permanent delete cannot be undone"
                                    control:_cleaning];
     [page addArrangedSubview:cleaningCard];
     DCStackFullWidth(page, cleaningCard);
