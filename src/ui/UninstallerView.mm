@@ -11,9 +11,14 @@
 
 @implementation DCUninstallerView {
   dcmm::Engine _engine;
-  std::vector<dcmm::InstalledApp> _apps;
+  struct AppRow {
+    dcmm::InstalledApp app;
+    bool selected = false;
+  };
+  std::vector<AppRow> _apps;
   NSInteger _sel;
   NSButton* _reload;
+  NSButton* _selAll;
   NSButton* _remove;
   NSTextField* _status;
   NSTableView* _appsTable;
@@ -30,13 +35,14 @@
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
     _reload = DCPushButton(@"Refresh", self, @selector(reloadApps));
+    _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
     _remove = DCDestructiveButton(@"Uninstall", self, @selector(uninstall));
     _remove.enabled = NO;
-    NSStackView* actions = DCTrailingButtons(@[ _reload, _remove ]);
+    NSStackView* actions = DCTrailingButtons(@[ _selAll, _reload, _remove ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
     _status = DCCaptionLabel(
-        @"Select an app to uninstall. Related files are optional — check only what you want removed.");
+        @"Check one or more apps to uninstall. Related files are optional — check only what you want removed.");
     [page addArrangedSubview:_status];
 
     _appsTable = [[NSTableView alloc] initWithFrame:NSZeroRect];
@@ -44,6 +50,12 @@
     _appsTable.dataSource = self;
     _appsTable.delegate = self;
     DCAttachTableMenu(_appsTable, self);
+    NSTableColumn* check = [[NSTableColumn alloc] initWithIdentifier:@"check"];
+    check.width = 24;
+    check.minWidth = 24;
+    check.maxWidth = 32;
+    check.title = @"";
+    [_appsTable addTableColumn:check];
     NSTableColumn* n = [[NSTableColumn alloc] initWithIdentifier:@"app"];
     n.title = @"Application";
     [_appsTable addTableColumn:n];
@@ -78,6 +90,7 @@
     [split addSubview:DCWrapTable(_appsTable)];
     [split addSubview:DCWrapTable(_leftTable)];
     DCStackExpand(page, split);
+    [self refreshUninstall];
   }
   return self;
 }
@@ -92,38 +105,70 @@
     dispatch_async(dispatch_get_main_queue(), ^{
       DCUninstallerView* s = weakSelf;
       if (!s) return;
-      s->_apps = std::move(apps);
+      s->_apps.clear();
+      s->_apps.reserve(apps.size());
+      for (auto& a : apps) s->_apps.push_back({std::move(a), false});
       s->_sel = -1;
       [s->_appsTable reloadData];
       [s->_leftTable reloadData];
       s->_status.stringValue = [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
+      [s refreshUninstall];
     });
   });
+}
+
+- (std::vector<dcmm::InstalledApp>)checkedApps {
+  std::vector<dcmm::InstalledApp> out;
+  for (auto& row : _apps)
+    if (row.selected) out.push_back(row.app);
+  return out;
+}
+
+- (BOOL)allAppsSelected {
+  if (_apps.empty()) return NO;
+  for (const auto& row : _apps)
+    if (!row.selected) return NO;
+  return YES;
+}
+
+- (void)refreshUninstall {
+  std::size_t n = 0;
+  for (const auto& row : _apps)
+    if (row.selected) ++n;
+  _remove.enabled = n > 0;
+  if (n > 1)
+    _remove.title = [NSString stringWithFormat:@"Uninstall %lu Apps", (unsigned long)n];
+  else
+    _remove.title = @"Uninstall";
+  _selAll.title = [self allAppsSelected] ? @"Unselect All" : @"Select All";
+  _selAll.enabled = !_apps.empty();
+}
+
+- (void)toggleAll {
+  BOOL on = ![self allAppsSelected];
+  for (auto& row : _apps) row.selected = on;
+  [_appsTable reloadData];
+  [self refreshUninstall];
 }
 
 - (void)tableViewSelectionDidChange:(NSNotification*)n {
   if (n.object != _appsTable) return;
   _sel = _appsTable.selectedRow;
-  if (_sel >= 0 && _sel < (NSInteger)_apps.size()) {
-    _engine.attachLeftovers(_apps[(size_t)_sel]);
-    _remove.enabled = YES;
-  } else {
-    _remove.enabled = NO;
-  }
+  if (_sel >= 0 && _sel < (NSInteger)_apps.size())
+    _engine.attachLeftovers(_apps[(size_t)_sel].app);
   [_leftTable reloadData];
 }
 
 - (void)uninstall {
-  if (_sel < 0 || _sel >= (NSInteger)_apps.size()) return;
-  auto& app = _apps[(size_t)_sel];
-  auto paths = ui::uninstallPaths(app);
+  auto apps = [self checkedApps];
+  auto paths = ui::uninstallPaths(apps);
   if (paths.empty()) {
-    DCInformNothingToClean(@"Select an application in the list first.");
+    DCInformNothingToClean(@"Check one or more applications in the list first.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray array];
   for (const auto& p : paths) [list addObject:DCNS(p)];
-  uint64_t bytes = ui::uninstallBytes(app);
+  uint64_t bytes = ui::uninstallBytes(apps);
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
   auto r = ui::applyClean(_engine, paths, mode);
@@ -140,23 +185,29 @@
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
   if (tv == _appsTable) return (NSInteger)_apps.size();
   if (_sel < 0 || _sel >= (NSInteger)_apps.size()) return 0;
-  return (NSInteger)_apps[(size_t)_sel].leftovers.size();
+  return (NSInteger)_apps[(size_t)_sel].app.leftovers.size();
 }
 
 - (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row {
   if (tv == _appsTable) {
     auto& a = _apps[(size_t)row];
+    if ([col.identifier isEqualToString:@"check"]) {
+      NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(togApp:)];
+      b.state = a.selected ? NSControlStateValueOn : NSControlStateValueOff;
+      b.tag = row;
+      return DCCenteredCheckCell(b);
+    }
     NSTextField* t = DCLabel(@"");
     if ([col.identifier isEqualToString:@"app"])
-      t.stringValue = DCNS(a.name);
+      t.stringValue = DCNS(a.app.name);
     else {
-      t.stringValue = DCNS(dcmm::formatBytes(a.appBytes));
+      t.stringValue = DCNS(dcmm::formatBytes(a.app.appBytes));
       t.alignment = NSTextAlignmentRight;
       t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
     }
     return DCCenteredTextCell(t);
   }
-  auto& it = _apps[(size_t)_sel].leftovers[(size_t)row];
+  auto& it = _apps[(size_t)_sel].app.leftovers[(size_t)row];
   if ([col.identifier isEqualToString:@"check"]) {
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
     b.state = it.selected ? NSControlStateValueOn : NSControlStateValueOff;
@@ -176,9 +227,15 @@
   return DCCenteredTextCell(t);
 }
 
+- (void)togApp:(NSButton*)s {
+  if (s.tag < 0 || s.tag >= (NSInteger)_apps.size()) return;
+  _apps[(size_t)s.tag].selected = s.state == NSControlStateValueOn;
+  [self refreshUninstall];
+}
+
 - (void)tog:(NSButton*)s {
   if (_sel < 0) return;
-  auto& it = _apps[(size_t)_sel].leftovers[(size_t)s.tag];
+  auto& it = _apps[(size_t)_sel].app.leftovers[(size_t)s.tag];
   it.selected = s.state == NSControlStateValueOn;
 }
 
@@ -187,12 +244,20 @@
   if (menu == _appsTable.menu) {
     NSInteger row = _appsTable.clickedRow;
     if (row < 0 || row >= (NSInteger)_apps.size()) return;
-    DCAddPathMenuItems(menu, DCNS(_apps[(size_t)row].appPath));
+    auto& a = _apps[(size_t)row];
+    DCAddPathMenuItems(menu, DCNS(a.app.appPath));
+    [menu addItem:[NSMenuItem separatorItem]];
+    NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:a.selected ? @"Unselect" : @"Select"
+                                                 action:@selector(ctxToggleApp:)
+                                          keyEquivalent:@""];
+    sel.target = self;
+    sel.tag = row;
+    [menu addItem:sel];
     return;
   }
   NSInteger row = _leftTable.clickedRow;
   if (_sel < 0 || row < 0) return;
-  auto& leftovers = _apps[(size_t)_sel].leftovers;
+  auto& leftovers = _apps[(size_t)_sel].app.leftovers;
   if (row >= (NSInteger)leftovers.size()) return;
   auto& it = leftovers[(size_t)row];
   DCAddPathMenuItems(menu, DCNS(it.path));
@@ -211,16 +276,23 @@
   [menu addItem:trash];
 }
 
+- (void)ctxToggleApp:(NSMenuItem*)sender {
+  if (sender.tag < 0 || sender.tag >= (NSInteger)_apps.size()) return;
+  _apps[(size_t)sender.tag].selected = !_apps[(size_t)sender.tag].selected;
+  [_appsTable reloadData];
+  [self refreshUninstall];
+}
+
 - (void)ctxToggleSelect:(NSMenuItem*)sender {
   if (_sel < 0) return;
-  auto& it = _apps[(size_t)_sel].leftovers[(size_t)sender.tag];
+  auto& it = _apps[(size_t)_sel].app.leftovers[(size_t)sender.tag];
   it.selected = !it.selected;
   [_leftTable reloadData];
 }
 
 - (void)ctxTrashLeftover:(NSMenuItem*)sender {
   if (_sel < 0) return;
-  auto& it = _apps[(size_t)_sel].leftovers[(size_t)sender.tag];
+  auto& it = _apps[(size_t)_sel].app.leftovers[(size_t)sender.tag];
   if (!DCConfirmClean(@[ DCNS(it.path) ], it.bytes)) return;
   const auto mode = DCCleanPref();
   auto r = ui::applyClean(_engine, {it.path}, mode);

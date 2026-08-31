@@ -124,6 +124,21 @@ inline uint64_t uninstallBytes(const dcmm::InstalledApp& app) {
   return n;
 }
 
+inline std::vector<std::string> uninstallPaths(const std::vector<dcmm::InstalledApp>& apps) {
+  std::vector<std::string> out;
+  for (const auto& app : apps) {
+    auto p = uninstallPaths(app);
+    out.insert(out.end(), p.begin(), p.end());
+  }
+  return out;
+}
+
+inline uint64_t uninstallBytes(const std::vector<dcmm::InstalledApp>& apps) {
+  uint64_t n = 0;
+  for (const auto& app : apps) n += uninstallBytes(app);
+  return n;
+}
+
 inline std::array<const char*, 4> maintenanceIds() {
   return {"empty_trash", "flush_dns", "launch_services", "quicklook"};
 }
