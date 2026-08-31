@@ -109,18 +109,65 @@ inline std::vector<std::string> duplicatePathsToTrash(
   return out;
 }
 
+inline void appendUniquePath(std::vector<std::string>& out, const std::string& path) {
+  if (path.empty()) return;
+  for (const auto& e : out)
+    if (e == path) return;
+  out.push_back(path);
+}
+
+inline std::vector<std::string> applicationSupportNames(const dcmm::InstalledApp& app) {
+  std::vector<std::string> names;
+  auto add = [&](std::string n) {
+    if (n.empty()) return;
+    while (!n.empty() && (n.back() == '/' || n.back() == '\\')) n.pop_back();
+    const auto slash = n.find_last_of("/\\");
+    if (slash != std::string::npos) n = n.substr(slash + 1);
+    if (n.size() > 4 && n.compare(n.size() - 4, 4, ".app") == 0) n.resize(n.size() - 4);
+    if (n.empty()) return;
+    for (const auto& e : names)
+      if (e == n) return;
+    names.push_back(std::move(n));
+  };
+  add(app.bundleId);
+  add(app.name);
+  add(dcmm::displayName(app.appPath));
+  return names;
+}
+
+inline std::vector<std::string> applicationSupportLeftoverPaths(const dcmm::InstalledApp& app) {
+  const auto root = dcmm::joinPath(dcmm::homeDirectory(), "Library/Application Support");
+  std::vector<std::string> out;
+  for (const auto& n : applicationSupportNames(app)) {
+    const auto p = dcmm::joinPath(root, n);
+    if (dcmm::pathExists(p) && dcmm::isSafeToTrash(p)) appendUniquePath(out, p);
+  }
+  return out;
+}
+
 inline std::vector<std::string> uninstallPaths(const dcmm::InstalledApp& app) {
   std::vector<std::string> out;
-  if (!app.appPath.empty()) out.push_back(app.appPath);
+  appendUniquePath(out, app.appPath);
+  for (const auto& p : applicationSupportLeftoverPaths(app)) appendUniquePath(out, p);
   for (const auto& it : app.leftovers)
-    if (it.selected && it.path != app.appPath) out.push_back(it.path);
+    if (it.selected) appendUniquePath(out, it.path);
   return out;
 }
 
 inline uint64_t uninstallBytes(const dcmm::InstalledApp& app) {
-  uint64_t n = app.appBytes;
-  for (const auto& it : app.leftovers)
-    if (it.selected && it.path != app.appPath) n += it.bytes;
+  uint64_t n = 0;
+  const auto paths = uninstallPaths(app);
+  for (const auto& p : paths) {
+    if (p == app.appPath) {
+      n += app.appBytes;
+      continue;
+    }
+    for (const auto& it : app.leftovers)
+      if (it.path == p) {
+        n += it.bytes;
+        break;
+      }
+  }
   return n;
 }
 
