@@ -1,5 +1,6 @@
 #import "ui/UninstallerView.h"
 #import "ui/Theme.h"
+#include "AppFeatures.hpp"
 #include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
@@ -34,7 +35,8 @@
     NSStackView* actions = DCTrailingButtons(@[ _reload, _remove ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
-    _status = DCCaptionLabel(@"Select an app to review leftover files.");
+    _status = DCCaptionLabel(
+        @"Select an app to uninstall. Related files are optional — check only what you want removed.");
     [page addArrangedSubview:_status];
 
     _appsTable = [[NSTableView alloc] initWithFrame:NSZeroRect];
@@ -114,20 +116,14 @@
 - (void)uninstall {
   if (_sel < 0 || _sel >= (NSInteger)_apps.size()) return;
   auto& app = _apps[(size_t)_sel];
-  std::vector<std::string> paths;
-  for (auto& it : app.leftovers)
-    if (it.selected) paths.push_back(it.path);
+  auto paths = ui::uninstallPaths(app);
   if (paths.empty()) {
-    DCInformNothingToClean(@"Check the application and leftover files you want to move to Trash.");
+    DCInformNothingToClean(@"Select an application in the list first.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray array];
-  uint64_t bytes = 0;
-  for (auto& it : app.leftovers)
-    if (it.selected) {
-      [list addObject:DCNS(it.path)];
-      bytes += it.bytes;
-    }
+  for (const auto& p : paths) [list addObject:DCNS(p)];
+  uint64_t bytes = ui::uninstallBytes(app);
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
   auto r = ui::applyClean(_engine, paths, mode);

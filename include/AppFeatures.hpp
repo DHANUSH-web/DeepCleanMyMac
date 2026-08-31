@@ -109,6 +109,21 @@ inline std::vector<std::string> duplicatePathsToTrash(
   return out;
 }
 
+inline std::vector<std::string> uninstallPaths(const dcmm::InstalledApp& app) {
+  std::vector<std::string> out;
+  if (!app.appPath.empty()) out.push_back(app.appPath);
+  for (const auto& it : app.leftovers)
+    if (it.selected && it.path != app.appPath) out.push_back(it.path);
+  return out;
+}
+
+inline uint64_t uninstallBytes(const dcmm::InstalledApp& app) {
+  uint64_t n = app.appBytes;
+  for (const auto& it : app.leftovers)
+    if (it.selected && it.path != app.appPath) n += it.bytes;
+  return n;
+}
+
 inline std::array<const char*, 4> maintenanceIds() {
   return {"empty_trash", "flush_dns", "launch_services", "quicklook"};
 }
