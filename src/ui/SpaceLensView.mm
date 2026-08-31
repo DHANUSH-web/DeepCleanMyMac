@@ -9,18 +9,6 @@
 @interface DCSpaceLensView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
-static NSImageView* DCSpaceLensDangerIcon(CGFloat pointSize) {
-  NSImageView* warn = [[NSImageView alloc] initWithFrame:NSZeroRect];
-  NSImage* img = [NSImage imageWithSystemSymbolName:@"exclamationmark.triangle.fill"
-                           accessibilityDescription:@"Not safe to delete"];
-  img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:pointSize
-                                                                                         weight:NSFontWeightRegular]];
-  warn.image = img;
-  warn.contentTintColor = NSColor.systemOrangeColor;
-  warn.toolTip = @"Not safe to delete. Please clean this item at your own risk.";
-  return warn;
-}
-
 @implementation DCSpaceLensView {
   dcmm::Engine _engine;
   std::vector<dcmm::SpaceNode> _nodes;
@@ -42,7 +30,7 @@ static NSImageView* DCSpaceLensDangerIcon(CGFloat pointSize) {
         @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    NSImageView* legendIcon = DCSpaceLensDangerIcon(12);
+    NSImageView* legendIcon = DCDangerIcon(12);
     [legendIcon setContentHuggingPriority:NSLayoutPriorityRequired
                            forOrientation:NSLayoutConstraintOrientationHorizontal];
     NSTextField* legendText = DCCaptionLabel(
@@ -216,21 +204,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   if ([col.identifier isEqualToString:@"name"]) {
     t.stringValue = DCNS(n.name);
     t.toolTip = DCNS(n.path);
-    if (ui::spaceLensDanger(n.path)) {
-      NSImageView* warn = DCSpaceLensDangerIcon(12);
-      [warn setContentHuggingPriority:NSLayoutPriorityRequired
-                       forOrientation:NSLayoutConstraintOrientationHorizontal];
-      [t setContentHuggingPriority:NSLayoutPriorityDefaultLow
-                    forOrientation:NSLayoutConstraintOrientationHorizontal];
-      [t setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
-                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
-      NSStackView* rowStack = [NSStackView stackViewWithViews:@[ warn, t ]];
-      rowStack.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-      rowStack.alignment = NSLayoutAttributeCenterY;
-      rowStack.spacing = 6;
-      rowStack.translatesAutoresizingMaskIntoConstraints = NO;
-      return DCCenteredFillCell(rowStack);
-    }
+    if (ui::spaceLensDanger(n.path)) return DCCenteredDangerTextCell(t);
   } else if ([col.identifier isEqualToString:@"share"]) {
     t.stringValue = DCNS(ui::spaceSharePercent(n.bytes, _total));
     t.alignment = NSTextAlignmentRight;

@@ -25,6 +25,8 @@ NSScrollView* DCWrapTable(NSTableView* table);
 NSTableCellView* DCCenteredTextCell(NSTextField* field);
 NSTableCellView* DCCenteredCheckCell(NSButton* checkbox);
 NSTableCellView* DCCenteredFillCell(NSView* content);
+NSImageView* DCDangerIcon(CGFloat pointSize);
+NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 
 void DCPinEdges(NSView* child, NSView* parent);
 NSStackView* DCPageStack(NSView* host);

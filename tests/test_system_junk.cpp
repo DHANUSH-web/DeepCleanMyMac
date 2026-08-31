@@ -31,6 +31,42 @@ TEST_F(HomeFixture, SystemJunkListsEachCacheChildUnchecked) {
   }
 }
 
+TEST_F(HomeFixture, SystemJunkGroupsComAppleAsNativeSystemItems) {
+  writeBytes(home / "Library" / "Caches" / "com.example.Junk" / "a.bin", 2048);
+  writeBytes(home / "Library" / "Caches" / "com.apple.Safari" / "c.bin", 4096);
+  writeBytes(home / "Library" / "Logs" / "com.apple.bird" / "l.bin", 512);
+  writeBytes(home / "Library" / "Caches" / "Arc" / "b.bin", 1024);
+  dcmm::Engine e;
+  auto r = ui::runScan(e, ui::Module::SystemJunk);
+  ASSERT_FALSE(r.groups.empty());
+  EXPECT_EQ(r.groups.front().id, "native_system");
+  EXPECT_EQ(r.groups.front().title, "Native System Items");
+  bool sawSafari = false, sawBird = false, sawJunkInNative = false;
+  for (const auto& it : r.groups.front().items) {
+    EXPECT_FALSE(it.selected);
+    EXPECT_TRUE(it.reviewFirst);
+    EXPECT_TRUE(ui::isNativeAppleScanItem(it));
+    if (it.displayName == "com.apple.Safari") sawSafari = true;
+    if (it.displayName == "com.apple.bird") sawBird = true;
+    if (it.displayName == "com.example.Junk") sawJunkInNative = true;
+  }
+  EXPECT_TRUE(sawSafari);
+  EXPECT_TRUE(sawBird);
+  EXPECT_FALSE(sawJunkInNative);
+  bool junkInCaches = false, safariInCaches = false, arcInCaches = false;
+  for (const auto& g : r.groups) {
+    if (g.id != "user_caches") continue;
+    for (const auto& it : g.items) {
+      if (it.displayName == "com.example.Junk") junkInCaches = true;
+      if (it.displayName == "com.apple.Safari") safariInCaches = true;
+      if (it.displayName == "Arc") arcInCaches = true;
+    }
+  }
+  EXPECT_TRUE(junkInCaches);
+  EXPECT_TRUE(arcInCaches);
+  EXPECT_FALSE(safariInCaches);
+}
+
 TEST_F(HomeFixture, SystemJunkOptInCleanOnlyCheckedRows) {
   writeBytes(home / "Library" / "Caches" / "keep.me" / "a.bin", 1024);
   writeBytes(home / "Library" / "Caches" / "drop.me" / "b.bin", 1024);

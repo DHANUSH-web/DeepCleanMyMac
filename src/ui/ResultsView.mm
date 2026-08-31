@@ -255,12 +255,15 @@ struct FlatRow {
     if (!column || [ident isEqualToString:@"name"]) {
       t.stringValue = [NSString stringWithFormat:@"%@ — %@", DCNS(g.title),
                                                  DCNS(dcmm::formatBytes(g.totalBytes()))];
+      t.toolTip = DCNS(g.subtitle);
+      if (g.id == "native_system") return DCCenteredDangerTextCell(t);
     } else {
       t.stringValue = @"";
     }
     return DCCenteredTextCell(t);
   }
   auto& it = _report.groups[fr.g].items[fr.i];
+  const bool native = _report.groups[fr.g].id == "native_system";
   if ([ident isEqualToString:@"check"]) {
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(checkToggled:)];
     b.state = it.selected ? NSControlStateValueOn : NSControlStateValueOff;
@@ -277,6 +280,7 @@ struct FlatRow {
     } else {
       t.stringValue = DCNS(it.displayName);
       t.toolTip = DCNS(it.path);
+      if (native) return DCCenteredDangerTextCell(t);
     }
   } else if ([ident isEqualToString:@"files"]) {
     t.stringValue = [NSString stringWithFormat:@"%llu", (unsigned long long)it.fileCount];

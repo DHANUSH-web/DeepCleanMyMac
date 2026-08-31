@@ -133,6 +133,35 @@ NSTableCellView* DCCenteredTextCell(NSTextField* field) {
   return cell;
 }
 
+NSImageView* DCDangerIcon(CGFloat pointSize) {
+  NSImageView* warn = [[NSImageView alloc] initWithFrame:NSZeroRect];
+  NSImage* img = [NSImage imageWithSystemSymbolName:@"exclamationmark.triangle.fill"
+                           accessibilityDescription:@"Not safe to delete"];
+  img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:pointSize
+                                                                                         weight:NSFontWeightRegular]];
+  warn.image = img;
+  warn.contentTintColor = NSColor.systemOrangeColor;
+  warn.toolTip = @"Not safe to delete. Please clean this item at your own risk.";
+  return warn;
+}
+
+NSTableCellView* DCCenteredDangerTextCell(NSTextField* field) {
+  NSImageView* warn = DCDangerIcon(12);
+  [warn setContentHuggingPriority:NSLayoutPriorityRequired
+                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [field setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [field setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
+  NSStackView* row = [NSStackView stackViewWithViews:@[ warn, field ]];
+  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+  row.alignment = NSLayoutAttributeCenterY;
+  row.spacing = 6;
+  NSTableCellView* cell = DCCenteredFillCell(row);
+  cell.textField = field;
+  return cell;
+}
+
 NSTableCellView* DCCenteredCheckCell(NSButton* checkbox) {
   NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
   checkbox.translatesAutoresizingMaskIntoConstraints = NO;

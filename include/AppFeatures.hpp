@@ -4,7 +4,9 @@
 
 #include "dcmm/dcmm.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -51,11 +53,53 @@ inline std::array<DashboardTool, 6> dashboardTools() {
   }};
 }
 
+inline bool scanNameHasComApple(const std::string& name) {
+  std::string lower = name;
+  for (char& c : lower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  return lower.find("com.apple") != std::string::npos;
+}
+
+inline bool isNativeAppleScanItem(const dcmm::ScanItem& it) {
+  return scanNameHasComApple(it.displayName) || scanNameHasComApple(dcmm::displayName(it.path));
+}
+
+inline void regroupNativeSystemItems(dcmm::ScanReport& r) {
+  dcmm::ScanGroup native;
+  native.id = "native_system";
+  native.title = "Native System Items";
+  native.subtitle = "Apple identifiers (com.apple) — not safe to delete";
+  native.reviewFirst = true;
+  for (auto& g : r.groups) {
+    std::vector<dcmm::ScanItem> keep;
+    keep.reserve(g.items.size());
+    for (auto& it : g.items) {
+      if (isNativeAppleScanItem(it)) {
+        it.selected = false;
+        it.reviewFirst = true;
+        native.items.push_back(std::move(it));
+      } else {
+        keep.push_back(std::move(it));
+      }
+    }
+    g.items = std::move(keep);
+  }
+  r.groups.erase(std::remove_if(r.groups.begin(), r.groups.end(),
+                                [](const dcmm::ScanGroup& g) { return g.items.empty(); }),
+                 r.groups.end());
+  if (native.items.empty()) return;
+  native.sortBySizeDescending();
+  r.groups.insert(r.groups.begin(), std::move(native));
+}
+
 inline dcmm::ScanReport runScan(dcmm::Engine& engine, Module page,
                                 const dcmm::ProgressFn& progress = nullptr) {
   switch (page) {
     case Module::SmartScan: return engine.scanSmart(progress);
-    case Module::SystemJunk: return engine.scanJunk(progress);
+    case Module::SystemJunk: {
+      auto r = engine.scanJunk(progress);
+      regroupNativeSystemItems(r);
+      return r;
+    }
     case Module::Privacy: return engine.scanPrivacy(progress);
     default: return {};
   }
