@@ -34,7 +34,7 @@ inline const char* title(Module m) {
 
 inline const char* subtitle(Module m) {
   switch (m) {
-    case Module::Overview: return "This Mac and the startup disk";
+    case Module::Overview: return "Your MacBook, startup disk and DCMM tools";
     case Module::SmartScan: return "Recommended safe groups — no file picking";
     case Module::SystemJunk:
       return "Item-by-item scan — review before cleaning. Not everything here is safe to remove";
@@ -42,9 +42,9 @@ inline const char* subtitle(Module m) {
     case Module::Duplicates: return "Copies you no longer need";
     case Module::Uninstaller: return "Apps and their leftover files";
     case Module::Privacy: return "Browser traces and tracking leftovers";
-    case Module::SpaceLens: return "Where your home folder went";
-    case Module::Maintenance: return "Housekeeping tasks";
-    case Module::Settings: return "How the app looks and how cleaning works";
+    case Module::SpaceLens: return "Find all the heavy items, including hidden files and folders";
+    case Module::Maintenance: return "Some more tools for your MacBook";
+    case Module::Settings: return "Manage DCMM appearance and behaviour";
     default: return "";
   }
 }
