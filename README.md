@@ -41,7 +41,7 @@ Equivalent with CMake presets:
 ```bash
 make init   # or: git submodule update --init extras/dcmmlib && git -C extras/dcmmlib checkout main
 cmake --preset release
-cmake --build --preset release
+cmake --build build/release
 ctest --preset release
 open build/release/DeepCleanMyMac.app
 ```
@@ -51,12 +51,21 @@ Debug: `--preset debug` (output in `build/debug`).
 Equivalent without presets:
 
 ```bash
-cmake -S . -B build -G Ninja \
+# For debug
+cmake -S . -B build/debug -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-clang.cmake \
+  -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/debug
+ctest --test-dir build/debug --output-on-failure
+open build/debug/DeepCleanMyMac.app
+
+# For release
+cmake -S . -B build/release -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE=cmake/llvm-clang.cmake \
   -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build --output-on-failure
-open build/DeepCleanMyMac.app
+cmake --build build/release
+ctest --test-dir build/release --output-on-failure
+open build/release/DeepCleanMyMac.app
 ```
 
 ## What the app does
