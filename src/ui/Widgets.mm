@@ -298,22 +298,15 @@ BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes) {
   if (perm) {
     [info appendFormat:@"%lu item%s (%@) will be deleted permanently. This cannot be undone from "
                        @"Trash.\n\nProtected system files, keys, and personal libraries are never "
-                       @"touched.\n",
+                       @"touched.",
                        (unsigned long)paths.count, paths.count == 1 ? "" : "s",
                        DCNS(dcmm::formatBytes(bytes))];
   } else {
     [info appendFormat:@"%lu item%s (%@) will be moved to Trash. You can restore them from Trash "
                        @"until it is emptied.\n\nProtected system files, keys, and personal libraries "
-                       @"are never touched.\n",
+                       @"are never touched.",
                        (unsigned long)paths.count, paths.count == 1 ? "" : "s",
                        DCNS(dcmm::formatBytes(bytes))];
-  }
-  NSUInteger shown = MIN((NSUInteger)8, paths.count);
-  for (NSUInteger i = 0; i < shown; ++i) {
-    [info appendFormat:@"\n• %@", paths[i]];
-  }
-  if (paths.count > shown) {
-    [info appendFormat:@"\n• …and %lu more", (unsigned long)(paths.count - shown)];
   }
   NSString* title = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
   NSString* proceed = perm ? @"Delete Permanently" : @"Move to Trash";
