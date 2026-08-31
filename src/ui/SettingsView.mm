@@ -52,8 +52,8 @@
   t.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
   NSTextField* d = DCCaptionLabel(detail);
   d.maximumNumberOfLines = 4;
+  d.lineBreakMode = NSLineBreakByWordWrapping;
   control.translatesAutoresizingMaskIntoConstraints = NO;
-  [control.widthAnchor constraintGreaterThanOrEqualToConstant:200].active = YES;
   NSStackView* text = [NSStackView stackViewWithViews:@[ t, d ]];
   text.orientation = NSUserInterfaceLayoutOrientationVertical;
   text.alignment = NSLayoutAttributeLeading;
@@ -61,8 +61,15 @@
   NSStackView* body = [NSStackView stackViewWithViews:@[ text, control ]];
   body.orientation = NSUserInterfaceLayoutOrientationHorizontal;
   body.alignment = NSLayoutAttributeCenterY;
+  body.distribution = NSStackViewDistributionFill;
   body.spacing = 16;
   [text setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [text setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [control setContentHuggingPriority:NSLayoutPriorityRequired
+                      forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [control setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                    forOrientation:NSLayoutConstraintOrientationHorizontal];
   body.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
 
   NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
