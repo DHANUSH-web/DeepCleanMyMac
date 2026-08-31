@@ -272,7 +272,7 @@ struct FlatRow {
   if ([ident isEqualToString:@"name"]) {
     if (_mode == DCResultsModeSmart) {
       const auto& g = _report.groups[fr.g];
-      t.stringValue = DCNS(g.title);
+      t.stringValue = g.id == "installers" ? DCNS(it.displayName) : DCNS(g.title);
       t.toolTip = [NSString stringWithFormat:@"%s\n%s", g.subtitle.c_str(), it.path.c_str()];
     } else {
       t.stringValue = DCNS(it.displayName);

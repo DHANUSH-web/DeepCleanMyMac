@@ -17,7 +17,7 @@ TEST_F(HomeFixture, SmartScanRecommendsWholeCacheGroup) {
   bool sawChildName = false;
   bool sawCaches = false;
   for (const auto& g : r.groups) {
-    EXPECT_EQ(g.items.size(), 1u);
+    if (g.id != "installers") EXPECT_EQ(g.items.size(), 1u);
     EXPECT_TRUE(g.items[0].selected);
     if (g.id == "user_caches") {
       sawCaches = true;
@@ -55,6 +55,30 @@ TEST_F(HomeFixture, SmartScanCleanMovesCacheChildren) {
   EXPECT_GE(result.trashedItems, 1u);
   EXPECT_FALSE(fs::exists(child));
   EXPECT_TRUE(fs::exists(home / "Library" / "Caches"));
+}
+
+TEST_F(HomeFixture, SmartScanFindsInstallersInDownloadsAndDocuments) {
+  writeBytes(home / "Downloads" / "App.dmg", 4096);
+  writeBytes(home / "Documents" / "Setup.pkg", 2048);
+  writeBytes(home / "Downloads" / "notes.txt", 512);
+  writeBytes(home / "Library" / "Caches" / "keep" / "c.bin", 256);
+  dcmm::Engine e;
+  auto r = ui::runScan(e, ui::Module::SmartScan);
+  const dcmm::ScanGroup* installers = nullptr;
+  for (const auto& g : r.groups)
+    if (g.id == "installers") installers = &g;
+  ASSERT_NE(installers, nullptr);
+  EXPECT_EQ(installers->title, "Installer leftovers");
+  bool dmg = false, pkg = false, txt = false;
+  for (const auto& it : installers->items) {
+    EXPECT_TRUE(it.selected);
+    if (it.displayName == "App.dmg") dmg = true;
+    if (it.displayName == "Setup.pkg") pkg = true;
+    if (it.displayName == "notes.txt") txt = true;
+  }
+  EXPECT_TRUE(dmg);
+  EXPECT_TRUE(pkg);
+  EXPECT_FALSE(txt);
 }
 
 TEST_F(HomeFixture, SmartScanDoesNotIncludeNpm) {
