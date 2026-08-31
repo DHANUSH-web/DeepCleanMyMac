@@ -1,6 +1,6 @@
 # Contributing to DeepCleanMyMac
 
-Thanks for helping. This repo is the **macOS-only** AppKit app. Scanning, safety, and trashing live in **[dcmmlib](https://github.com/DHANUSH-web/dcmmlib)** (`extras/dcmmlib`).
+Thanks for your contributions. This repo is the **macOS-only** native AppKit application developed with Objective-C++. Scanning, safety, and trashing live in **[dcmmlib](https://github.com/DHANUSH-web/dcmmlib)** (`extras/dcmmlib`).
 
 Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md). Engine-only changes belong in dcmmlib, not here.
 
