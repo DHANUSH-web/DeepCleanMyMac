@@ -317,6 +317,27 @@ BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes) {
   return DCConfirmClean(paths, bytes);
 }
 
+BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes) {
+  if (paths.count == 0) return NO;
+  const bool perm = DCCleanPref() == ui::CleanPref::DeletePermanently;
+  NSMutableString* info = [NSMutableString string];
+  if (perm) {
+    [info appendFormat:@"%lu item%s (%@) will be deleted permanently. This cannot be undone from "
+                       @"Trash.\n\nAny folder you checked is removed at your own risk.",
+                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
+                       DCNS(dcmm::formatBytes(bytes))];
+  } else {
+    [info appendFormat:@"%lu item%s (%@) will be moved to Trash. You can restore them from Trash "
+                       @"until it is emptied.\n\nAny folder you checked is removed at your own "
+                       @"risk.",
+                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
+                       DCNS(dcmm::formatBytes(bytes))];
+  }
+  NSString* title = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
+  NSString* proceed = perm ? @"Delete Permanently" : @"Move to Trash";
+  return DCConfirmDestructive(title, info, proceed);
+}
+
 void DCInformNothingToClean(NSString* detail) {
   NSAlert* a = [[NSAlert alloc] init];
   a.alertStyle = NSAlertStyleInformational;

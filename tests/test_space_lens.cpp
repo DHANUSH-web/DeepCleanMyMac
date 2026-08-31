@@ -1,4 +1,5 @@
 #include "AppFeatures.hpp"
+#include "AppSettings.hpp"
 #include "home_fixture.hpp"
 
 #include "dcmm/dcmm.hpp"
@@ -21,6 +22,57 @@ TEST_F(HomeFixture, SpaceLensMeasuresHomeFolders) {
   EXPECT_TRUE(sawCaches);
   EXPECT_FALSE(sawLibraryRoot);
   for (std::size_t i = 1; i < nodes.size(); ++i) EXPECT_GE(nodes[i - 1].bytes, nodes[i].bytes);
+}
+
+TEST_F(HomeFixture, SpaceLensSelectedPathsIncludeOwnRiskFolders) {
+  writeBytes(home / "Downloads" / "movie.bin", 8192);
+  writeBytes(home / "Library" / "Caches" / "c.bin", 4096);
+  writeBytes(home / "Documents" / "keep.txt", 1024);
+  dcmm::Engine e;
+  auto nodes = e.spaceLens();
+  ASSERT_FALSE(nodes.empty());
+  std::vector<char> selected(nodes.size(), 1);
+  auto paths = ui::selectedSpaceLensPaths(nodes, selected);
+  EXPECT_EQ(paths.size(), nodes.size());
+  bool sawDocuments = false, sawDownloads = false, sawCaches = false;
+  for (const auto& p : paths) {
+    if (p == (home / "Documents").string()) sawDocuments = true;
+    if (p == (home / "Downloads").string()) sawDownloads = true;
+    if (p == (home / "Library" / "Caches").string()) sawCaches = true;
+  }
+  EXPECT_TRUE(sawDocuments);
+  EXPECT_TRUE(sawDownloads);
+  EXPECT_TRUE(sawCaches);
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Documents").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Downloads").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Desktop").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Pictures").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Music").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Movies").string()));
+  EXPECT_FALSE(ui::spaceLensDanger((home / "Library" / "Caches").string()));
+  EXPECT_FALSE(ui::spaceLensDanger((home / "Library" / "Logs").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Library" / "Keychains").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Library" / "Mail").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Library" / "Safari").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Library" / "Messages").string()));
+  EXPECT_TRUE(ui::spaceLensDanger((home / "Library" / "Application Support").string()));
+  EXPECT_FALSE(ui::spaceLensDanger((home / "Projects").string()));
+}
+
+TEST_F(HomeFixture, SpaceLensOwnRiskCleansDocumentsAndCaches) {
+  writeBytes(home / "Documents" / "keep.txt", 1024);
+  writeBytes(home / "Library" / "Caches" / "com.example.Junk" / "a.bin", 2048);
+  dcmm::Engine e;
+  auto docs = ui::applySpaceLensClean(e, {(home / "Documents").string()}, ui::CleanPref::MoveToTrash);
+  EXPECT_GE(docs.trashedItems, 1u);
+  EXPECT_FALSE(fs::exists(home / "Documents" / "keep.txt"));
+  EXPECT_TRUE(fs::exists(trash / "Documents"));
+
+  auto caches = ui::applySpaceLensClean(
+      e, {(home / "Library" / "Caches").string()}, ui::CleanPref::MoveToTrash);
+  EXPECT_GE(caches.trashedItems, 1u);
+  EXPECT_TRUE(fs::exists(home / "Library" / "Caches"));
+  EXPECT_FALSE(fs::exists(home / "Library" / "Caches" / "com.example.Junk"));
 }
 
 TEST(SpaceLens, SizeBandByBytes) {

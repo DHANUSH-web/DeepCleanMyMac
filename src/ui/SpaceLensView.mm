@@ -3,18 +3,32 @@
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
-#include "dcmm/safety.hpp"
 #include "Modules.h"
 #include <vector>
 
 @interface DCSpaceLensView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
+static NSImageView* DCSpaceLensDangerIcon(CGFloat pointSize) {
+  NSImageView* warn = [[NSImageView alloc] initWithFrame:NSZeroRect];
+  NSImage* img = [NSImage imageWithSystemSymbolName:@"exclamationmark.triangle.fill"
+                           accessibilityDescription:@"Not safe to delete"];
+  img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:pointSize
+                                                                                         weight:NSFontWeightRegular]];
+  warn.image = img;
+  warn.contentTintColor = NSColor.systemOrangeColor;
+  warn.toolTip = @"Not safe to delete. Please clean this item at your own risk.";
+  return warn;
+}
+
 @implementation DCSpaceLensView {
   dcmm::Engine _engine;
   std::vector<dcmm::SpaceNode> _nodes;
+  std::vector<char> _selected;
   uint64_t _total;
   NSButton* _scan;
+  NSButton* _selAll;
+  NSButton* _clean;
   NSTextField* _status;
   NSTableView* _table;
 }
@@ -28,8 +42,27 @@
         @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
+    NSImageView* legendIcon = DCSpaceLensDangerIcon(12);
+    [legendIcon setContentHuggingPriority:NSLayoutPriorityRequired
+                           forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSTextField* legendText = DCCaptionLabel(
+        @"Warning icon shows the folder might not be safe to delete. Please clean at your own risk");
+    [legendText setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                           forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSStackView* legend = [NSStackView stackViewWithViews:@[ legendIcon, legendText ]];
+    legend.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    legend.alignment = NSLayoutAttributeCenterY;
+    legend.spacing = 6;
+    [legend setContentHuggingPriority:NSLayoutPriorityRequired
+                       forOrientation:NSLayoutConstraintOrientationVertical];
+    [page addArrangedSubview:legend];
+    DCStackFullWidth(page, legend);
     _scan = DCDefaultButton(@"Analyze", self, @selector(startScan));
-    NSStackView* actions = DCTrailingButtons(@[ _scan ]);
+    _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
+    _selAll.enabled = NO;
+    _clean = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
+    _clean.enabled = NO;
+    NSStackView* actions = DCTrailingButtons(@[ _selAll, _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
     _status = DCCaptionLabel(@"Measures folders in your home directory.");
@@ -40,6 +73,12 @@
     _table.dataSource = self;
     _table.delegate = self;
     DCAttachTableMenu(_table, self);
+    NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"check"];
+    c0.width = 24;
+    c0.minWidth = 24;
+    c0.maxWidth = 32;
+    c0.title = @"";
+    [_table addTableColumn:c0];
     NSTableColumn* c1 = [[NSTableColumn alloc] initWithIdentifier:@"name"];
     c1.title = @"Folder";
     [_table addTableColumn:c1];
@@ -52,8 +91,17 @@
     c3.width = 72;
     [_table addTableColumn:c3];
     DCStackExpand(page, DCWrapTable(_table));
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(refreshClean)
+                                                 name:DCSettingsDidChangeNotification
+                                               object:nil];
+    [self refreshClean];
   }
   return self;
+}
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void)startScan {
@@ -68,14 +116,63 @@
       DCSpaceLensView* s = weakSelf;
       if (!s) return;
       s->_nodes = std::move(n);
+      s->_selected.assign(s->_nodes.size(), 0);
       s->_total = 0;
       for (const auto& x : s->_nodes) s->_total += x.bytes;
       [s->_table reloadData];
       s->_scan.enabled = YES;
       s->_status.stringValue =
           [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_nodes.size()];
+      [s refreshClean];
     });
   });
+}
+
+- (BOOL)allSelected {
+  if (_nodes.empty()) return NO;
+  for (std::size_t i = 0; i < _nodes.size(); ++i) {
+    if (i >= _selected.size() || !_selected[i]) return NO;
+  }
+  return YES;
+}
+
+- (void)refreshClean {
+  auto paths = ui::selectedSpaceLensPaths(_nodes, _selected);
+  uint64_t b = ui::selectedSpaceLensBytes(_nodes, _selected);
+  _clean.enabled = !paths.empty();
+  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), paths.empty() ? 0 : b));
+  _selAll.enabled = !_nodes.empty();
+  _selAll.title = [self allSelected] ? @"Unselect All" : @"Select All";
+}
+
+- (void)toggleAll {
+  BOOL on = ![self allSelected];
+  if (_selected.size() != _nodes.size()) _selected.assign(_nodes.size(), 0);
+  for (std::size_t i = 0; i < _nodes.size(); ++i) _selected[i] = on ? 1 : 0;
+  [_table reloadData];
+  [self refreshClean];
+}
+
+- (void)cleanSelected {
+  auto paths = ui::selectedSpaceLensPaths(_nodes, _selected);
+  if (paths.empty()) {
+    DCInformNothingToClean(@"Check the folders you want to remove. Please clean at your own risk.");
+    return;
+  }
+  NSMutableArray<NSString*>* list = [NSMutableArray arrayWithCapacity:paths.size()];
+  for (const auto& p : paths) [list addObject:DCNS(p)];
+  uint64_t bytes = ui::selectedSpaceLensBytes(_nodes, _selected);
+  if (!DCConfirmSpaceLensClean(list, bytes)) return;
+  const auto mode = DCCleanPref();
+  auto r = ui::applySpaceLensClean(_engine, paths, mode);
+  if (r.trashedItems == 0) {
+    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+  } else {
+    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
+    _status.stringValue = msg;
+    DCInformCleaned(@"Clean finished", msg);
+  }
+  [self startScan];
 }
 
 static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
@@ -105,10 +202,35 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
 
 - (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row {
   auto& n = _nodes[(size_t)row];
+  if ([col.identifier isEqualToString:@"check"]) {
+    NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
+    b.enabled = YES;
+    b.state = (row < (NSInteger)_selected.size() && _selected[(size_t)row])
+                  ? NSControlStateValueOn
+                  : NSControlStateValueOff;
+    b.tag = row;
+    return DCCenteredCheckCell(b);
+  }
   NSTextField* t = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
   if ([col.identifier isEqualToString:@"name"]) {
     t.stringValue = DCNS(n.name);
+    t.toolTip = DCNS(n.path);
+    if (ui::spaceLensDanger(n.path)) {
+      NSImageView* warn = DCSpaceLensDangerIcon(12);
+      [warn setContentHuggingPriority:NSLayoutPriorityRequired
+                       forOrientation:NSLayoutConstraintOrientationHorizontal];
+      [t setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+      [t setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
+      NSStackView* rowStack = [NSStackView stackViewWithViews:@[ warn, t ]];
+      rowStack.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+      rowStack.alignment = NSLayoutAttributeCenterY;
+      rowStack.spacing = 6;
+      rowStack.translatesAutoresizingMaskIntoConstraints = NO;
+      return DCCenteredFillCell(rowStack);
+    }
   } else if ([col.identifier isEqualToString:@"share"]) {
     t.stringValue = DCNS(ui::spaceSharePercent(n.bytes, _total));
     t.alignment = NSTextAlignmentRight;
@@ -122,30 +244,51 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   return DCCenteredTextCell(t);
 }
 
+- (void)tog:(NSButton*)s {
+  if (s.tag < 0 || s.tag >= (NSInteger)_nodes.size()) return;
+  if (_selected.size() != _nodes.size()) _selected.assign(_nodes.size(), 0);
+  _selected[(size_t)s.tag] = s.state == NSControlStateValueOn ? 1 : 0;
+  [self refreshClean];
+}
+
 - (void)menuNeedsUpdate:(NSMenu*)menu {
   [menu removeAllItems];
   NSInteger row = _table.clickedRow;
   if (row < 0 || row >= (NSInteger)_nodes.size()) return;
   const auto& n = _nodes[(size_t)row];
   DCAddPathMenuItems(menu, DCNS(n.path));
-  if (dcmm::isSafeToTrash(n.path)) {
-    [menu addItem:[NSMenuItem separatorItem]];
-    NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
-                                                   action:@selector(ctxTrashRow:)
-                                            keyEquivalent:@""];
-    trash.target = self;
-    trash.tag = row;
-    [menu addItem:trash];
-  }
+  [menu addItem:[NSMenuItem separatorItem]];
+  const bool on = row < (NSInteger)_selected.size() && _selected[(size_t)row];
+  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:on ? @"Unselect" : @"Select"
+                                               action:@selector(ctxToggleSelect:)
+                                        keyEquivalent:@""];
+  sel.target = self;
+  sel.tag = row;
+  [menu addItem:sel];
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
+                                                 action:@selector(ctxTrashRow:)
+                                          keyEquivalent:@""];
+  trash.target = self;
+  trash.tag = row;
+  [menu addItem:trash];
+}
+
+- (void)ctxToggleSelect:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_nodes.size()) return;
+  if (_selected.size() != _nodes.size()) _selected.assign(_nodes.size(), 0);
+  _selected[(size_t)row] = _selected[(size_t)row] ? 0 : 1;
+  [_table reloadData];
+  [self refreshClean];
 }
 
 - (void)ctxTrashRow:(NSMenuItem*)sender {
   NSInteger row = sender.tag;
   if (row < 0 || row >= (NSInteger)_nodes.size()) return;
   const auto& n = _nodes[(size_t)row];
-  if (!DCConfirmClean(@[ DCNS(n.path) ], n.bytes)) return;
+  if (!DCConfirmSpaceLensClean(@[ DCNS(n.path) ], n.bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applyClean(_engine, {n.path}, mode);
+  auto r = ui::applySpaceLensClean(_engine, {n.path}, mode);
   if (r.trashedItems == 0) {
     DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     return;

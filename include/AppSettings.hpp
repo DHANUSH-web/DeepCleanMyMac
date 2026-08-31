@@ -1,9 +1,12 @@
 #pragma once
 
+#include "AppFeatures.hpp"
+
 #include "dcmm/dcmm.hpp"
 #include "dcmm/safety.hpp"
 
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -128,6 +131,84 @@ inline dcmm::CleanResult applyClean(dcmm::Engine& engine, const std::vector<std:
       result.trashedItems++;
       result.trashedBytes += bytes;
     }
+  }
+  return result;
+}
+
+inline bool moveOwnRiskToTrash(const std::string& path, std::string& err) {
+  namespace fs = std::filesystem;
+  std::error_code ec;
+  fs::path src(path);
+  if (!fs::exists(src, ec)) {
+    err = "not found";
+    return false;
+  }
+  const char* env = std::getenv("DCMM_TRASH");
+  fs::path destRoot =
+      env && *env ? fs::path(env) : fs::path(dcmm::joinPath(dcmm::homeDirectory(), ".Trash"));
+  fs::create_directories(destRoot, ec);
+  std::string stem = src.filename().string();
+  fs::path dest = destRoot / stem;
+  int n = 1;
+  while (fs::exists(dest, ec)) dest = destRoot / (stem + " " + std::to_string(n++));
+  fs::rename(src, dest, ec);
+  if (!ec) return true;
+  err = "could not move to Trash (" + ec.message() + ")";
+  return false;
+}
+
+/// Space Lens clean: junk-category roots still expand to children; every other
+/// checked row is removed at the user's own risk.
+inline dcmm::CleanResult applySpaceLensClean(dcmm::Engine& engine,
+                                             const std::vector<std::string>& paths,
+                                             CleanPref mode) {
+  namespace fs = std::filesystem;
+  dcmm::CleanResult result;
+  std::vector<std::string> enginePaths;
+  std::vector<std::string> ownRisk;
+  for (const auto& p : paths) {
+    if (p.empty() || p == "/" || p == "\\") {
+      result.failedItems++;
+      result.errors.push_back("Blocked (protected path): " + p);
+      continue;
+    }
+    if (dcmm::isJunkCategoryRoot(p) || dcmm::isSafeToTrash(p))
+      enginePaths.push_back(p);
+    else
+      ownRisk.push_back(p);
+  }
+  if (!enginePaths.empty()) {
+    auto r = applyClean(engine, enginePaths, mode);
+    result.trashedItems += r.trashedItems;
+    result.trashedBytes += r.trashedBytes;
+    result.failedItems += r.failedItems;
+    result.errors.insert(result.errors.end(), r.errors.begin(), r.errors.end());
+  }
+  for (const auto& t : ownRisk) {
+    if (t.empty() || t == "/" || t == "\\") {
+      result.failedItems++;
+      result.errors.push_back("Blocked (protected path): " + t);
+      continue;
+    }
+    const uint64_t bytes = cleanPathBytes(t);
+    if (mode == CleanPref::DeletePermanently) {
+      std::error_code rec;
+      fs::remove_all(t, rec);
+      if (rec) {
+        result.failedItems++;
+        result.errors.push_back(t + ": " + rec.message());
+        continue;
+      }
+    } else {
+      std::string err;
+      if (!moveOwnRiskToTrash(t, err)) {
+        result.failedItems++;
+        result.errors.push_back(t + ": " + err);
+        continue;
+      }
+    }
+    result.trashedItems++;
+    result.trashedBytes += bytes;
   }
   return result;
 }

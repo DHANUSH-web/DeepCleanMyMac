@@ -100,6 +100,50 @@ inline std::vector<std::string> selectedLargeFilePaths(const std::vector<dcmm::L
   return out;
 }
 
+/// Orange warning on default home-folder roots and on Library items that are
+/// not safe to delete (Keychains, Mail, …). Junk-category roots such as
+/// Caches and Logs do not get a mark.
+inline bool spaceLensDanger(const std::string& path) {
+  if (path.empty()) return false;
+  std::string p = path;
+  while (p.size() > 1 && (p.back() == '/' || p.back() == '\\')) p.pop_back();
+  const std::string home = dcmm::homeDirectory();
+  static const char* roots[] = {"Desktop", "Documents", "Downloads", "Pictures",
+                                "Movies",  "Music",     "Public",    "Applications",
+                                nullptr};
+  for (int i = 0; roots[i]; ++i) {
+    if (p == dcmm::joinPath(home, roots[i])) return true;
+  }
+  if (dcmm::isJunkCategoryRoot(p)) return false;
+  const auto library = dcmm::joinPath(home, "Library");
+  const bool underLibrary =
+      p == library || (p.size() > library.size() && p.compare(0, library.size(), library) == 0 &&
+                       (p[library.size()] == '/' || p[library.size()] == '\\'));
+  return underLibrary;
+}
+
+inline std::vector<std::string> selectedSpaceLensPaths(const std::vector<dcmm::SpaceNode>& nodes,
+                                                       const std::vector<char>& selected) {
+  std::vector<std::string> out;
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    if (i >= selected.size() || !selected[i]) continue;
+    if (nodes[i].path.empty()) continue;
+    out.push_back(nodes[i].path);
+  }
+  return out;
+}
+
+inline uint64_t selectedSpaceLensBytes(const std::vector<dcmm::SpaceNode>& nodes,
+                                       const std::vector<char>& selected) {
+  uint64_t n = 0;
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    if (i >= selected.size() || !selected[i]) continue;
+    if (nodes[i].path.empty()) continue;
+    n += nodes[i].bytes;
+  }
+  return n;
+}
+
 inline std::vector<std::string> duplicatePathsToTrash(
     const std::vector<dcmm::DuplicateGroup>& groups) {
   std::vector<std::string> out;
