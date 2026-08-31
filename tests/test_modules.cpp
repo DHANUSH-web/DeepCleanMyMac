@@ -47,7 +47,7 @@ TEST(Modules, Titles) {
 }
 
 TEST(Modules, Subtitles) {
-  EXPECT_STREQ(ui::subtitle(ui::Module::Overview), "This Mac and the startup disk");
+  EXPECT_STREQ(ui::subtitle(ui::Module::Overview), "Your MacBook, startup disk and DCMM tools");
   EXPECT_STREQ(ui::subtitle(ui::Module::SmartScan), "Recommended safe groups — no file picking");
   EXPECT_STREQ(ui::subtitle(ui::Module::SystemJunk),
                "Item-by-item scan — review before cleaning. Not everything here is safe to remove");
@@ -55,9 +55,10 @@ TEST(Modules, Subtitles) {
   EXPECT_STREQ(ui::subtitle(ui::Module::Duplicates), "Copies you no longer need");
   EXPECT_STREQ(ui::subtitle(ui::Module::Uninstaller), "Apps and their leftover files");
   EXPECT_STREQ(ui::subtitle(ui::Module::Privacy), "Browser traces and tracking leftovers");
-  EXPECT_STREQ(ui::subtitle(ui::Module::SpaceLens), "Where your home folder went");
-  EXPECT_STREQ(ui::subtitle(ui::Module::Maintenance), "Housekeeping tasks");
-  EXPECT_STREQ(ui::subtitle(ui::Module::Settings), "How the app looks and how cleaning works");
+  EXPECT_STREQ(ui::subtitle(ui::Module::SpaceLens),
+               "Find all the heavy items, including hidden files and folders");
+  EXPECT_STREQ(ui::subtitle(ui::Module::Maintenance), "Some more tools for your MacBook");
+  EXPECT_STREQ(ui::subtitle(ui::Module::Settings), "Manage DCMM appearance and behaviour");
 }
 
 TEST(Modules, UnknownIsEmpty) {
