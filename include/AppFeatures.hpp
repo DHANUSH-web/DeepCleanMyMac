@@ -237,8 +237,7 @@ inline std::vector<std::string> uninstallPaths(const dcmm::InstalledApp& app) {
   std::vector<std::string> out;
   appendUniquePath(out, app.appPath);
   for (const auto& p : applicationSupportLeftoverPaths(app)) appendUniquePath(out, p);
-  for (const auto& it : app.leftovers)
-    if (it.selected) appendUniquePath(out, it.path);
+  for (const auto& it : app.leftovers) appendUniquePath(out, it.path);
   return out;
 }
 

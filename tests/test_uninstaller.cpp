@@ -30,7 +30,7 @@ TEST_F(HomeFixture, UninstallerListsAppsWithoutSelectingLeftovers) {
   EXPECT_TRUE(found);
 }
 
-TEST_F(HomeFixture, UninstallIncludesAppWhenLeftoversUnchecked) {
+TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp) {
   auto appDir = home / "Applications" / "Fixture.app";
   fs::create_directories(appDir / "Contents");
   {
@@ -53,11 +53,14 @@ TEST_F(HomeFixture, UninstallIncludesAppWhenLeftoversUnchecked) {
   auto paths = ui::uninstallPaths(app);
   ASSERT_FALSE(paths.empty());
   EXPECT_EQ(paths.front(), app.appPath);
-  for (const auto& p : paths) EXPECT_EQ(p.find("Caches"), std::string::npos);
+  bool sawCache = false;
+  for (const auto& p : paths)
+    if (p.find("Caches") != std::string::npos) sawCache = true;
+  EXPECT_TRUE(sawCache);
   auto r = ui::applyClean(e, paths, ui::CleanPref::MoveToTrash);
   EXPECT_GE(r.trashedItems, 1u);
   EXPECT_FALSE(fs::exists(appDir));
-  EXPECT_TRUE(fs::exists(home / "Library" / "Caches" / "com.example.Fixture"));
+  EXPECT_FALSE(fs::exists(home / "Library" / "Caches" / "com.example.Fixture"));
 }
 
 TEST_F(HomeFixture, ApplicationSupportNamesUseIdAndShortName) {
