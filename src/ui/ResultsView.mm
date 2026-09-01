@@ -67,6 +67,15 @@ struct FlatRow {
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
 
+    if (mode == DCResultsModeJunk) {
+      NSView* legend = [DCLegendView dangerLegendWithMessage:
+                            @"Native system items with this icon are not safe or recommended to delete."];
+      [page addArrangedSubview:legend];
+      DCStackFullWidth(page, legend);
+      [page setCustomSpacing:20 afterView:actions];
+      [page setCustomSpacing:20 afterView:legend];
+    }
+
     _spin = [[NSProgressIndicator alloc] initWithFrame:NSZeroRect];
     _spin.style = NSProgressIndicatorStyleSpinning;
     _spin.displayedWhenStopped = NO;
