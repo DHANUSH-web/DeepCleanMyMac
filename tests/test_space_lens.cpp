@@ -83,6 +83,38 @@ TEST(SpaceLens, SizeBandByBytes) {
   EXPECT_EQ(ui::spaceSizeBand(1024ull * 1024ull * 1024ull + 1), ui::SpaceSizeBand::TooBig);
 }
 
+TEST_F(HomeFixture, SpaceLensChildrenListsNestedFolder) {
+  writeBytes(home / "Downloads" / "heavy" / "clip.bin", 4096);
+  writeBytes(home / "Downloads" / "notes.txt", 512);
+  dcmm::Engine e;
+  auto kids = e.spaceLensChildren((home / "Downloads").string());
+  ASSERT_FALSE(kids.empty());
+  bool sawHeavy = false, sawNotes = false;
+  for (const auto& n : kids) {
+    if (n.name == "heavy") sawHeavy = true;
+    if (n.name == "notes.txt") sawNotes = true;
+  }
+  EXPECT_TRUE(sawHeavy);
+  EXPECT_TRUE(sawNotes);
+  for (std::size_t i = 1; i < kids.size(); ++i) EXPECT_GE(kids[i - 1].bytes, kids[i].bytes);
+}
+
+TEST(SpaceLens, PruneNestedPathsKeepsAncestor) {
+  std::vector<std::string> paths = {"/Users/a/Downloads/heavy", "/Users/a/Downloads",
+                                    "/Users/a/Documents"};
+  ui::pruneNestedSpaceLensPaths(paths);
+  ASSERT_EQ(paths.size(), 2u);
+  bool sawDownloads = false, sawHeavy = false, sawDocuments = false;
+  for (const auto& p : paths) {
+    if (p == "/Users/a/Downloads") sawDownloads = true;
+    if (p == "/Users/a/Downloads/heavy") sawHeavy = true;
+    if (p == "/Users/a/Documents") sawDocuments = true;
+  }
+  EXPECT_TRUE(sawDownloads);
+  EXPECT_FALSE(sawHeavy);
+  EXPECT_TRUE(sawDocuments);
+}
+
 TEST(SpaceLens, SharePercentOfDiskVolume) {
   EXPECT_EQ(ui::spaceSharePercent(0, 100), "0%");
   EXPECT_EQ(ui::spaceSharePercent(50, 100), "50%");

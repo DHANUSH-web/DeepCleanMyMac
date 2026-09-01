@@ -184,6 +184,33 @@ inline bool spaceLensDanger(const std::string& path) {
   return underLibrary;
 }
 
+inline bool spacePathIsUnder(const std::string& child, const std::string& parent) {
+  if (parent.empty() || child.size() <= parent.size()) return false;
+  if (child.compare(0, parent.size(), parent) != 0) return false;
+  const char c = child[parent.size()];
+  return c == '/' || c == '\\';
+}
+
+/// Keep ancestors only so deleting a folder does not also list its children.
+inline void pruneNestedSpaceLensPaths(std::vector<std::string>& paths) {
+  std::sort(paths.begin(), paths.end(),
+            [](const std::string& a, const std::string& b) { return a.size() < b.size(); });
+  std::vector<std::string> kept;
+  kept.reserve(paths.size());
+  for (const auto& p : paths) {
+    if (p.empty()) continue;
+    bool nested = false;
+    for (const auto& k : kept) {
+      if (spacePathIsUnder(p, k)) {
+        nested = true;
+        break;
+      }
+    }
+    if (!nested) kept.push_back(p);
+  }
+  paths = std::move(kept);
+}
+
 inline std::vector<std::string> selectedSpaceLensPaths(const std::vector<dcmm::SpaceNode>& nodes,
                                                        const std::vector<char>& selected) {
   std::vector<std::string> out;
@@ -192,17 +219,20 @@ inline std::vector<std::string> selectedSpaceLensPaths(const std::vector<dcmm::S
     if (nodes[i].path.empty()) continue;
     out.push_back(nodes[i].path);
   }
+  pruneNestedSpaceLensPaths(out);
   return out;
 }
 
 inline uint64_t selectedSpaceLensBytes(const std::vector<dcmm::SpaceNode>& nodes,
                                        const std::vector<char>& selected) {
+  auto paths = selectedSpaceLensPaths(nodes, selected);
   uint64_t n = 0;
-  for (std::size_t i = 0; i < nodes.size(); ++i) {
-    if (i >= selected.size() || !selected[i]) continue;
-    if (nodes[i].path.empty()) continue;
-    n += nodes[i].bytes;
-  }
+  for (const auto& p : paths)
+    for (std::size_t i = 0; i < nodes.size(); ++i)
+      if (nodes[i].path == p) {
+        n += nodes[i].bytes;
+        break;
+      }
   return n;
 }
 
