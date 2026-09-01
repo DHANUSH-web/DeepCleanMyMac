@@ -6,6 +6,8 @@
 
 #include <string>
 
+NS_ASSUME_NONNULL_BEGIN
+
 inline NSString* DCNS(const std::string& s) {
   if (s.empty()) return @"";
   return [[NSString alloc] initWithBytes:s.data() length:s.size() encoding:NSUTF8StringEncoding] ?: @"";
@@ -27,6 +29,26 @@ NSTableCellView* DCCenteredCheckCell(NSButton* checkbox);
 NSTableCellView* DCCenteredFillCell(NSView* content);
 NSImageView* DCDangerIcon(CGFloat pointSize);
 NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
+
+/// Inline [icon | message] banner. `legendWithMessage:` is an info legend
+/// (blue, info symbol). Override icon, tint, fill, border, radius as needed.
+@interface DCLegendView : NSView
+@property(nonatomic, copy) NSString* message;
+@property(nonatomic, strong, nullable) NSImage* icon;
+@property(nonatomic, copy, nullable) NSString* symbolName;
+@property(nonatomic, strong) NSColor* tintColor;
+@property(nonatomic, strong, nullable) NSColor* fillColor;
+@property(nonatomic, strong, nullable) NSColor* borderColor;
+@property(nonatomic, strong, nullable) NSColor* dividerColor;
+@property(nonatomic, strong, nullable) NSColor* iconTintColor;
+@property(nonatomic) CGFloat cornerRadius;
+@property(nonatomic) CGFloat borderWidth;
+@property(nonatomic) CGFloat iconPointSize;
+
+- (instancetype)initWithMessage:(NSString*)message;
++ (instancetype)legendWithMessage:(NSString*)message;
++ (instancetype)dangerLegendWithMessage:(NSString*)message;
+@end
 
 void DCPinEdges(NSView* child, NSView* parent);
 NSStackView* DCPageStack(NSView* host);
@@ -61,3 +83,5 @@ void DCInformCleaned(NSString* title, NSString* detail);
 void DCAttachTableMenu(NSTableView* table, id<NSMenuDelegate> delegate);
 void DCAddPathMenuItems(NSMenu* menu, NSString* path);
 void DCRevealInFinder(NSString* path);
+
+NS_ASSUME_NONNULL_END

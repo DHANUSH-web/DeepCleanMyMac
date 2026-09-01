@@ -162,6 +162,203 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field) {
   return cell;
 }
 
+@implementation DCLegendView {
+  NSImageView* _iconView;
+  NSTextField* _text;
+  NSView* _divider;
+}
+
+- (instancetype)initWithFrame:(NSRect)frame {
+  self = [super initWithFrame:frame];
+  if (self) {
+    _message = @"";
+    _symbolName = @"info.circle.fill";
+    _tintColor = NSColor.systemBlueColor;
+    _cornerRadius = 14;
+    _borderWidth = 1;
+    _iconPointSize = 16;
+    self.wantsLayer = YES;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+
+    _iconView = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    [_iconView setContentHuggingPriority:NSLayoutPriorityRequired
+                          forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [_iconView setContentHuggingPriority:NSLayoutPriorityRequired
+                          forOrientation:NSLayoutConstraintOrientationVertical];
+    NSStackView* iconPad = [NSStackView stackViewWithViews:@[ _iconView ]];
+    iconPad.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    iconPad.alignment = NSLayoutAttributeCenterY;
+    iconPad.edgeInsets = NSEdgeInsetsMake(10, 14, 10, 14);
+    [iconPad setContentHuggingPriority:NSLayoutPriorityRequired
+                        forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    _divider = [[NSView alloc] initWithFrame:NSZeroRect];
+    _divider.wantsLayer = YES;
+    _divider.translatesAutoresizingMaskIntoConstraints = NO;
+    [_divider.widthAnchor constraintEqualToConstant:1].active = YES;
+    [_divider setContentHuggingPriority:NSLayoutPriorityRequired
+                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [_divider setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                       forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    _text = [NSTextField wrappingLabelWithString:@""];
+    _text.font = [NSFont preferredFontForTextStyle:NSFontTextStyleCallout options:@{}];
+    _text.textColor = [NSColor labelColor];
+    _text.selectable = NO;
+    [_text setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                      forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [_text setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSStackView* textPad = [NSStackView stackViewWithViews:@[ _text ]];
+    textPad.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    textPad.alignment = NSLayoutAttributeCenterY;
+    textPad.edgeInsets = NSEdgeInsetsMake(10, 12, 10, 14);
+    [textPad setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                        forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    NSStackView* row = [NSStackView stackViewWithViews:@[ iconPad, _divider, textPad ]];
+    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    row.alignment = NSLayoutAttributeCenterY;
+    row.spacing = 0;
+    row.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:row];
+    DCPinEdges(row, self);
+    [NSLayoutConstraint activateConstraints:@[
+      [_divider.topAnchor constraintEqualToAnchor:row.topAnchor],
+      [_divider.bottomAnchor constraintEqualToAnchor:row.bottomAnchor],
+    ]];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [self setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                   forOrientation:NSLayoutConstraintOrientationVertical];
+    [self refreshIcon];
+  }
+  return self;
+}
+
+- (instancetype)initWithMessage:(NSString*)message {
+  self = [self initWithFrame:NSZeroRect];
+  if (self) self.message = message ?: @"";
+  return self;
+}
+
++ (instancetype)legendWithMessage:(NSString*)message {
+  return [[self alloc] initWithMessage:message];
+}
+
++ (instancetype)dangerLegendWithMessage:(NSString*)message {
+  DCLegendView* v = [self legendWithMessage:message];
+  v.symbolName = @"exclamationmark.triangle.fill";
+  v.tintColor = NSColor.systemOrangeColor;
+  return v;
+}
+
+- (BOOL)wantsUpdateLayer {
+  return YES;
+}
+
+- (BOOL)isDark {
+  NSAppearanceName match =
+      [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
+  return [match isEqualToString:NSAppearanceNameDarkAqua];
+}
+
+- (NSColor*)resolvedTint {
+  return self.tintColor ?: NSColor.systemBlueColor;
+}
+
+- (void)updateLayer {
+  const BOOL dark = [self isDark];
+  NSColor* tint = [self resolvedTint];
+  self.layer.cornerRadius = self.cornerRadius;
+  self.layer.masksToBounds = YES;
+  self.layer.borderWidth = self.borderWidth;
+  NSColor* fill = self.fillColor ?: [tint colorWithAlphaComponent:dark ? 0.18 : 0.10];
+  NSColor* border = self.borderColor ?: [tint colorWithAlphaComponent:dark ? 0.38 : 0.22];
+  NSColor* divider = self.dividerColor ?: [tint colorWithAlphaComponent:dark ? 0.32 : 0.20];
+  self.layer.backgroundColor = fill.CGColor;
+  self.layer.borderColor = border.CGColor;
+  if (_divider.wantsLayer) _divider.layer.backgroundColor = divider.CGColor;
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+  [super viewDidChangeEffectiveAppearance];
+  [self setNeedsDisplay:YES];
+}
+
+- (void)refreshIcon {
+  NSImage* img = self.icon;
+  if (!img && self.symbolName.length) {
+    img = [NSImage imageWithSystemSymbolName:self.symbolName
+                    accessibilityDescription:self.message];
+    img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration
+                                                configurationWithPointSize:self.iconPointSize
+                                                                    weight:NSFontWeightRegular]];
+  }
+  _iconView.image = img;
+  _iconView.contentTintColor = self.iconTintColor ?: [self resolvedTint];
+}
+
+- (void)setMessage:(NSString*)message {
+  _message = [message copy] ?: @"";
+  _text.stringValue = _message;
+  self.toolTip = _message;
+  [self refreshIcon];
+}
+
+- (void)setIcon:(NSImage*)icon {
+  _icon = icon;
+  [self refreshIcon];
+}
+
+- (void)setSymbolName:(NSString*)symbolName {
+  _symbolName = [symbolName copy];
+  [self refreshIcon];
+}
+
+- (void)setTintColor:(NSColor*)tintColor {
+  _tintColor = tintColor ?: NSColor.systemBlueColor;
+  [self refreshIcon];
+  [self setNeedsDisplay:YES];
+}
+
+- (void)setFillColor:(NSColor*)fillColor {
+  _fillColor = fillColor;
+  [self setNeedsDisplay:YES];
+}
+
+- (void)setBorderColor:(NSColor*)borderColor {
+  _borderColor = borderColor;
+  [self setNeedsDisplay:YES];
+}
+
+- (void)setDividerColor:(NSColor*)dividerColor {
+  _dividerColor = dividerColor;
+  [self setNeedsDisplay:YES];
+}
+
+- (void)setIconTintColor:(NSColor*)iconTintColor {
+  _iconTintColor = iconTintColor;
+  [self refreshIcon];
+}
+
+- (void)setCornerRadius:(CGFloat)cornerRadius {
+  _cornerRadius = cornerRadius;
+  [self setNeedsDisplay:YES];
+}
+
+- (void)setBorderWidth:(CGFloat)borderWidth {
+  _borderWidth = borderWidth;
+  [self setNeedsDisplay:YES];
+}
+
+- (void)setIconPointSize:(CGFloat)iconPointSize {
+  _iconPointSize = iconPointSize;
+  [self refreshIcon];
+}
+
+@end
+
 NSTableCellView* DCCenteredCheckCell(NSButton* checkbox) {
   NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
   checkbox.translatesAutoresizingMaskIntoConstraints = NO;
