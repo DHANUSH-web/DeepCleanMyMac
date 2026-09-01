@@ -49,6 +49,8 @@
     DCStyleTable(_appsTable);
     _appsTable.dataSource = self;
     _appsTable.delegate = self;
+    _appsTable.rowSizeStyle = NSTableViewRowSizeStyleCustom;
+    _appsTable.rowHeight = 47;
     DCAttachTableMenu(_appsTable, self);
     NSTableColumn* check = [[NSTableColumn alloc] initWithIdentifier:@"check"];
     check.width = 24;
@@ -188,6 +190,11 @@
   return (NSInteger)_apps[(size_t)_sel].app.leftovers.size();
 }
 
+- (CGFloat)tableView:(NSTableView*)tv heightOfRow:(NSInteger)row {
+  if (tv == _appsTable) return 47;
+  return tv.rowHeight;
+}
+
 - (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row {
   if (tv == _appsTable) {
     auto& a = _apps[(size_t)row];
@@ -198,13 +205,21 @@
       return DCCenteredCheckCell(b);
     }
     NSTextField* t = DCLabel(@"");
-    if ([col.identifier isEqualToString:@"app"])
+    if ([col.identifier isEqualToString:@"app"]) {
       t.stringValue = DCNS(a.app.name);
-    else {
-      t.stringValue = DCNS(dcmm::formatBytes(a.app.appBytes));
-      t.alignment = NSTextAlignmentRight;
-      t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
+      t.toolTip = DCNS(a.app.appPath);
+      NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
+      NSImage* img = [[[NSWorkspace sharedWorkspace] iconForFile:DCNS(a.app.appPath)] copy];
+      img.size = NSMakeSize(35, 35);
+      icon.image = img;
+      icon.imageScaling = NSImageScaleProportionallyUpOrDown;
+      [icon.widthAnchor constraintEqualToConstant:35].active = YES;
+      [icon.heightAnchor constraintEqualToConstant:35].active = YES;
+      return DCCenteredIconTextCell(icon, t);
     }
+    t.stringValue = DCNS(dcmm::formatBytes(a.app.appBytes));
+    t.alignment = NSTextAlignmentRight;
+    t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
     return DCCenteredTextCell(t);
   }
   auto& it = _apps[(size_t)_sel].app.leftovers[(size_t)row];

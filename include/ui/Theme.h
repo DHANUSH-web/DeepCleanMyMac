@@ -27,6 +27,7 @@ NSScrollView* DCWrapTable(NSTableView* table);
 NSTableCellView* DCCenteredTextCell(NSTextField* field);
 NSTableCellView* DCCenteredCheckCell(NSButton* checkbox);
 NSTableCellView* DCCenteredFillCell(NSView* content);
+NSTableCellView* DCCenteredIconTextCell(NSImageView* icon, NSTextField* field);
 NSImageView* DCDangerIcon(CGFloat pointSize);
 NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 

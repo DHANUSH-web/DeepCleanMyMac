@@ -133,6 +133,36 @@ NSTableCellView* DCCenteredTextCell(NSTextField* field) {
   return cell;
 }
 
+NSTableCellView* DCCenteredIconTextCell(NSImageView* icon, NSTextField* field) {
+  [icon setContentHuggingPriority:NSLayoutPriorityRequired
+                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [icon setContentHuggingPriority:NSLayoutPriorityRequired
+                   forOrientation:NSLayoutConstraintOrientationVertical];
+  [icon setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                 forOrientation:NSLayoutConstraintOrientationVertical];
+  [field setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [field setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
+  NSStackView* row = [NSStackView stackViewWithViews:@[ icon, field ]];
+  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+  row.alignment = NSLayoutAttributeCenterY;
+  row.spacing = 6;
+  row.translatesAutoresizingMaskIntoConstraints = NO;
+  NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
+  [cell addSubview:row];
+  [NSLayoutConstraint activateConstraints:@[
+    [row.leadingAnchor constraintEqualToAnchor:cell.leadingAnchor],
+    [row.trailingAnchor constraintEqualToAnchor:cell.trailingAnchor],
+    [row.topAnchor constraintGreaterThanOrEqualToAnchor:cell.topAnchor constant:6],
+    [row.bottomAnchor constraintLessThanOrEqualToAnchor:cell.bottomAnchor constant:-6],
+    [row.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
+  ]];
+  cell.textField = field;
+  cell.imageView = icon;
+  return cell;
+}
+
 NSImageView* DCDangerIcon(CGFloat pointSize) {
   NSImageView* warn = [[NSImageView alloc] initWithFrame:NSZeroRect];
   NSImage* img = [NSImage imageWithSystemSymbolName:@"exclamationmark.triangle.fill"
