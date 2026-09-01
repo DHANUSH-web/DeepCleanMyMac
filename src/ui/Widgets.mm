@@ -101,6 +101,7 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
 NSButton* DCDestructiveButton(NSString* title, id target, SEL action) {
   NSButton* b = MakePush(title, target, action);
   b.hasDestructiveAction = YES;
+  b.bezelColor = NSColor.systemRedColor;
   return b;
 }
 
