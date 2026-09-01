@@ -28,7 +28,7 @@
     DCStackFullWidth(page, header);
     _scan = DCDefaultButton(@"Scan", self, @selector(startScan));
     _clean = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
-    _clean.enabled = NO;
+    _clean.hidden = YES;
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
@@ -94,7 +94,7 @@
       n++;
       b += f.bytes;
     }
-  _clean.enabled = n > 0;
+  _clean.hidden = n == 0;
   _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), n ? b : 0));
 }
 

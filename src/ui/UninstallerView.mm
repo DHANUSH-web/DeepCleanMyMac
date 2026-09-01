@@ -35,7 +35,7 @@
     _reload = DCPushButton(@"Refresh", self, @selector(reloadApps));
     _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
     _remove = DCDestructiveButton(@"Uninstall", self, @selector(uninstall));
-    _remove.enabled = NO;
+    _remove.hidden = YES;
     NSStackView* actions = DCTrailingButtons(@[ _selAll, _reload, _remove ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
@@ -115,7 +115,7 @@
   std::size_t n = 0;
   for (const auto& row : _apps)
     if (row.selected) ++n;
-  _remove.enabled = n > 0;
+  _remove.hidden = n == 0;
   if (n > 1)
     _remove.title = [NSString stringWithFormat:@"Uninstall %lu Apps", (unsigned long)n];
   else

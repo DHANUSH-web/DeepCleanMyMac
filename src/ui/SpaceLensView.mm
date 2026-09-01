@@ -35,7 +35,7 @@
     _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
     _selAll.enabled = NO;
     _clean = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
-    _clean.enabled = NO;
+    _clean.hidden = YES;
     NSStackView* actions = DCTrailingButtons(@[ _selAll, _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
@@ -120,7 +120,7 @@
 - (void)refreshClean {
   auto paths = ui::selectedSpaceLensPaths(_nodes, _selected);
   uint64_t b = ui::selectedSpaceLensBytes(_nodes, _selected);
-  _clean.enabled = !paths.empty();
+  _clean.hidden = paths.empty();
   _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), paths.empty() ? 0 : b));
   _selAll.enabled = !_nodes.empty();
   _selAll.title = [self allSelected] ? @"Unselect All" : @"Select All";

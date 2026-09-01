@@ -180,7 +180,6 @@ struct FlatRow {
   _scanBtn.title = @"Scan Again";
   _scanBtn.keyEquivalent = @"\r";
   _scanBtn.keyEquivalentModifierMask = 0;
-  _cleanBtn.hidden = NO;
   _selAll.hidden = NO;
   NSString* verb = _mode == DCResultsModeSmart ? @"Recommended" : @"Found";
   _status.stringValue =
@@ -203,7 +202,7 @@ struct FlatRow {
 - (void)refreshCleanTitle {
   uint64_t b = _report.selectedBytes();
   _cleanBtn.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), b));
-  _cleanBtn.enabled = b > 0;
+  _cleanBtn.hidden = _state != 2 || b == 0;
 }
 
 - (void)toggleAll {
@@ -222,7 +221,7 @@ struct FlatRow {
   NSMutableArray<NSString*>* list = [NSMutableArray arrayWithCapacity:paths.size()];
   for (const auto& p : paths) [list addObject:DCNS(p)];
   if (!DCConfirmClean(list, _report.selectedBytes())) return;
-  _cleanBtn.enabled = NO;
+  _cleanBtn.hidden = YES;
   const auto mode = DCCleanPref();
   __weak DCResultsView* weakSelf = self;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{

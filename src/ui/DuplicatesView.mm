@@ -33,6 +33,7 @@
     DCStackFullWidth(page, header);
     _scan = DCDefaultButton(@"Scan", self, @selector(startScan));
     _clean = DCDestructiveButton(@"Move Copies to Trash", self, @selector(cleanSelected));
+    _clean.hidden = YES;
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
@@ -72,6 +73,7 @@
 - (void)refreshCleanTitle {
   _clean.title = DCCleanPref() == ui::CleanPref::DeletePermanently ? @"Delete Copies Permanently"
                                                                    : @"Move Copies to Trash";
+  _clean.hidden = ui::duplicatePathsToTrash(_groups).empty();
 }
 
 - (void)rebuild {
@@ -83,6 +85,7 @@
 - (void)startScan {
   _status.stringValue = @"Hashing…";
   _scan.enabled = NO;
+  _clean.hidden = YES;
   __weak DCDuplicatesView* weakSelf = self;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCDuplicatesView* strong = weakSelf;
@@ -97,6 +100,7 @@
       s->_scan.enabled = YES;
       s->_status.stringValue =
           [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
+      [s refreshCleanTitle];
     });
   });
 }
@@ -157,6 +161,7 @@
   if (s.tag < 0 || s.tag >= (NSInteger)_rows.size()) return;
   auto rr = _rows[(size_t)s.tag];
   _groups[rr.g].files[rr.f].keep = s.state == NSControlStateValueOn;
+  [self refreshCleanTitle];
 }
 
 - (void)menuNeedsUpdate:(NSMenu*)menu {
@@ -188,6 +193,7 @@
   auto& f = _groups[rr.g].files[rr.f];
   f.keep = !f.keep;
   [_table reloadData];
+  [self refreshCleanTitle];
 }
 
 - (void)ctxTrashRow:(NSMenuItem*)sender {
