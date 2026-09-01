@@ -31,21 +31,6 @@
         @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    NSImageView* legendIcon = DCDangerIcon(12);
-    [legendIcon setContentHuggingPriority:NSLayoutPriorityRequired
-                           forOrientation:NSLayoutConstraintOrientationHorizontal];
-    NSTextField* legendText = DCCaptionLabel(
-        @"Warning icon shows the folder might not be safe to delete. Please clean at your own risk");
-    [legendText setContentHuggingPriority:NSLayoutPriorityDefaultLow
-                           forOrientation:NSLayoutConstraintOrientationHorizontal];
-    NSStackView* legend = [NSStackView stackViewWithViews:@[ legendIcon, legendText ]];
-    legend.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    legend.alignment = NSLayoutAttributeCenterY;
-    legend.spacing = 6;
-    [legend setContentHuggingPriority:NSLayoutPriorityRequired
-                       forOrientation:NSLayoutConstraintOrientationVertical];
-    [page addArrangedSubview:legend];
-    DCStackFullWidth(page, legend);
     _scan = DCDefaultButton(@"Analyze", self, @selector(startScan));
     _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
     _selAll.enabled = NO;
@@ -54,6 +39,12 @@
     NSStackView* actions = DCTrailingButtons(@[ _selAll, _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
+    NSView* legend = [DCLegendView dangerLegendWithMessage:
+                          @"Warning icon shows the folder might not be safe to delete. Please clean at your own risk"];
+    [page addArrangedSubview:legend];
+    DCStackFullWidth(page, legend);
+    [page setCustomSpacing:20 afterView:actions];
+    [page setCustomSpacing:20 afterView:legend];
     _status = DCCaptionLabel(@"Measures folders in your home directory.");
     [page addArrangedSubview:_status];
 
