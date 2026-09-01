@@ -2,6 +2,7 @@
 #import "ui/Theme.h"
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
+#include "SystemInfo.hpp"
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
@@ -13,7 +14,7 @@
   dcmm::Engine _engine;
   std::vector<dcmm::SpaceNode> _nodes;
   std::vector<char> _selected;
-  uint64_t _total;
+  uint64_t _volumeBytes;
   NSButton* _scan;
   NSButton* _selAll;
   NSButton* _clean;
@@ -24,7 +25,7 @@
 - (instancetype)initWithFrame:(NSRect)frame {
   self = [super initWithFrame:frame];
   if (self) {
-    _total = 0;
+    _volumeBytes = 0;
     NSStackView* page = DCPageStack(self);
     NSStackView* header = DCHeaderStack(
         @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
@@ -100,13 +101,14 @@
     DCSpaceLensView* strong = weakSelf;
     if (!strong) return;
     auto n = strong->_engine.spaceLens();
+    uint64_t volume = ui::volumeInfo("/").totalBytes;
+    if (volume == 0) volume = strong->_engine.disk("/").totalBytes;
     dispatch_async(dispatch_get_main_queue(), ^{
       DCSpaceLensView* s = weakSelf;
       if (!s) return;
       s->_nodes = std::move(n);
       s->_selected.assign(s->_nodes.size(), 0);
-      s->_total = 0;
-      for (const auto& x : s->_nodes) s->_total += x.bytes;
+      s->_volumeBytes = volume;
       [s->_table reloadData];
       s->_scan.enabled = YES;
       s->_status.stringValue =
@@ -206,7 +208,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
     t.toolTip = DCNS(n.path);
     if (ui::spaceLensDanger(n.path)) return DCCenteredDangerTextCell(t);
   } else if ([col.identifier isEqualToString:@"share"]) {
-    t.stringValue = DCNS(ui::spaceSharePercent(n.bytes, _total));
+    t.stringValue = DCNS(ui::spaceSharePercent(n.bytes, _volumeBytes));
     t.alignment = NSTextAlignmentRight;
     t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
     t.textColor = [NSColor secondaryLabelColor];

@@ -289,6 +289,7 @@ inline SpaceSizeBand spaceSizeBand(uint64_t bytes) {
   return SpaceSizeBand::Normal;
 }
 
+/// Share of `bytes` against disk volume capacity (`total`), not the listed-row sum.
 inline std::string spaceSharePercent(uint64_t bytes, uint64_t total) {
   if (total == 0 || bytes == 0) return "0%";
   const double p = 100.0 * static_cast<double>(bytes) / static_cast<double>(total);

@@ -83,9 +83,12 @@ TEST(SpaceLens, SizeBandByBytes) {
   EXPECT_EQ(ui::spaceSizeBand(1024ull * 1024ull * 1024ull + 1), ui::SpaceSizeBand::TooBig);
 }
 
-TEST(SpaceLens, SharePercentOfListedTotal) {
+TEST(SpaceLens, SharePercentOfDiskVolume) {
   EXPECT_EQ(ui::spaceSharePercent(0, 100), "0%");
   EXPECT_EQ(ui::spaceSharePercent(50, 100), "50%");
   EXPECT_EQ(ui::spaceSharePercent(1, 1000), "0.1%");
   EXPECT_EQ(ui::spaceSharePercent(1, 10000), "<0.1%");
+  const uint64_t gib = 1024ull * 1024ull * 1024ull;
+  const uint64_t disk = 256ull * gib;
+  EXPECT_EQ(ui::spaceSharePercent((14ull * gib) / 10ull, disk), "0.5%");
 }
