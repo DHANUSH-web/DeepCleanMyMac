@@ -53,7 +53,7 @@ TEST(Modules, Subtitles) {
                "Item-by-item scan — review before cleaning. Not everything here is safe to remove");
   EXPECT_STREQ(ui::subtitle(ui::Module::LargeFiles), "Oversized files hogging the disk");
   EXPECT_STREQ(ui::subtitle(ui::Module::Duplicates), "Copies you no longer need");
-  EXPECT_STREQ(ui::subtitle(ui::Module::Uninstaller), "Apps and their leftover files");
+  EXPECT_STREQ(ui::subtitle(ui::Module::Uninstaller), "Uninstall multiple apps and their leftover files at once");
   EXPECT_STREQ(ui::subtitle(ui::Module::Privacy), "Browser traces and tracking leftovers");
   EXPECT_STREQ(ui::subtitle(ui::Module::SpaceLens),
                "Find all the heavy items, including hidden files and folders");

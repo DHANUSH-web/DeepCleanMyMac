@@ -45,7 +45,7 @@ inline std::array<DashboardTool, 6> dashboardTools() {
       {Module::Duplicates, sidebarSymbol(Module::Duplicates), "Duplicates",
        "Hash-matched copies under common folders."},
       {Module::Uninstaller, sidebarSymbol(Module::Uninstaller), "Uninstaller",
-       "Remove an app together with leftover files."},
+       "Uninstall multiple apps and their leftover files at once."},
       {Module::Privacy, sidebarSymbol(Module::Privacy), "Privacy",
        "Browser caches and tracking leftovers you choose."},
       {Module::Maintenance, sidebarSymbol(Module::Maintenance), "Maintenance",

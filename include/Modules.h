@@ -40,7 +40,7 @@ inline const char* subtitle(Module m) {
       return "Item-by-item scan — review before cleaning. Not everything here is safe to remove";
     case Module::LargeFiles: return "Oversized files hogging the disk";
     case Module::Duplicates: return "Copies you no longer need";
-    case Module::Uninstaller: return "Apps and their leftover files";
+    case Module::Uninstaller: return "Uninstall multiple apps and their leftover files at once";
     case Module::Privacy: return "Browser traces and tracking leftovers";
     case Module::SpaceLens: return "Find all the heavy items, including hidden files and folders";
     case Module::Maintenance: return "Some more tools for your MacBook";
