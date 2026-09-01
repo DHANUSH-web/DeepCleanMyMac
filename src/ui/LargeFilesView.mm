@@ -9,9 +9,18 @@
 @interface DCLargeFilesView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
+namespace {
+struct FlatRow {
+  bool group = false;
+  int g = -1;
+  int i = -1;
+};
+}  // namespace
+
 @implementation DCLargeFilesView {
   dcmm::Engine _engine;
-  std::vector<dcmm::LargeFile> _files;
+  std::vector<ui::LargeFileGroup> _groups;
+  std::vector<FlatRow> _rows;
   NSButton* _scan;
   NSButton* _clean;
   NSTextField* _status;
@@ -32,7 +41,8 @@
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
-    _status = DCCaptionLabel(@"Looks in Desktop, Documents, Downloads, and Movies for files of 50 MB or more.");
+    _status = DCCaptionLabel(
+        @"Looks in Desktop, Documents, Downloads, Pictures, Movies, Music, iCloud Drive, and Bin for files of 50 MB or more.");
     [page addArrangedSubview:_status];
 
     _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
@@ -66,9 +76,18 @@
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
+- (void)rebuildRows {
+  _rows.clear();
+  for (int g = 0; g < (int)_groups.size(); ++g) {
+    _rows.push_back({true, g, -1});
+    for (int i = 0; i < (int)_groups[(size_t)g].files.size(); ++i) _rows.push_back({false, g, i});
+  }
+}
+
 - (void)startScan {
   _status.stringValue = @"Scanning…";
   _scan.enabled = NO;
+  _clean.hidden = YES;
   __weak DCLargeFilesView* weakSelf = self;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCLargeFilesView* strong = weakSelf;
@@ -77,40 +96,36 @@
     dispatch_async(dispatch_get_main_queue(), ^{
       DCLargeFilesView* s = weakSelf;
       if (!s) return;
-      s->_files = std::move(files);
+      s->_groups = ui::groupLargeFiles(files);
+      [s rebuildRows];
       [s->_table reloadData];
       s->_scan.enabled = YES;
+      std::size_t n = 0;
+      for (const auto& g : s->_groups) n += g.files.size();
       s->_status.stringValue =
-          [NSString stringWithFormat:@"%lu files of 50 MB or more", (unsigned long)s->_files.size()];
+          [NSString stringWithFormat:@"%lu files of 50 MB or more in %lu folders", (unsigned long)n,
+                                     (unsigned long)s->_groups.size()];
       [s refreshClean];
     });
   });
 }
 
 - (void)refreshClean {
-  uint64_t n = 0, b = 0;
-  for (auto& f : _files)
-    if (f.selected) {
-      n++;
-      b += f.bytes;
-    }
-  _clean.hidden = n == 0;
-  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), n ? b : 0));
+  auto paths = ui::selectedLargeFilePaths(_groups);
+  uint64_t b = ui::selectedLargeFileBytes(_groups);
+  _clean.hidden = paths.empty();
+  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), paths.empty() ? 0 : b));
 }
 
 - (void)cleanSelected {
-  auto paths = ui::selectedLargeFilePaths(_files);
+  auto paths = ui::selectedLargeFilePaths(_groups);
   if (paths.empty()) {
     DCInformNothingToClean(@"Select files in the list first. Nothing was deleted.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray arrayWithCapacity:paths.size()];
-  uint64_t bytes = 0;
-  for (auto& f : _files)
-    if (f.selected) {
-      [list addObject:DCNS(f.path)];
-      bytes += f.bytes;
-    }
+  for (const auto& p : paths) [list addObject:DCNS(p)];
+  uint64_t bytes = ui::selectedLargeFileBytes(_groups);
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
   auto r = ui::applyClean(_engine, paths, mode);
@@ -125,12 +140,56 @@
 }
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
-  return (NSInteger)_files.size();
+  return (NSInteger)_rows.size();
+}
+
+- (BOOL)tableView:(NSTableView*)tableView isGroupRow:(NSInteger)row {
+  if (row < 0 || row >= (NSInteger)_rows.size()) return NO;
+  return _rows[(size_t)row].group;
 }
 
 - (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row {
-  auto& f = _files[(size_t)row];
-  if ([col.identifier isEqualToString:@"check"]) {
+  if (row < 0 || row >= (NSInteger)_rows.size()) return nil;
+  FlatRow fr = _rows[(size_t)row];
+  NSString* ident = col.identifier;
+  if (fr.group) {
+    const auto& g = _groups[(size_t)fr.g];
+    auto groupCheck = ^{
+      NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
+      b.allowsMixedState = YES;
+      switch (ui::largeFileGroupCheck(g)) {
+        case ui::GroupCheck::On:
+          b.state = NSControlStateValueOn;
+          break;
+        case ui::GroupCheck::Mixed:
+          b.state = NSControlStateValueMixed;
+          break;
+        case ui::GroupCheck::Off:
+          b.state = NSControlStateValueOff;
+          break;
+      }
+      b.tag = row;
+      b.toolTip = @"Select or unselect every file in this folder";
+      return b;
+    };
+    NSTextField* t = DCLabel(@"");
+    t.font = [NSFont preferredFontForTextStyle:NSFontTextStyleHeadline options:@{}];
+    t.stringValue = [NSString stringWithFormat:@"%@ — %@", DCNS(g.title),
+                                               DCNS(dcmm::formatBytes(g.totalBytes()))];
+    if (!col) {
+      NSStackView* rowView = [NSStackView stackViewWithViews:@[ groupCheck(), t ]];
+      rowView.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+      rowView.alignment = NSLayoutAttributeCenterY;
+      rowView.spacing = 6;
+      return DCCenteredFillCell(rowView);
+    }
+    if ([ident isEqualToString:@"check"]) return DCCenteredCheckCell(groupCheck());
+    if ([ident isEqualToString:@"name"]) return DCCenteredTextCell(t);
+    t.stringValue = @"";
+    return DCCenteredTextCell(t);
+  }
+  auto& f = _groups[(size_t)fr.g].files[(size_t)fr.i];
+  if ([ident isEqualToString:@"check"]) {
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
     b.state = f.selected ? NSControlStateValueOn : NSControlStateValueOff;
     b.tag = row;
@@ -138,9 +197,9 @@
   }
   NSTextField* t = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
-  if ([col.identifier isEqualToString:@"name"]) {
-    t.stringValue = DCNS(f.path);
-    t.toolTip = t.stringValue;
+  if ([ident isEqualToString:@"name"]) {
+    t.stringValue = DCNS(dcmm::displayName(f.path));
+    t.toolTip = DCNS(f.path);
   } else {
     t.stringValue = DCNS(dcmm::formatBytes(f.bytes));
     t.alignment = NSTextAlignmentRight;
@@ -150,17 +209,40 @@
 }
 
 - (void)tog:(NSButton*)s {
-  if (s.tag >= 0 && s.tag < (NSInteger)_files.size()) {
-    _files[(size_t)s.tag].selected = s.state == NSControlStateValueOn;
-    [self refreshClean];
+  NSInteger row = s.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  FlatRow fr = _rows[(size_t)row];
+  if (fr.group) {
+    ui::setLargeFileGroupSelected(_groups[(size_t)fr.g],
+                                  ui::largeFileGroupCheck(_groups[(size_t)fr.g]) != ui::GroupCheck::On);
+  } else {
+    _groups[(size_t)fr.g].files[(size_t)fr.i].selected = s.state == NSControlStateValueOn;
   }
+  [_table reloadData];
+  [self refreshClean];
 }
 
 - (void)menuNeedsUpdate:(NSMenu*)menu {
   [menu removeAllItems];
   NSInteger row = _table.clickedRow;
-  if (row < 0 || row >= (NSInteger)_files.size()) return;
-  auto& f = _files[(size_t)row];
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  FlatRow fr = _rows[(size_t)row];
+  if (fr.group) {
+    NSMenuItem* all = [[NSMenuItem alloc] initWithTitle:@"Select Group"
+                                                 action:@selector(ctxSelectGroup:)
+                                          keyEquivalent:@""];
+    all.target = self;
+    all.tag = row;
+    [menu addItem:all];
+    NSMenuItem* none = [[NSMenuItem alloc] initWithTitle:@"Unselect Group"
+                                                  action:@selector(ctxUnselectGroup:)
+                                           keyEquivalent:@""];
+    none.target = self;
+    none.tag = row;
+    [menu addItem:none];
+    return;
+  }
+  auto& f = _groups[(size_t)fr.g].files[(size_t)fr.i];
   DCAddPathMenuItems(menu, DCNS(f.path));
   [menu addItem:[NSMenuItem separatorItem]];
   NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:f.selected ? @"Unselect" : @"Select"
@@ -177,18 +259,39 @@
   [menu addItem:trash];
 }
 
+- (void)ctxSelectGroup:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  ui::setLargeFileGroupSelected(_groups[(size_t)_rows[(size_t)row].g], true);
+  [_table reloadData];
+  [self refreshClean];
+}
+
+- (void)ctxUnselectGroup:(NSMenuItem*)sender {
+  NSInteger row = sender.tag;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  ui::setLargeFileGroupSelected(_groups[(size_t)_rows[(size_t)row].g], false);
+  [_table reloadData];
+  [self refreshClean];
+}
+
 - (void)ctxToggleSelect:(NSMenuItem*)sender {
   NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_files.size()) return;
-  _files[(size_t)row].selected = !_files[(size_t)row].selected;
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  FlatRow fr = _rows[(size_t)row];
+  if (fr.group) return;
+  auto& f = _groups[(size_t)fr.g].files[(size_t)fr.i];
+  f.selected = !f.selected;
   [_table reloadData];
   [self refreshClean];
 }
 
 - (void)ctxTrashRow:(NSMenuItem*)sender {
   NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_files.size()) return;
-  auto& f = _files[(size_t)row];
+  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  FlatRow fr = _rows[(size_t)row];
+  if (fr.group) return;
+  auto& f = _groups[(size_t)fr.g].files[(size_t)fr.i];
   if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
   const auto mode = DCCleanPref();
   auto r = ui::applyClean(_engine, {f.path}, mode);

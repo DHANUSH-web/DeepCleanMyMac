@@ -138,13 +138,101 @@ inline void setScanGroupSelected(dcmm::ScanGroup& g, bool selected) {
   for (auto& it : g.items) it.selected = selected;
 }
 
+struct LargeFileRootSpec {
+  const char* id;
+  const char* title;
+  std::string path;
+};
+
+inline std::vector<LargeFileRootSpec> largeFileRootSpecs(const std::string& home = dcmm::homeDirectory()) {
+  return {
+      {"desktop", "Desktop", dcmm::joinPath(home, "Desktop")},
+      {"documents", "Documents", dcmm::joinPath(home, "Documents")},
+      {"downloads", "Downloads", dcmm::joinPath(home, "Downloads")},
+      {"pictures", "Pictures", dcmm::joinPath(home, "Pictures")},
+      {"movies", "Movies", dcmm::joinPath(home, "Movies")},
+      {"music", "Music", dcmm::joinPath(home, "Music")},
+      {"icloud", "iCloud Drive",
+       dcmm::joinPath(home, "Library/Mobile Documents/com~apple~CloudDocs")},
+      {"bin", "Bin", dcmm::joinPath(home, ".Trash")},
+  };
+}
+
 inline dcmm::LargeFileOptions largeFileOptions(const std::string& home = dcmm::homeDirectory()) {
   dcmm::LargeFileOptions opt;
-  opt.roots = {dcmm::joinPath(home, "Desktop"), dcmm::joinPath(home, "Documents"),
-               dcmm::joinPath(home, "Downloads"), dcmm::joinPath(home, "Movies")};
+  for (const auto& s : largeFileRootSpecs(home)) opt.roots.push_back(s.path);
+  const auto icloudLink = dcmm::joinPath(home, "iCloud Drive");
+  if (dcmm::pathExists(icloudLink)) opt.roots.push_back(icloudLink);
   opt.minBytes = 50ull * 1024ull * 1024ull;
   opt.limit = 300;
   return opt;
+}
+
+inline bool largeFilePathInRoot(const std::string& path, const std::string& root) {
+  if (root.empty() || path.size() < root.size()) return false;
+  if (path.compare(0, root.size(), root) != 0) return false;
+  if (path.size() == root.size()) return true;
+  const char c = path[root.size()];
+  return c == '/' || c == '\\';
+}
+
+struct LargeFileGroup {
+  std::string id;
+  std::string title;
+  std::vector<dcmm::LargeFile> files;
+  uint64_t totalBytes() const {
+    uint64_t n = 0;
+    for (const auto& f : files) n += f.bytes;
+    return n;
+  }
+};
+
+inline std::vector<LargeFileGroup> groupLargeFiles(const std::vector<dcmm::LargeFile>& files,
+                                                   const std::string& home = dcmm::homeDirectory()) {
+  auto specs = largeFileRootSpecs(home);
+  const auto icloudLink = dcmm::joinPath(home, "iCloud Drive");
+  std::vector<LargeFileGroup> groups;
+  groups.reserve(specs.size());
+  for (const auto& s : specs) groups.push_back({s.id, s.title, {}});
+  auto indexForPath = [&](const std::string& path) -> int {
+    int best = -1;
+    std::size_t bestLen = 0;
+    for (int i = 0; i < (int)specs.size(); ++i) {
+      if (largeFilePathInRoot(path, specs[(size_t)i].path) && specs[(size_t)i].path.size() >= bestLen) {
+        best = i;
+        bestLen = specs[(size_t)i].path.size();
+      }
+    }
+    if (best < 0 && largeFilePathInRoot(path, icloudLink)) {
+      for (int i = 0; i < (int)specs.size(); ++i)
+        if (specs[(size_t)i].id == std::string("icloud")) return i;
+    }
+    return best;
+  };
+  for (const auto& f : files) {
+    int i = indexForPath(f.path);
+    if (i >= 0) groups[(size_t)i].files.push_back(f);
+  }
+  groups.erase(std::remove_if(groups.begin(), groups.end(),
+                              [](const LargeFileGroup& g) { return g.files.empty(); }),
+               groups.end());
+  return groups;
+}
+
+inline GroupCheck largeFileGroupCheck(const LargeFileGroup& g) {
+  if (g.files.empty()) return GroupCheck::Off;
+  bool any = false, all = true;
+  for (const auto& f : g.files) {
+    if (f.selected) any = true;
+    else all = false;
+  }
+  if (all) return GroupCheck::On;
+  if (any) return GroupCheck::Mixed;
+  return GroupCheck::Off;
+}
+
+inline void setLargeFileGroupSelected(LargeFileGroup& g, bool selected) {
+  for (auto& f : g.files) f.selected = selected;
 }
 
 inline dcmm::DuplicateOptions duplicateOptions(const std::string& home = dcmm::homeDirectory()) {
@@ -160,6 +248,22 @@ inline std::vector<std::string> selectedLargeFilePaths(const std::vector<dcmm::L
   for (const auto& f : files)
     if (f.selected) out.push_back(f.path);
   return out;
+}
+
+inline std::vector<std::string> selectedLargeFilePaths(const std::vector<LargeFileGroup>& groups) {
+  std::vector<std::string> out;
+  for (const auto& g : groups)
+    for (const auto& f : g.files)
+      if (f.selected) out.push_back(f.path);
+  return out;
+}
+
+inline uint64_t selectedLargeFileBytes(const std::vector<LargeFileGroup>& groups) {
+  uint64_t n = 0;
+  for (const auto& g : groups)
+    for (const auto& f : g.files)
+      if (f.selected) n += f.bytes;
+  return n;
 }
 
 /// Orange warning on default home-folder roots and on Library items that are
