@@ -2,64 +2,90 @@
 import AppKit
 import Foundation
 
-let size: CGFloat = 1024
-let radius: CGFloat = size * 0.2237
-let out = CommandLine.arguments.count > 1
-    ? CommandLine.arguments[1]
-    : FileManager.default.currentDirectoryPath + "/icon-master.png"
+/// Build AppIcon.iconset and AppIcon.icns from app-icon.png.
+/// Usage (from this directory): swift render-icon.swift
 
-let image = NSImage(size: NSSize(width: size, height: size))
-image.lockFocus()
+let fm = FileManager.default
+let resources = URL(fileURLWithPath: fm.currentDirectoryPath)
+let sourceURL = resources.appendingPathComponent("app-icon.png")
 
-let rect = NSRect(x: 0, y: 0, width: size, height: size)
-let plate = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
-plate.addClip()
-
-NSColor.black.setFill()
-plate.fill()
-
-let gradient = NSGradient(colorsAndLocations:
-    (NSColor(white: 0.16, alpha: 1), 0.0),
-    (NSColor(white: 0.02, alpha: 1), 0.42),
-    (NSColor.black, 1.0)
-)!
-gradient.draw(in: plate, angle: -90)
-
-let shine = NSGradient(colors: [
-    NSColor(white: 1, alpha: 0.14),
-    NSColor(white: 1, alpha: 0.0),
-])!
-let shineRect = NSRect(x: 0, y: size * 0.62, width: size, height: size * 0.38)
-shine.draw(in: shineRect, angle: -90)
-
-guard let symbol = NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil) else {
-    fputs("sparkles symbol missing\n", stderr)
-    exit(1)
+guard let source = NSImage(contentsOf: sourceURL), source.size.width > 0 else {
+  fputs("missing or empty \(sourceURL.path)\n", stderr)
+  exit(1)
 }
-let config = NSImage.SymbolConfiguration(pointSize: 390, weight: .regular, scale: .large)
-    .applying(NSImage.SymbolConfiguration(hierarchicalColor: .white))
-guard let glyph = symbol.withSymbolConfiguration(config) else {
-    fputs("symbol configuration failed\n", stderr)
+
+func bitmap(_ pixels: Int) -> NSBitmapImageRep {
+  guard let rep = NSBitmapImageRep(
+    bitmapDataPlanes: nil,
+    pixelsWide: pixels,
+    pixelsHigh: pixels,
+    bitsPerSample: 8,
+    samplesPerPixel: 4,
+    hasAlpha: true,
+    isPlanar: false,
+    colorSpaceName: .deviceRGB,
+    bytesPerRow: 0,
+    bitsPerPixel: 0
+  ) else {
+    fputs("bitmap \(pixels) failed\n", stderr)
     exit(1)
+  }
+  rep.size = NSSize(width: pixels, height: pixels)
+  return rep
 }
-let gsize = glyph.size
-let dest = NSRect(
-    x: (size - gsize.width) / 2,
-    y: (size - gsize.height) / 2 - 8,
-    width: gsize.width,
-    height: gsize.height
-)
-glyph.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1)
 
-image.unlockFocus()
+func scaled(_ pixels: Int) -> NSBitmapImageRep {
+  let dest = bitmap(pixels)
+  NSGraphicsContext.saveGraphicsState()
+  guard let ctx = NSGraphicsContext(bitmapImageRep: dest) else {
+    fputs("scale context failed\n", stderr)
+    exit(1)
+  }
+  ctx.imageInterpolation = .high
+  NSGraphicsContext.current = ctx
+  let rect = NSRect(x: 0, y: 0, width: pixels, height: pixels)
+  source.draw(in: rect, from: .zero, operation: .copy, fraction: 1)
+  NSGraphicsContext.restoreGraphicsState()
+  return dest
+}
 
-guard
-    let tiff = image.tiffRepresentation,
-    let rep = NSBitmapImageRep(data: tiff),
-    let png = rep.representation(using: .png, properties: [:])
-else {
+func writePNG(_ rep: NSBitmapImageRep, to url: URL) throws {
+  guard let data = rep.representation(using: .png, properties: [:]) else {
     fputs("png encode failed\n", stderr)
     exit(1)
+  }
+  try data.write(to: url)
+  print("wrote \(url.path)")
 }
-try png.write(to: URL(fileURLWithPath: out))
-print("wrote \(out)")
+
+let setDir = resources.appendingPathComponent("AppIcon.iconset")
+try fm.createDirectory(at: setDir, withIntermediateDirectories: true)
+
+let variants: [(String, Int)] = [
+  ("icon_16x16.png", 16),
+  ("icon_16x16@2x.png", 32),
+  ("icon_32x32.png", 32),
+  ("icon_32x32@2x.png", 64),
+  ("icon_128x128.png", 128),
+  ("icon_128x128@2x.png", 256),
+  ("icon_256x256.png", 256),
+  ("icon_256x256@2x.png", 512),
+  ("icon_512x512.png", 512),
+  ("icon_512x512@2x.png", 1024),
+]
+
+for (name, px) in variants {
+  try writePNG(scaled(px), to: setDir.appendingPathComponent(name))
+}
+
+let icns = resources.appendingPathComponent("AppIcon.icns")
+let iconutil = Process()
+iconutil.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
+iconutil.arguments = ["-c", "icns", "-o", icns.path, setDir.path]
+try iconutil.run()
+iconutil.waitUntilExit()
+if iconutil.terminationStatus != 0 {
+  fputs("iconutil failed\n", stderr)
+  exit(Int32(iconutil.terminationStatus))
+}
+print("wrote \(icns.path)")

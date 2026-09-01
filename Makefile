@@ -22,7 +22,7 @@ BUILD_DIR = build/$(PRESET)
 APP = $(BUILD_DIR)/DeepCleanMyMac.app
 TESTS = $(BUILD_DIR)/dcmm-desktop-tests
 
-.PHONY: all build debug release test run open relaunch clean help init
+.PHONY: all build debug release test run open relaunch clean help init icon
 
 .DEFAULT_GOAL := build
 
@@ -34,6 +34,9 @@ all:
 	$(MAKE) build PRESET=release
 
 ENGINE_GIT := https://github.com/DHANUSH-web/dcmmlib.git
+
+icon:
+	cd resources && swift render-icon.swift
 
 init:
 	git submodule sync -- extras/dcmmlib
@@ -74,7 +77,7 @@ else
 endif
 
 help:
-	@echo "Usage: make [build | run | test | clean | relaunch | init | help] [debug | release | all]"
+	@echo "Usage: make [build | run | test | clean | relaunch | init | icon | help] [debug | release | all]"
 	@echo
 	@echo "  make                 build debug (default)"
 	@echo "  make build           build debug"
@@ -88,5 +91,6 @@ help:
 	@echo "  make clean           remove build/"
 	@echo "  make clean debug     remove build/debug"
 	@echo "  make init            clone/update extras/dcmmlib from GitHub main"
+	@echo "  make icon            rebuild AppIcon.icns from resources/app-icon.png"
 	@echo
 	@echo "PRESET=$(PRESET)  APP=$(APP)"
