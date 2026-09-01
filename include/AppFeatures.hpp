@@ -15,17 +15,17 @@ namespace ui {
 
 inline const char* sidebarSymbol(Module m) {
   switch (m) {
-    case Module::Overview: return "square.grid.2x2";
-    case Module::SmartScan: return "sparkles";
-    case Module::SystemJunk: return "internaldrive";
-    case Module::LargeFiles: return "doc.badge.ellipsis";
-    case Module::Duplicates: return "doc.on.doc";
-    case Module::Uninstaller: return "shippingbox";
-    case Module::Privacy: return "eye.slash";
-    case Module::SpaceLens: return "chart.bar";
-    case Module::Maintenance: return "wrench.and.screwdriver";
-    case Module::Settings: return "gearshape";
-    default: return "questionmark.circle";
+    case Module::Overview:    return "internaldrive.fill";
+    case Module::SmartScan:   return "apple.intelligence";
+    case Module::SystemJunk:  return "externaldrive.connected.to.line.below.fill";
+    case Module::LargeFiles:  return "arrow.up.circle.fill";
+    case Module::Duplicates:  return "square.stack.3d.up.fill";
+    case Module::Uninstaller: return "trash.fill";
+    case Module::Privacy:     return "hand.raised.fill";
+    case Module::SpaceLens:   return "binoculars.fill";
+    case Module::Maintenance: return "bolt.fill";
+    case Module::Settings:    return "gear";
+    default:                  return "questionmark.circle.fill";
   }
 }
 
