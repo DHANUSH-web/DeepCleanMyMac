@@ -21,6 +21,7 @@
   NSButton* _remove;
   NSTextField* _status;
   NSTableView* _appsTable;
+  BOOL _listed;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -67,6 +68,13 @@
     [self refreshUninstall];
   }
   return self;
+}
+
+- (void)viewDidMoveToWindow {
+  [super viewDidMoveToWindow];
+  if (!self.window || _listed) return;
+  _listed = YES;
+  [self reloadApps];
 }
 
 - (void)reloadApps {
