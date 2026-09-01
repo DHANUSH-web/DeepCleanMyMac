@@ -80,3 +80,18 @@ TEST_F(HomeFixture, SystemJunkOptInCleanOnlyCheckedRows) {
   EXPECT_TRUE(fs::exists(home / "Library" / "Caches" / "keep.me"));
   EXPECT_FALSE(fs::exists(home / "Library" / "Caches" / "drop.me"));
 }
+
+TEST(SystemJunk, GroupCheckSelectsEveryItem) {
+  dcmm::ScanGroup g;
+  g.items.push_back({"/a", "a", "", 0, 0, false, false});
+  g.items.push_back({"/b", "b", "", 0, 0, false, false});
+  g.items.push_back({"/c", "c", "", 0, 0, false, false});
+  EXPECT_EQ(ui::scanGroupCheck(g), ui::GroupCheck::Off);
+  ui::setScanGroupSelected(g, true);
+  EXPECT_EQ(ui::scanGroupCheck(g), ui::GroupCheck::On);
+  for (const auto& it : g.items) EXPECT_TRUE(it.selected);
+  g.items[1].selected = false;
+  EXPECT_EQ(ui::scanGroupCheck(g), ui::GroupCheck::Mixed);
+  ui::setScanGroupSelected(g, false);
+  EXPECT_EQ(ui::scanGroupCheck(g), ui::GroupCheck::Off);
+}

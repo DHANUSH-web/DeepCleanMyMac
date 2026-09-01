@@ -120,6 +120,24 @@ inline void setAllScanItemsSelected(dcmm::ScanReport& r, bool selected) {
     for (auto& it : g.items) it.selected = selected;
 }
 
+enum class GroupCheck { Off, Mixed, On };
+
+inline GroupCheck scanGroupCheck(const dcmm::ScanGroup& g) {
+  if (g.items.empty()) return GroupCheck::Off;
+  bool any = false, all = true;
+  for (const auto& it : g.items) {
+    if (it.selected) any = true;
+    else all = false;
+  }
+  if (all) return GroupCheck::On;
+  if (any) return GroupCheck::Mixed;
+  return GroupCheck::Off;
+}
+
+inline void setScanGroupSelected(dcmm::ScanGroup& g, bool selected) {
+  for (auto& it : g.items) it.selected = selected;
+}
+
 inline dcmm::LargeFileOptions largeFileOptions(const std::string& home = dcmm::homeDirectory()) {
   dcmm::LargeFileOptions opt;
   opt.roots = {dcmm::joinPath(home, "Desktop"), dcmm::joinPath(home, "Documents"),

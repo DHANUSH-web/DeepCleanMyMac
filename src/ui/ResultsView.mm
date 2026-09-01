@@ -258,16 +258,46 @@ struct FlatRow {
   NSString* ident = column.identifier;
   if (fr.group) {
     const auto& g = _report.groups[fr.g];
+    auto groupCheck = ^{
+      NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(checkToggled:)];
+      b.allowsMixedState = YES;
+      switch (ui::scanGroupCheck(g)) {
+        case ui::GroupCheck::On:
+          b.state = NSControlStateValueOn;
+          break;
+        case ui::GroupCheck::Mixed:
+          b.state = NSControlStateValueMixed;
+          break;
+        case ui::GroupCheck::Off:
+          b.state = NSControlStateValueOff;
+          break;
+      }
+      b.tag = row;
+      b.toolTip = @"Select or unselect every item in this group";
+      return b;
+    };
     NSTextField* t = DCLabel(@"");
     t.font = [NSFont preferredFontForTextStyle:NSFontTextStyleHeadline options:@{}];
-    if (!column || [ident isEqualToString:@"name"]) {
-      t.stringValue = [NSString stringWithFormat:@"%@ — %@", DCNS(g.title),
-                                                 DCNS(dcmm::formatBytes(g.totalBytes()))];
-      t.toolTip = DCNS(g.subtitle);
-      if (g.id == "native_system") return DCCenteredDangerTextCell(t);
-    } else {
-      t.stringValue = @"";
+    t.stringValue = [NSString stringWithFormat:@"%@ — %@", DCNS(g.title),
+                                               DCNS(dcmm::formatBytes(g.totalBytes()))];
+    t.toolTip = DCNS(g.subtitle);
+    const bool native = g.id == "native_system";
+    if (!column) {
+      NSMutableArray<NSView*>* parts = [NSMutableArray arrayWithObject:groupCheck()];
+      if (native) [parts addObject:DCDangerIcon(12)];
+      [parts addObject:t];
+      NSStackView* rowView = [NSStackView stackViewWithViews:parts];
+      rowView.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+      rowView.alignment = NSLayoutAttributeCenterY;
+      rowView.spacing = 6;
+      return DCCenteredFillCell(rowView);
     }
+    if ([ident isEqualToString:@"check"]) return DCCenteredCheckCell(groupCheck());
+    if ([ident isEqualToString:@"name"]) {
+      if (native) return DCCenteredDangerTextCell(t);
+      return DCCenteredTextCell(t);
+    }
+    t.stringValue = @"";
     return DCCenteredTextCell(t);
   }
   auto& it = _report.groups[fr.g].items[fr.i];
@@ -305,8 +335,16 @@ struct FlatRow {
   NSInteger row = sender.tag;
   if (row < 0 || row >= (NSInteger)_rows.size()) return;
   FlatRow fr = _rows[(size_t)row];
-  if (fr.group) return;
+  if (fr.group) {
+    ui::setScanGroupSelected(_report.groups[fr.g],
+                             ui::scanGroupCheck(_report.groups[fr.g]) != ui::GroupCheck::On);
+    [_table reloadData];
+    [self refreshCleanTitle];
+    [self refreshSelectAllTitle];
+    return;
+  }
   _report.groups[fr.g].items[fr.i].selected = sender.state == NSControlStateValueOn;
+  [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
 }
