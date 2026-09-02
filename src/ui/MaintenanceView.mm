@@ -58,42 +58,51 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
 
 @implementation DCMaintenanceView {
   dcmm::Engine _engine;
-  NSTextField* _log;
 }
 
 - (NSView*)cardForTask:(const dcmm::MaintenanceTask&)task index:(NSInteger)index {
   NSTextField* title = DCLabel(DCNS(task.title));
-  title.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
-  title.maximumNumberOfLines = 2;
+  title.font = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
+  title.maximumNumberOfLines = 1;
+  [title setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [title setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-  NSTextField* detail = DCSecondaryLabel(DCNS(task.detail));
-  detail.font = [NSFont preferredFontForTextStyle:NSFontTextStyleCaption1 options:@{}];
-  detail.maximumNumberOfLines = 4;
+  NSTextField* subtitle = DCSecondaryLabel(DCNS(task.detail));
+  subtitle.font = [NSFont preferredFontForTextStyle:NSFontTextStyleSubheadline options:@{}];
+  subtitle.maximumNumberOfLines = 0;
+  [subtitle setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                       forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [subtitle setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                     forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-  NSTextField* note = nil;
-  if (!task.note.empty()) {
-    note = DCCaptionLabel(DCNS(task.note));
-    note.textColor = [NSColor secondaryLabelColor];
-  }
+  NSStackView* text = [NSStackView stackViewWithViews:@[ title, subtitle ]];
+  text.orientation = NSUserInterfaceLayoutOrientationVertical;
+  text.alignment = NSLayoutAttributeLeading;
+  text.spacing = 4;
+  [text setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [text setContentCompressionResistancePriority:1
+                                 forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-  NSButton* run = DCPushButton(@"Run", self, @selector(runTask:));
+  NSButton* run = (task.id == "empty_trash") ? DCDestructiveButton(@"Run", self, @selector(runTask:))
+                                             : DCPushButton(@"Run", self, @selector(runTask:));
   run.tag = index;
-  if (task.id == "empty_trash") run.hasDestructiveAction = YES;
+  [run setContentHuggingPriority:NSLayoutPriorityRequired
+                  forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [run setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-  NSStackView* runRow = DCTrailingButtons(@[ run ]);
-
-  NSMutableArray* parts = [NSMutableArray arrayWithObjects:title, detail, nil];
-  if (note) [parts addObject:note];
   NSView* spacer = [[NSView alloc] initWithFrame:NSZeroRect];
-  [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
-  [parts addObject:spacer];
-  [parts addObject:runRow];
+  [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [spacer setContentCompressionResistancePriority:1
+                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-  NSStackView* body = [NSStackView stackViewWithViews:parts];
-  body.orientation = NSUserInterfaceLayoutOrientationVertical;
-  body.alignment = NSLayoutAttributeLeading;
-  body.spacing = 6;
-  body.edgeInsets = NSEdgeInsetsMake(14, 14, 12, 14);
+  NSStackView* body = [NSStackView stackViewWithViews:@[ text, spacer, run ]];
+  body.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+  body.alignment = NSLayoutAttributeCenterY;
+  body.spacing = 16;
+  body.edgeInsets = NSEdgeInsetsMake(16, 16, 16, 16);
 
   NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
   card.material = NSVisualEffectMaterialContentBackground;
@@ -104,13 +113,8 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   card.layer.masksToBounds = YES;
   [card addSubview:body];
   DCPinEdges(body, card);
-  [runRow.widthAnchor constraintEqualToAnchor:body.widthAnchor
-                                     constant:-(body.edgeInsets.left + body.edgeInsets.right)]
-      .active = YES;
-  [detail.widthAnchor constraintEqualToAnchor:body.widthAnchor
-                                     constant:-(body.edgeInsets.left + body.edgeInsets.right)]
-      .active = YES;
-  [card.heightAnchor constraintGreaterThanOrEqualToConstant:148].active = YES;
+  [card setContentHuggingPriority:NSLayoutPriorityRequired
+                   forOrientation:NSLayoutConstraintOrientationVertical];
   return card;
 }
 
@@ -129,33 +133,17 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
       [cards addObject:[self cardForTask:tasks[i] index:(NSInteger)i]];
     }
 
-    NSStackView* grid = [NSStackView stackViewWithViews:@[]];
-    grid.orientation = NSUserInterfaceLayoutOrientationVertical;
-    grid.alignment = NSLayoutAttributeLeading;
-    grid.spacing = 12;
-    [grid setContentHuggingPriority:NSLayoutPriorityRequired
+    NSStackView* list = [NSStackView stackViewWithViews:cards];
+    list.orientation = NSUserInterfaceLayoutOrientationVertical;
+    list.alignment = NSLayoutAttributeLeading;
+    list.spacing = 12;
+    [list setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationVertical];
-
-    for (NSUInteger i = 0; i < cards.count; i += 2) {
-      NSView* a = cards[i];
-      NSView* b = (i + 1 < cards.count) ? cards[i + 1] : [[NSView alloc] initWithFrame:NSZeroRect];
-      NSStackView* row = [NSStackView stackViewWithViews:@[ a, b ]];
-      row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-      row.alignment = NSLayoutAttributeTop;
-      row.distribution = NSStackViewDistributionFillEqually;
-      row.spacing = 12;
-      [row setContentHuggingPriority:NSLayoutPriorityRequired
-                      forOrientation:NSLayoutConstraintOrientationVertical];
-      [grid addArrangedSubview:row];
-      [row.widthAnchor constraintEqualToAnchor:grid.widthAnchor].active = YES;
+    [page addArrangedSubview:list];
+    DCStackFullWidth(page, list);
+    for (NSView* card in cards) {
+      [card.widthAnchor constraintEqualToAnchor:list.widthAnchor].active = YES;
     }
-
-    [page addArrangedSubview:grid];
-    DCStackFullWidth(page, grid);
-
-    _log = DCCaptionLabel(@"");
-    [page addArrangedSubview:_log];
-    DCStackFullWidth(page, _log);
 
     NSView* spacer = DCFlexibleSpace();
     [page addArrangedSubview:spacer];
@@ -171,7 +159,6 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   auto preview = _engine.previewMaintenance(task.id);
   if (preview.nothingToDo) {
     DCInformNothingToClean(DCNS(preview.message));
-    _log.stringValue = DCNS(preview.message);
     return;
   }
   ConfirmCopy c = ConfirmForTask(task.id, task);
@@ -181,7 +168,6 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   }
   if (!DCConfirmDestructive(c.title, c.body, c.proceed)) return;
   auto result = _engine.runMaintenance(task.id);
-  _log.stringValue = DCNS(result.message);
   if (result.nothingToDo) {
     DCInformNothingToClean(DCNS(result.message));
     return;
