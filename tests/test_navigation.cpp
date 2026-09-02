@@ -13,7 +13,7 @@ TEST(Navigation, SidebarHasASymbolPerModule) {
 
 TEST(Navigation, DashboardToolsAreASubsetOfSidebar) {
   auto tools = ui::dashboardTools();
-  EXPECT_EQ(tools.size(), 6u);
+  EXPECT_EQ(tools.size(), 8u);
   std::set<int> seen;
   for (const auto& t : tools) {
     EXPECT_GE(static_cast<int>(t.module), 0);
@@ -25,18 +25,51 @@ TEST(Navigation, DashboardToolsAreASubsetOfSidebar) {
   }
 }
 
-TEST(Navigation, DashboardDoesNotReplaceSystemJunkOrSpaceLens) {
-  bool hasJunk = false, hasLens = false, hasOverview = false, hasSmart = false, hasSettings = false;
-  for (const auto& t : ui::dashboardTools()) {
-    if (t.module == ui::Module::SystemJunk) hasJunk = true;
-    if (t.module == ui::Module::SpaceLens) hasLens = true;
-    if (t.module == ui::Module::Overview) hasOverview = true;
-    if (t.module == ui::Module::SmartScan) hasSmart = true;
-    if (t.module == ui::Module::Settings) hasSettings = true;
+TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
+{
+  bool hasSmartScan = false,
+  hasSystemWideScan = false,
+  hasLargeFiles     = false,
+  hasDuplicates     = false,
+  hasUninstaller    = false,
+  hasPrivacy        = false,
+  hasSpaceLens      = false,
+  hasOverview       = false,
+  hasSettings       = false,
+  hasMaintenance    = false;
+
+  for (const auto& t : ui::dashboardTools())
+  {
+    if (t.module == ui::Module::SmartScan)
+      hasSmartScan = true;
+    else if (t.module == ui::Module::SystemJunk)
+      hasSystemWideScan = true;
+    else if (t.module == ui::Module::LargeFiles)
+      hasLargeFiles = true;
+    else if (t.module == ui::Module::Duplicates)
+      hasDuplicates = true;
+    else if (t.module == ui::Module::Uninstaller)
+      hasUninstaller = true;
+    else if (t.module == ui::Module::Privacy)
+      hasPrivacy = true;
+    else if (t.module == ui::Module::SpaceLens)
+      hasSpaceLens = true;
+    else if (t.module == ui::Module::Maintenance)
+      hasMaintenance = true;
+    else if (t.module == ui::Module::Settings)
+      hasSettings = true;
+    else if (t.module == ui::Module::Overview)
+      hasOverview = true;
   }
-  EXPECT_TRUE(hasSmart);
-  EXPECT_FALSE(hasJunk);
-  EXPECT_FALSE(hasLens);
+
+  EXPECT_TRUE(hasSmartScan);
+  EXPECT_TRUE(hasSystemWideScan);
+  EXPECT_TRUE(hasLargeFiles);
+  EXPECT_TRUE(hasDuplicates);
+  EXPECT_TRUE(hasUninstaller);
+  EXPECT_TRUE(hasPrivacy);
+  EXPECT_TRUE(hasSpaceLens);
+  EXPECT_TRUE(hasMaintenance);
   EXPECT_FALSE(hasOverview);
   EXPECT_FALSE(hasSettings);
 }
