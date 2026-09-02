@@ -85,8 +85,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   [text setContentCompressionResistancePriority:1
                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-  NSButton* run = (task.id == "empty_trash") ? DCDestructiveButton(@"Run", self, @selector(runTask:))
-                                             : DCPushButton(@"Run", self, @selector(runTask:));
+  NSButton* run = DCPushButton(@"Execute", self, @selector(runTask:));
   run.tag = index;
   [run setContentHuggingPriority:NSLayoutPriorityRequired
                   forOrientation:NSLayoutConstraintOrientationHorizontal];
