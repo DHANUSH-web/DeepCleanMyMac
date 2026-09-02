@@ -36,10 +36,12 @@ struct DashboardTool {
   const char* subtitle;
 };
 
-inline std::array<DashboardTool, 6> dashboardTools() {
+inline std::array<DashboardTool, 8> dashboardTools() {
   return {{
       {Module::SmartScan, sidebarSymbol(Module::SmartScan), "Smart Scan",
        "Recommended caches and logs. Clean whole groups, not individual files."},
+      {Module::SystemJunk, sidebarSymbol(Module::SystemJunk), "System Wide Scan",
+       "Deep clean your Mac HD, find who is the hidden culprit."},
       {Module::LargeFiles, sidebarSymbol(Module::LargeFiles), "Large Files",
        "Surface oversized files you can review and remove."},
       {Module::Duplicates, sidebarSymbol(Module::Duplicates), "Duplicates",
@@ -48,6 +50,8 @@ inline std::array<DashboardTool, 6> dashboardTools() {
        "Uninstall multiple apps and their leftover files at once."},
       {Module::Privacy, sidebarSymbol(Module::Privacy), "Privacy",
        "Browser caches and tracking leftovers you choose."},
+      {Module::SpaceLens, sidebarSymbol(Module::SpaceLens), "Space Lens",
+        "Find all hidden heavy items in your MacBook."},
       {Module::Maintenance, sidebarSymbol(Module::Maintenance), "Maintenance",
        "Empty Trash, flush DNS, rebuild Launch Services."},
   }};
