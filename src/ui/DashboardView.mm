@@ -483,10 +483,10 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
   uint64_t usedBytes = total > avail ? total - avail : 0;
   _bar.doubleValue = total ? (double)usedBytes / (double)total : 0;
   _capacityLine.stringValue =
-      [NSString stringWithFormat:@"%@ of %@ used", DCNS(dcmm::formatBytes(usedBytes)),
-                                 DCNS(dcmm::formatBytes(total))];
+      [NSString stringWithFormat:@"%@ of %@ used", DCNS(ui::formatDiskBytes(usedBytes)),
+                                 DCNS(ui::formatDiskBytes(total))];
   _availableLine.stringValue =
-      [NSString stringWithFormat:@"%@ available", DCNS(dcmm::formatBytes(avail))];
+      [NSString stringWithFormat:@"%@ available", DCNS(ui::formatDiskBytes(avail))];
   DCSetFactCards(_storageFacts, ui::storageFacts(vol));
   [self setNeedsLayout:YES];
 }

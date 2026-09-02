@@ -14,6 +14,7 @@
 #include <mach/mach.h>
 #include <sys/sysctl.h>
 
+#include <cstdio>
 #include <cstring>
 
 namespace ui {
@@ -274,6 +275,8 @@ void fillDiskArbitration(const char* path, VolumeInfo& v) {
     v.internal = v.internal || dictBool(wdesc, kDADiskDescriptionDeviceInternalKey);
     if (CFDictionaryContainsKey(wdesc, CFSTR("DAMediaSolidState")))
       v.solidState = v.solidState || dictBool(wdesc, CFSTR("DAMediaSolidState"));
+    uint64_t whole = dictU64(wdesc, kDADiskDescriptionMediaSizeKey);
+    if (whole > v.mediaSizeBytes) v.mediaSizeBytes = whole;
   }
   cfRelease(wdesc);
   if (whole) CFRelease(whole);
@@ -291,6 +294,26 @@ void addFact(std::vector<std::pair<std::string, std::string>>& out, const char* 
 }  // namespace
 
 std::string yesNo(bool v) { return v ? "Yes" : "No"; }
+
+std::string formatDiskBytes(uint64_t bytes) {
+  static const char* units[] = {"B", "KB", "MB", "GB", "TB", "PB"};
+  double v = static_cast<double>(bytes);
+  int i = 0;
+  while (v >= 1000.0 && i < 5) {
+    v /= 1000.0;
+    ++i;
+  }
+  char buf[64];
+  if (i == 0)
+    std::snprintf(buf, sizeof(buf), "%llu B", static_cast<unsigned long long>(bytes));
+  else if (v >= 100.0)
+    std::snprintf(buf, sizeof(buf), "%.2f %s", v, units[i]);
+  else if (v >= 10.0)
+    std::snprintf(buf, sizeof(buf), "%.1f %s", v, units[i]);
+  else
+    std::snprintf(buf, sizeof(buf), "%.2f %s", v, units[i]);
+  return buf;
+}
 
 std::string formatCoreSummary(int physical, int performance, int efficiency) {
   if (performance > 0 && efficiency > 0) {

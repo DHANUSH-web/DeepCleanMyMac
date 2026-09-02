@@ -59,6 +59,8 @@ inline constexpr const char* kMaskedSerial = "********";
 std::string formatCoreSummary(int physical, int performance, int efficiency);
 std::string formatOsLine(const HostInfo& h);
 std::string formatStorageKind(const VolumeInfo& v);
+/// Decimal (1000) units, same as System Settings storage.
+std::string formatDiskBytes(uint64_t bytes);
 std::string yesNo(bool v);
 
 std::vector<std::pair<std::string, std::string>> machineFacts(const HostInfo& h);

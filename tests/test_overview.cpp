@@ -17,6 +17,13 @@ bool hasFact(const std::vector<std::pair<std::string, std::string>>& facts, cons
 
 }  // namespace
 
+TEST(Overview, DiskBytesUseDecimalGigabytes) {
+  EXPECT_EQ(ui::formatDiskBytes(0), "0 B");
+  EXPECT_EQ(ui::formatDiskBytes(1000), "1.00 KB");
+  EXPECT_EQ(ui::formatDiskBytes(494330000000ull), "494.33 GB");
+  EXPECT_EQ(ui::formatDiskBytes(81700000000ull), "81.7 GB");
+}
+
 TEST(Overview, DiskUsageIsReadable) {
   dcmm::Engine e;
   auto d = e.disk("/");
