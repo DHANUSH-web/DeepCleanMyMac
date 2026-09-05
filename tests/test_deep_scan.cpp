@@ -3,11 +3,11 @@
 
 #include <gtest/gtest.h>
 
-TEST_F(HomeFixture, SystemJunkListsEachCacheChildUnchecked) {
+TEST_F(HomeFixture, DeepScanListsEachCacheChildUnchecked) {
   writeBytes(home / "Library" / "Caches" / "com.example.Junk" / "a.bin", 2048);
   writeBytes(home / "Library" / "Caches" / "Arc" / "b.bin", 1024);
   dcmm::Engine e;
-  auto r = ui::runScan(e, ui::Module::SystemJunk);
+  auto r = ui::runScan(e, ui::Module::DeepScan);
   EXPECT_FALSE(ui::allScanItemsSelected(r));
   EXPECT_EQ(r.selectedBytes(), 0u);
 
@@ -31,13 +31,13 @@ TEST_F(HomeFixture, SystemJunkListsEachCacheChildUnchecked) {
   }
 }
 
-TEST_F(HomeFixture, SystemJunkGroupsComAppleAsNativeSystemItems) {
+TEST_F(HomeFixture, DeepScanGroupsComAppleAsNativeSystemItems) {
   writeBytes(home / "Library" / "Caches" / "com.example.Junk" / "a.bin", 2048);
   writeBytes(home / "Library" / "Caches" / "com.apple.Safari" / "c.bin", 4096);
   writeBytes(home / "Library" / "Logs" / "com.apple.bird" / "l.bin", 512);
   writeBytes(home / "Library" / "Caches" / "Arc" / "b.bin", 1024);
   dcmm::Engine e;
-  auto r = ui::runScan(e, ui::Module::SystemJunk);
+  auto r = ui::runScan(e, ui::Module::DeepScan);
   ASSERT_FALSE(r.groups.empty());
   EXPECT_EQ(r.groups.front().id, "native_system");
   EXPECT_EQ(r.groups.front().title, "Native System Items");
@@ -67,11 +67,11 @@ TEST_F(HomeFixture, SystemJunkGroupsComAppleAsNativeSystemItems) {
   EXPECT_FALSE(safariInCaches);
 }
 
-TEST_F(HomeFixture, SystemJunkOptInCleanOnlyCheckedRows) {
+TEST_F(HomeFixture, DeepScanOptInCleanOnlyCheckedRows) {
   writeBytes(home / "Library" / "Caches" / "keep.me" / "a.bin", 1024);
   writeBytes(home / "Library" / "Caches" / "drop.me" / "b.bin", 1024);
   dcmm::Engine e;
-  auto r = ui::runScan(e, ui::Module::SystemJunk);
+  auto r = ui::runScan(e, ui::Module::DeepScan);
   for (auto& g : r.groups)
     for (auto& it : g.items)
       if (it.displayName == "drop.me") it.selected = true;
@@ -81,7 +81,7 @@ TEST_F(HomeFixture, SystemJunkOptInCleanOnlyCheckedRows) {
   EXPECT_FALSE(fs::exists(home / "Library" / "Caches" / "drop.me"));
 }
 
-TEST(SystemJunk, GroupCheckSelectsEveryItem) {
+TEST(DeepScan, GroupCheckSelectsEveryItem) {
   dcmm::ScanGroup g;
   g.items.push_back({"/a", "a", "", 0, 0, false, false});
   g.items.push_back({"/b", "b", "", 0, 0, false, false});

@@ -8,7 +8,7 @@
 TEST(Modules, CountAndOrder) {
   EXPECT_EQ(static_cast<int>(ui::Module::MyMac), 0);
   EXPECT_EQ(static_cast<int>(ui::Module::SmartScan), 1);
-  EXPECT_EQ(static_cast<int>(ui::Module::SystemJunk), 2);
+  EXPECT_EQ(static_cast<int>(ui::Module::DeepScan), 2);
   EXPECT_EQ(static_cast<int>(ui::Module::LargeFiles), 3);
   EXPECT_EQ(static_cast<int>(ui::Module::Duplicates), 4);
   EXPECT_EQ(static_cast<int>(ui::Module::Uninstaller), 5);
@@ -36,7 +36,7 @@ TEST(Modules, EveryPageHasTitleAndSubtitle) {
 TEST(Modules, Titles) {
   EXPECT_STREQ(ui::title(ui::Module::MyMac), "My Mac");
   EXPECT_STREQ(ui::title(ui::Module::SmartScan), "Smart Scan");
-  EXPECT_STREQ(ui::title(ui::Module::SystemJunk), "System Wide Scan");
+  EXPECT_STREQ(ui::title(ui::Module::DeepScan), "Deep Scan");
   EXPECT_STREQ(ui::title(ui::Module::LargeFiles), "Large Files");
   EXPECT_STREQ(ui::title(ui::Module::Duplicates), "Duplicates");
   EXPECT_STREQ(ui::title(ui::Module::Uninstaller), "Uninstaller");
@@ -49,7 +49,7 @@ TEST(Modules, Titles) {
 TEST(Modules, Subtitles) {
   EXPECT_STREQ(ui::subtitle(ui::Module::MyMac), "Your MacBook, startup disk and DCMM tools");
   EXPECT_STREQ(ui::subtitle(ui::Module::SmartScan), "Recommended safe groups — no file picking");
-  EXPECT_STREQ(ui::subtitle(ui::Module::SystemJunk),
+  EXPECT_STREQ(ui::subtitle(ui::Module::DeepScan),
                "Item-by-item scan — review before cleaning. Not everything here is safe to remove");
   EXPECT_STREQ(ui::subtitle(ui::Module::LargeFiles), "Oversized files hogging the disk");
   EXPECT_STREQ(ui::subtitle(ui::Module::Duplicates), "Copies you no longer need");

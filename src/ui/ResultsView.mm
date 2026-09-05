@@ -41,7 +41,7 @@ struct FlatRow {
     title = @"Privacy";
     sub = @"Browser caches and tracking leftovers. Cookies stay off unless you opt in.";
   } else if (mode == DCResultsModeJunk) {
-    title = @"System Wide Scan";
+    title = @"Deep Scan";
     sub = @"Item-by-item scan — review before cleaning. Not everything here is safe to remove";
   }
   return [self initWithMode:mode title:title subtitle:sub];
@@ -159,7 +159,7 @@ struct FlatRow {
                                        (unsigned long long)vis];
       });
     };
-    ui::Module page = ui::Module::SystemJunk;
+    ui::Module page = ui::Module::DeepScan;
     if (strong->_mode == DCResultsModePrivacy)
       page = ui::Module::Privacy;
     else if (strong->_mode == DCResultsModeSmart)

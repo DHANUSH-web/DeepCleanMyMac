@@ -28,7 +28,7 @@ TEST(Navigation, DashboardToolsAreASubsetOfSidebar) {
 TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
 {
   bool hasSmartScan = false,
-  hasSystemWideScan = false,
+  hasDeepScan       = false,
   hasLargeFiles     = false,
   hasDuplicates     = false,
   hasUninstaller    = false,
@@ -42,8 +42,8 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
   {
     if (t.module == ui::Module::SmartScan)
       hasSmartScan = true;
-    else if (t.module == ui::Module::SystemJunk)
-      hasSystemWideScan = true;
+    else if (t.module == ui::Module::DeepScan)
+      hasDeepScan = true;
     else if (t.module == ui::Module::LargeFiles)
       hasLargeFiles = true;
     else if (t.module == ui::Module::Duplicates)
@@ -63,7 +63,7 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
   }
 
   EXPECT_TRUE(hasSmartScan);
-  EXPECT_TRUE(hasSystemWideScan);
+  EXPECT_TRUE(hasDeepScan);
   EXPECT_TRUE(hasLargeFiles);
   EXPECT_TRUE(hasDuplicates);
   EXPECT_TRUE(hasUninstaller);

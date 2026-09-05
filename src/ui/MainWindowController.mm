@@ -82,10 +82,10 @@ constexpr CGFloat kWindowMinHeight = 520;
         initWithMode:DCResultsModeSmart
                title:@"Smart Scan"
             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SmartScan)]];
-    _pages[@((int)ui::Module::SystemJunk)] = [[DCResultsView alloc]
+    _pages[@((int)ui::Module::DeepScan)] = [[DCResultsView alloc]
         initWithMode:DCResultsModeJunk
-               title:@"System Wide Scan"
-            subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SystemJunk)]];
+               title:@"Deep Scan"
+            subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::DeepScan)]];
     _pages[@((int)ui::Module::LargeFiles)] = [[DCLargeFilesView alloc] initWithFrame:NSZeroRect];
     _pages[@((int)ui::Module::Duplicates)] = [[DCDuplicatesView alloc] initWithFrame:NSZeroRect];
     _pages[@((int)ui::Module::Uninstaller)] = [[DCUninstallerView alloc] initWithFrame:NSZeroRect];

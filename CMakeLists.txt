@@ -95,7 +95,7 @@ if(DCMM_DESKTOP_BUILD_TESTS)
     tests/test_navigation.cpp
     tests/test_mymac.cpp
     tests/test_smart_scan.cpp
-    tests/test_system_junk.cpp
+    tests/test_deep_scan.cpp
     tests/test_privacy.cpp
     tests/test_large_files.cpp
     tests/test_duplicates.cpp

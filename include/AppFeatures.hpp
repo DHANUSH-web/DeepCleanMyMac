@@ -17,7 +17,7 @@ inline const char* sidebarSymbol(Module m) {
   switch (m) {
     case Module::MyMac:       return "apple.logo";
     case Module::SmartScan:   return "apple.intelligence";
-    case Module::SystemJunk:  return "externaldrive.connected.to.line.below.fill";
+    case Module::DeepScan:  return "externaldrive.connected.to.line.below.fill";
     case Module::LargeFiles:  return "arrow.up.circle.fill";
     case Module::Duplicates:  return "square.stack.3d.up.fill";
     case Module::Uninstaller: return "trash.fill";
@@ -40,7 +40,7 @@ inline std::array<DashboardTool, 8> dashboardTools() {
   return {{
       {Module::SmartScan, sidebarSymbol(Module::SmartScan), "Smart Scan",
        "Recommended caches and logs. Clean whole groups, not individual files."},
-      {Module::SystemJunk, sidebarSymbol(Module::SystemJunk), "System Wide Scan",
+      {Module::DeepScan, sidebarSymbol(Module::DeepScan), "Deep Scan",
        "Deep clean your Mac HD, find who is the hidden culprit."},
       {Module::LargeFiles, sidebarSymbol(Module::LargeFiles), "Large Files",
        "Surface oversized files you can review and remove."},
@@ -99,7 +99,7 @@ inline dcmm::ScanReport runScan(dcmm::Engine& engine, Module page,
                                 const dcmm::ProgressFn& progress = nullptr) {
   switch (page) {
     case Module::SmartScan: return engine.scanSmart(progress);
-    case Module::SystemJunk: {
+    case Module::DeepScan: {
       auto r = engine.scanJunk(progress);
       regroupNativeSystemItems(r);
       return r;

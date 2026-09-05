@@ -5,7 +5,7 @@ namespace ui {
 enum class Module : int {
   MyMac = 0,
   SmartScan,
-  SystemJunk,
+  DeepScan,
   LargeFiles,
   Duplicates,
   Uninstaller,
@@ -20,7 +20,7 @@ inline const char* title(Module m) {
   switch (m) {
     case Module::MyMac: return "My Mac";
     case Module::SmartScan: return "Smart Scan";
-    case Module::SystemJunk: return "System Wide Scan";
+    case Module::DeepScan: return "Deep Scan";
     case Module::LargeFiles: return "Large Files";
     case Module::Duplicates: return "Duplicates";
     case Module::Uninstaller: return "Uninstaller";
@@ -36,7 +36,7 @@ inline const char* subtitle(Module m) {
   switch (m) {
     case Module::MyMac: return "Your MacBook, startup disk and DCMM tools";
     case Module::SmartScan: return "Recommended safe groups — no file picking";
-    case Module::SystemJunk:
+    case Module::DeepScan:
       return "Item-by-item scan — review before cleaning. Not everything here is safe to remove";
     case Module::LargeFiles: return "Oversized files hogging the disk";
     case Module::Duplicates: return "Copies you no longer need";
