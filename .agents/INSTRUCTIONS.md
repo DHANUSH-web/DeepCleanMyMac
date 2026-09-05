@@ -81,7 +81,7 @@ Links: `dcmm`, Cocoa, AppKit, Foundation, QuartzCore, Collaboration.
 | `include/ui/Theme.h` + `src/ui/Widgets.mm` | Native AppKit helpers, confirm/inform dialogs |
 | `src/ui/MainWindowController.mm` | Classic `NSSplitView`: frost sidebar + opaque content |
 | `src/ui/SidebarView.mm` | Nav source list + user profile footer |
-| `src/ui/DashboardView.mm` | Overview: compact storage card + tool rows |
+| `src/ui/DashboardView.mm` | MyMac: compact storage card + tool rows |
 | `src/ui/ResultsView.mm` | Smart Scan / System Wide Scan / Privacy lists |
 | `src/ui/LargeFilesView.mm` | Large files |
 | `src/ui/DuplicatesView.mm` | SHA-256 duplicates |
@@ -101,7 +101,7 @@ The user wants **Apple aesthetic** using **native AppKit**, not a custom theme a
 - System text styles / SF Pro weights; SF Symbols.
 - Auto Layout + `NSStackView`; ~24–28 pt page margins; content hugging so headers stay at the **top** (use `DCFlexibleSpace` instead of stretching the first control).
 - Grouped cards: `NSVisualEffectMaterialContentBackground`, corner radius ~10.
-- Overview column ~480 pt: small disk **bar** (~220×8), not a full-window progress bar.
+- MyMac column ~480 pt: small disk **bar** (~220×8), not a full-window progress bar.
 - Tools: **icon well + semibold title + caption description + chevron**. Not stretched gray push buttons.
 - Maintenance: **2-column cards** with **Run at the bottom**, not a sparse title list and not one row stretched full height.
 - Sidebar: **frosted, full-height column** with a **real divider**, desktop visible through the glass.
@@ -126,7 +126,7 @@ x-apple.systempreferences:com.apple.Users-Groups-Settings.extension
 
 Fallbacks: `com.apple.preferences.users`, Apple ID settings, then System Settings app.
 
-Disk usage is **Overview only**, not duplicated in the sidebar.
+Disk usage is **MyMac only**, not duplicated in the sidebar.
 
 ## Safety in the UI (engine still enforces)
 

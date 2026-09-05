@@ -34,7 +34,7 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
   hasUninstaller    = false,
   hasPrivacy        = false,
   hasSpaceLens      = false,
-  hasOverview       = false,
+  hasMyMac          = false,
   hasSettings       = false,
   hasMaintenance    = false;
 
@@ -58,8 +58,8 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
       hasMaintenance = true;
     else if (t.module == ui::Module::Settings)
       hasSettings = true;
-    else if (t.module == ui::Module::Overview)
-      hasOverview = true;
+    else if (t.module == ui::Module::MyMac)
+      hasMyMac = true;
   }
 
   EXPECT_TRUE(hasSmartScan);
@@ -70,13 +70,13 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
   EXPECT_TRUE(hasPrivacy);
   EXPECT_TRUE(hasSpaceLens);
   EXPECT_TRUE(hasMaintenance);
-  EXPECT_FALSE(hasOverview);
+  EXPECT_FALSE(hasMyMac);
   EXPECT_FALSE(hasSettings);
 }
 
 TEST(Navigation, ScanDispatchOnlyForScanPages) {
   dcmm::Engine e;
-  auto empty = ui::runScan(e, ui::Module::Overview);
+  auto empty = ui::runScan(e, ui::Module::MyMac);
   EXPECT_TRUE(empty.groups.empty());
   empty = ui::runScan(e, ui::Module::LargeFiles);
   EXPECT_TRUE(empty.groups.empty());

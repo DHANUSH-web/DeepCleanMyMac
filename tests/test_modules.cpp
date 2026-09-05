@@ -6,7 +6,7 @@
 #include <string>
 
 TEST(Modules, CountAndOrder) {
-  EXPECT_EQ(static_cast<int>(ui::Module::Overview), 0);
+  EXPECT_EQ(static_cast<int>(ui::Module::MyMac), 0);
   EXPECT_EQ(static_cast<int>(ui::Module::SmartScan), 1);
   EXPECT_EQ(static_cast<int>(ui::Module::SystemJunk), 2);
   EXPECT_EQ(static_cast<int>(ui::Module::LargeFiles), 3);
@@ -34,7 +34,7 @@ TEST(Modules, EveryPageHasTitleAndSubtitle) {
 }
 
 TEST(Modules, Titles) {
-  EXPECT_STREQ(ui::title(ui::Module::Overview), "Overview");
+  EXPECT_STREQ(ui::title(ui::Module::MyMac), "My Mac");
   EXPECT_STREQ(ui::title(ui::Module::SmartScan), "Smart Scan");
   EXPECT_STREQ(ui::title(ui::Module::SystemJunk), "System Wide Scan");
   EXPECT_STREQ(ui::title(ui::Module::LargeFiles), "Large Files");
@@ -47,7 +47,7 @@ TEST(Modules, Titles) {
 }
 
 TEST(Modules, Subtitles) {
-  EXPECT_STREQ(ui::subtitle(ui::Module::Overview), "Your MacBook, startup disk and DCMM tools");
+  EXPECT_STREQ(ui::subtitle(ui::Module::MyMac), "Your MacBook, startup disk and DCMM tools");
   EXPECT_STREQ(ui::subtitle(ui::Module::SmartScan), "Recommended safe groups — no file picking");
   EXPECT_STREQ(ui::subtitle(ui::Module::SystemJunk),
                "Item-by-item scan — review before cleaning. Not everything here is safe to remove");

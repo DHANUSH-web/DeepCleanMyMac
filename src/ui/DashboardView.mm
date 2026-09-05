@@ -222,7 +222,7 @@ void DCApplyFill(NSView* v, NSColor* color) {
 
 namespace {
 
-NSVisualEffectView* DCOverviewCard(NSView* body) {
+NSVisualEffectView* DCMyMacCard(NSView* body) {
   body.translatesAutoresizingMaskIntoConstraints = NO;
   NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
   card.material = NSVisualEffectMaterialContentBackground;
@@ -251,7 +251,7 @@ NSView* DCMiniFactCard(NSString* label, NSString* value) {
   body.alignment = NSLayoutAttributeLeading;
   body.spacing = 2;
   body.edgeInsets = NSEdgeInsetsMake(10, 12, 10, 12);
-  NSVisualEffectView* card = DCOverviewCard(body);
+  NSVisualEffectView* card = DCMyMacCard(body);
   [card setContentHuggingPriority:NSLayoutPriorityDefaultLow
                    forOrientation:NSLayoutConstraintOrientationHorizontal];
   return card;
@@ -357,7 +357,7 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
     _scroll.documentView = _doc;
 
     NSStackView* header = DCHeaderStack(
-        @"Overview", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Overview)]);
+        @"My Mac", [NSString stringWithUTF8String:ui::subtitle(ui::Module::MyMac)]);
     [_column addArrangedSubview:header];
     DCStackFullWidth(_column, header);
 
@@ -409,7 +409,7 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
     usageBody.alignment = NSLayoutAttributeLeading;
     usageBody.spacing = 10;
     usageBody.edgeInsets = NSEdgeInsetsMake(12, 12, 12, 12);
-    NSVisualEffectView* usageCard = DCOverviewCard(usageBody);
+    NSVisualEffectView* usageCard = DCMyMacCard(usageBody);
     [_column addArrangedSubview:usageCard];
     DCStackFullWidth(_column, usageCard);
     [barRow.widthAnchor constraintEqualToAnchor:usageBody.widthAnchor
@@ -450,7 +450,7 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
           .active = YES;
     }
 
-    NSVisualEffectView* toolsCard = DCOverviewCard(toolList);
+    NSVisualEffectView* toolsCard = DCMyMacCard(toolList);
     [_column addArrangedSubview:toolsCard];
     DCStackFullWidth(_column, toolsCard);
 

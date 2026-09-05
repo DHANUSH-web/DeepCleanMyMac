@@ -15,7 +15,7 @@ namespace ui {
 
 inline const char* sidebarSymbol(Module m) {
   switch (m) {
-    case Module::Overview:    return "internaldrive.fill";
+    case Module::MyMac:       return "apple.logo";
     case Module::SmartScan:   return "apple.intelligence";
     case Module::SystemJunk:  return "externaldrive.connected.to.line.below.fill";
     case Module::LargeFiles:  return "arrow.up.circle.fill";

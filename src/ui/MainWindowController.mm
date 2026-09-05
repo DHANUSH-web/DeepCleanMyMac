@@ -77,7 +77,7 @@ constexpr CGFloat kWindowMinHeight = 520;
 
     _pages = [NSMutableDictionary new];
     DCDashboardView* dash = [[DCDashboardView alloc] initWithFrame:NSZeroRect];
-    _pages[@((int)ui::Module::Overview)] = dash;
+    _pages[@((int)ui::Module::MyMac)] = dash;
     _pages[@((int)ui::Module::SmartScan)] = [[DCResultsView alloc]
         initWithMode:DCResultsModeSmart
                title:@"Smart Scan"
@@ -109,7 +109,7 @@ constexpr CGFloat kWindowMinHeight = 520;
       [s showModule:m];
     };
 
-    [self showModule:ui::Module::Overview];
+    [self showModule:ui::Module::MyMac];
   }
   return self;
 }

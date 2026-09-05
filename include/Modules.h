@@ -3,7 +3,7 @@
 namespace ui {
 
 enum class Module : int {
-  Overview = 0,
+  MyMac = 0,
   SmartScan,
   SystemJunk,
   LargeFiles,
@@ -18,7 +18,7 @@ enum class Module : int {
 
 inline const char* title(Module m) {
   switch (m) {
-    case Module::Overview: return "Overview";
+    case Module::MyMac: return "My Mac";
     case Module::SmartScan: return "Smart Scan";
     case Module::SystemJunk: return "System Wide Scan";
     case Module::LargeFiles: return "Large Files";
@@ -34,7 +34,7 @@ inline const char* title(Module m) {
 
 inline const char* subtitle(Module m) {
   switch (m) {
-    case Module::Overview: return "Your MacBook, startup disk and DCMM tools";
+    case Module::MyMac: return "Your MacBook, startup disk and DCMM tools";
     case Module::SmartScan: return "Recommended safe groups — no file picking";
     case Module::SystemJunk:
       return "Item-by-item scan — review before cleaning. Not everything here is safe to remove";

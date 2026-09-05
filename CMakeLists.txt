@@ -93,7 +93,7 @@ if(DCMM_DESKTOP_BUILD_TESTS)
     tests/test_engine_link.cpp
     tests/test_modules.cpp
     tests/test_navigation.cpp
-    tests/test_overview.cpp
+    tests/test_mymac.cpp
     tests/test_smart_scan.cpp
     tests/test_system_junk.cpp
     tests/test_privacy.cpp

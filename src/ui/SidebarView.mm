@@ -74,7 +74,7 @@ static NSString* DCHostDisplayName(void) {
     self.blendingMode = NSVisualEffectBlendingModeBehindWindow;
     self.state = NSVisualEffectStateFollowsWindowActiveState;
 
-    _selected = ui::Module::Overview;
+    _selected = ui::Module::MyMac;
 
     _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
     _table.backgroundColor = [NSColor clearColor];

@@ -17,14 +17,14 @@ bool hasFact(const std::vector<std::pair<std::string, std::string>>& facts, cons
 
 }  // namespace
 
-TEST(Overview, DiskBytesUseDecimalGigabytes) {
+TEST(MyMac, DiskBytesUseDecimalGigabytes) {
   EXPECT_EQ(ui::formatDiskBytes(0), "0 B");
   EXPECT_EQ(ui::formatDiskBytes(1000), "1.00 KB");
   EXPECT_EQ(ui::formatDiskBytes(494330000000ull), "494.33 GB");
   EXPECT_EQ(ui::formatDiskBytes(81700000000ull), "81.7 GB");
 }
 
-TEST(Overview, DiskUsageIsReadable) {
+TEST(MyMac, DiskUsageIsReadable) {
   dcmm::Engine e;
   auto d = e.disk("/");
   EXPECT_GT(d.totalBytes, 0u);
@@ -32,20 +32,20 @@ TEST(Overview, DiskUsageIsReadable) {
   EXPECT_FALSE(d.mountPoint.empty());
 }
 
-TEST(Overview, MemoryStatsAreReadable) {
+TEST(MyMac, MemoryStatsAreReadable) {
   dcmm::Engine e;
   auto m = e.memory();
   EXPECT_GT(m.totalBytes, 0u);
   EXPECT_LE(m.usedBytes, m.totalBytes);
 }
 
-TEST(Overview, CoreSummaryJoinsPerformanceAndEfficiency) {
+TEST(MyMac, CoreSummaryJoinsPerformanceAndEfficiency) {
   EXPECT_EQ(ui::formatCoreSummary(10, 4, 6), "10 (4 performance and 6 efficiency)");
   EXPECT_EQ(ui::formatCoreSummary(8, 0, 0), "8");
   EXPECT_TRUE(ui::formatCoreSummary(0, 0, 0).empty());
 }
 
-TEST(Overview, HostInfoHasModelChipMemoryAndOs) {
+TEST(MyMac, HostInfoHasModelChipMemoryAndOs) {
   auto h = ui::hostInfo();
   EXPECT_FALSE(h.modelId.empty());
   EXPECT_FALSE(h.chip.empty());
@@ -61,7 +61,7 @@ TEST(Overview, HostInfoHasModelChipMemoryAndOs) {
   EXPECT_TRUE(hasFact(facts, "Model"));
 }
 
-TEST(Overview, SerialStaysMaskedUntilAuth) {
+TEST(MyMac, SerialStaysMaskedUntilAuth) {
   EXPECT_STREQ(ui::kMaskedSerial, "********");
   auto h = ui::hostInfo();
   if (!h.serial.empty()) {
@@ -70,7 +70,7 @@ TEST(Overview, SerialStaysMaskedUntilAuth) {
   }
 }
 
-TEST(Overview, VolumeInfoHasStartupDiskAndSsdFacts) {
+TEST(MyMac, VolumeInfoHasStartupDiskAndSsdFacts) {
   auto v = ui::volumeInfo("/");
   EXPECT_GT(v.totalBytes, 0u);
   EXPECT_FALSE(v.volumeName.empty());
@@ -87,7 +87,7 @@ TEST(Overview, VolumeInfoHasStartupDiskAndSsdFacts) {
     EXPECT_NE(ui::formatStorageKind(v).find("SSD"), std::string::npos);
 }
 
-TEST(Overview, StorageKindNamesInternalSsd) {
+TEST(MyMac, StorageKindNamesInternalSsd) {
   ui::VolumeInfo v;
   v.internal = true;
   v.solidState = true;
