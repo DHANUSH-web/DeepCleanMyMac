@@ -595,22 +595,44 @@ BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes) {
   return DCConfirmDestructive(title, info, proceed);
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wdeprecated-implementations"
+
+@interface DCNotifyDelegate : NSObject <NSUserNotificationCenterDelegate>
+@end
+@implementation DCNotifyDelegate
+- (BOOL)userNotificationCenter:(NSUserNotificationCenter*)center
+     shouldPresentNotification:(NSUserNotification*)notification {
+  (void)center;
+  (void)notification;
+  return YES;
+}
+@end
+
+static DCNotifyDelegate* gNotifyDelegate;
+
+void DCRequestNotificationPermission(void) {
+  if (!gNotifyDelegate) gNotifyDelegate = [[DCNotifyDelegate alloc] init];
+  NSUserNotificationCenter.defaultUserNotificationCenter.delegate = gNotifyDelegate;
+}
+
+static void DCNotify(NSString* title, NSString* body) {
+  NSUserNotification* n = [[NSUserNotification alloc] init];
+  n.title = title.length ? title : @"DeepCleanMyMac";
+  n.informativeText = body.length ? body : @"";
+  n.soundName = NSUserNotificationDefaultSoundName;
+  [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:n];
+}
+
+#pragma clang diagnostic pop
+
 void DCInformNothingToClean(NSString* detail) {
-  NSAlert* a = [[NSAlert alloc] init];
-  a.alertStyle = NSAlertStyleInformational;
-  a.messageText = @"Nothing to clean";
-  a.informativeText = detail.length ? detail : @"There is nothing here to remove.";
-  [a addButtonWithTitle:@"OK"];
-  DCPresentAlert(a);
+  DCNotify(@"Nothing to clean", detail.length ? detail : @"There is nothing here to remove.");
 }
 
 void DCInformCleaned(NSString* title, NSString* detail) {
-  NSAlert* a = [[NSAlert alloc] init];
-  a.alertStyle = NSAlertStyleInformational;
-  a.messageText = title ?: @"Clean finished";
-  a.informativeText = detail ?: @"";
-  [a addButtonWithTitle:@"OK"];
-  DCPresentAlert(a);
+  DCNotify(title.length ? title : @"Clean finished", detail ?: @"");
 }
 
 @interface DCQLHost : NSObject <QLPreviewPanelDataSource>

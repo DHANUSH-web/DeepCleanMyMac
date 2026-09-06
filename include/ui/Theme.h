@@ -78,6 +78,7 @@ BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle);
+void DCRequestNotificationPermission(void);
 void DCInformNothingToClean(NSString* detail);
 void DCInformCleaned(NSString* title, NSString* detail);
 

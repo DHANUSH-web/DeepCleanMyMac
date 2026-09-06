@@ -8,6 +8,7 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification*)notification {
   DCApplyStoredAppearance();
+  DCRequestNotificationPermission();
   [self buildMenu];
   _main = [[DCMainWindowController alloc] init];
   [_main showWindowAndActivate];
