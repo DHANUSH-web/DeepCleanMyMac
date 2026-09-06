@@ -3,6 +3,7 @@
 #include "dcmm/path.hpp"
 
 #import <Quartz/Quartz.h>
+#import <objc/runtime.h>
 
 NSNotificationName const DCSettingsDidChangeNotification = @"DCSettingsDidChangeNotification";
 
@@ -192,6 +193,131 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field) {
   cell.textField = field;
   return cell;
 }
+
+static char kDCHoverPopoverKey;
+
+@implementation DCHoverPopover {
+  __weak NSView* _anchor;
+  NSTrackingArea* _area;
+  NSPopover* _pop;
+}
+
++ (instancetype)popoverWithRows:(NSArray<NSArray<NSString*>*>*)rows {
+  return [[self alloc] initWithRows:rows];
+}
+
++ (void)attachToView:(NSView*)view rows:(NSArray<NSArray<NSString*>*>*)rows {
+  [[self popoverWithRows:rows] attachToView:view];
+}
+
+- (instancetype)initWithRows:(NSArray<NSArray<NSString*>*>*)rows {
+  self = [super init];
+  if (self) {
+    _rows = [rows copy] ?: @[];
+    _width = 0;
+    _columnSpacing = 16;
+    _rowSpacing = 4;
+    _contentInsets = NSEdgeInsetsMake(8, 12, 8, 12);
+    _labelFont = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _valueFont = [NSFont systemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightSemibold];
+    _labelColor = NSColor.secondaryLabelColor;
+    _valueColor = NSColor.labelColor;
+    _valueAlignment = NSTextAlignmentRight;
+    _preferredEdge = NSRectEdgeMinY;
+    _animates = YES;
+  }
+  return self;
+}
+
+- (void)dealloc {
+  [_pop performClose:nil];
+  if (_anchor && _area) [_anchor removeTrackingArea:_area];
+}
+
+- (void)attachToView:(NSView*)view {
+  DCHoverPopover* keep = self;
+  (void)keep;
+  if (_anchor && _area) {
+    [_pop performClose:nil];
+    _pop = nil;
+    [_anchor removeTrackingArea:_area];
+    _area = nil;
+    NSView* old = _anchor;
+    _anchor = nil;
+    if (old != view) objc_setAssociatedObject(old, &kDCHoverPopoverKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+  }
+  objc_setAssociatedObject(view, &kDCHoverPopoverKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+  NSMutableArray<NSString*>* help = [NSMutableArray array];
+  for (NSArray<NSString*>* row in _rows)
+    if (row.count >= 2) [help addObject:[NSString stringWithFormat:@"%@ %@", row[1], row[0]]];
+  view.accessibilityHelp = help.count ? [help componentsJoinedByString:@", "] : nil;
+  if (_rows.count == 0) return;
+  _anchor = view;
+  _area = [[NSTrackingArea alloc] initWithRect:NSZeroRect
+                                       options:(NSTrackingMouseEnteredAndExited |
+                                                NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect)
+                                         owner:self
+                                      userInfo:nil];
+  [view addTrackingArea:_area];
+  objc_setAssociatedObject(view, &kDCHoverPopoverKey, self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (void)mouseEntered:(NSEvent*)event {
+  (void)event;
+  if (_pop.shown || _rows.count == 0 || !_anchor.window) return;
+  NSFont* labelFont = _labelFont ?: [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+  NSFont* valueFont =
+      _valueFont ?: [NSFont systemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightSemibold];
+  NSColor* labelColor = _labelColor ?: NSColor.secondaryLabelColor;
+  NSColor* valueColor = _valueColor ?: NSColor.labelColor;
+  NSMutableArray<NSView*>* lines = [NSMutableArray array];
+  for (NSArray<NSString*>* row in _rows) {
+    if (row.count < 2) continue;
+    NSTextField* k = [NSTextField labelWithString:row[0]];
+    k.font = labelFont;
+    k.textColor = labelColor;
+    k.lineBreakMode = NSLineBreakByTruncatingTail;
+    [k setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSTextField* val = [NSTextField labelWithString:row[1]];
+    val.font = valueFont;
+    val.textColor = valueColor;
+    val.alignment = _valueAlignment;
+    [val setContentHuggingPriority:NSLayoutPriorityRequired
+                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [val setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSStackView* line = [NSStackView stackViewWithViews:@[ k, val ]];
+    line.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    line.alignment = NSLayoutAttributeFirstBaseline;
+    line.spacing = _columnSpacing;
+    line.distribution = NSStackViewDistributionFill;
+    [lines addObject:line];
+  }
+  if (lines.count == 0) return;
+  NSStackView* stack = [NSStackView stackViewWithViews:lines];
+  stack.orientation = NSUserInterfaceLayoutOrientationVertical;
+  stack.alignment = NSLayoutAttributeWidth;
+  stack.spacing = _rowSpacing;
+  stack.edgeInsets = _contentInsets;
+  if (_width > 0) [stack.widthAnchor constraintEqualToConstant:_width].active = YES;
+  [stack layoutSubtreeIfNeeded];
+  NSViewController* vc = [[NSViewController alloc] init];
+  vc.view = stack;
+  _pop = [[NSPopover alloc] init];
+  _pop.contentViewController = vc;
+  _pop.behavior = NSPopoverBehaviorTransient;
+  _pop.animates = _animates;
+  if (_width <= 0) _pop.contentSize = stack.fittingSize;
+  [_pop showRelativeToRect:_anchor.bounds ofView:_anchor preferredEdge:_preferredEdge];
+}
+
+- (void)mouseExited:(NSEvent*)event {
+  (void)event;
+  [_pop performClose:nil];
+  _pop = nil;
+}
+
+@end
 
 @implementation DCLegendView {
   NSImageView* _iconView;

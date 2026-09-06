@@ -53,6 +53,30 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 + (instancetype)dangerLegendWithMessage:(NSString*)message;
 @end
 
+/// Settings-style hover popover: label on the left, value on the right.
+/// Attach to any view; replaces a previous hover popover on that view.
+/// Each row is `@[ label, value ]`. Pass an empty `rows` array to remove.
+@interface DCHoverPopover : NSObject
+@property(nonatomic, copy) NSArray<NSArray<NSString*>*>* rows;
+/// Fixed popover width. `0` sizes to the row content.
+@property(nonatomic) CGFloat width;
+@property(nonatomic) CGFloat columnSpacing;
+@property(nonatomic) CGFloat rowSpacing;
+@property(nonatomic) NSEdgeInsets contentInsets;
+@property(nonatomic, strong) NSFont* labelFont;
+@property(nonatomic, strong) NSFont* valueFont;
+@property(nonatomic, strong) NSColor* labelColor;
+@property(nonatomic, strong) NSColor* valueColor;
+@property(nonatomic) NSTextAlignment valueAlignment;
+@property(nonatomic) NSRectEdge preferredEdge;
+@property(nonatomic) BOOL animates;
+
+- (instancetype)initWithRows:(NSArray<NSArray<NSString*>*>*)rows;
++ (instancetype)popoverWithRows:(NSArray<NSArray<NSString*>*>*)rows;
+- (void)attachToView:(NSView*)view;
++ (void)attachToView:(NSView*)view rows:(NSArray<NSArray<NSString*>*>*)rows;
+@end
+
 void DCPinEdges(NSView* child, NSView* parent);
 NSStackView* DCPageStack(NSView* host);
 NSStackView* DCHeaderStack(NSString* title, NSString* subtitle);
