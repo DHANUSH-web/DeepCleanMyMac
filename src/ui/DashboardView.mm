@@ -294,12 +294,6 @@ void DCSetFactCards(NSStackView* stack,
   }
 }
 
-NSTextField* DCSectionLabel(NSString* title) {
-  NSTextField* t = DCLabel(title);
-  t.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
-  return t;
-}
-
 NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
   NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
   icon.image = [NSImage imageWithSystemSymbolName:name accessibilityDescription:a11y];
@@ -392,9 +386,6 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
     _machineFacts.spacing = 8;
     [_column addArrangedSubview:_machineFacts];
     DCStackFullWidth(_column, _machineFacts);
-
-    NSTextField* diskLabel = DCSectionLabel(@"Startup disk");
-    [_column addArrangedSubview:diskLabel];
 
     NSImageView* diskIcon = DCCardSymbol(@"internaldrive.fill", @"Disk");
     _volumeTitle = DCLabel(@"—");
