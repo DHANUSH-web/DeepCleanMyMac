@@ -92,7 +92,7 @@ inline void regroupNativeSystemItems(dcmm::ScanReport& r) {
                  r.groups.end());
   if (native.items.empty()) return;
   native.sortBySizeDescending();
-  r.groups.insert(r.groups.begin(), std::move(native));
+  r.groups.push_back(std::move(native));
 }
 
 inline dcmm::ScanReport runScan(dcmm::Engine& engine, Module page,

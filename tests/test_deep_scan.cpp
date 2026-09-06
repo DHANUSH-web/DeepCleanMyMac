@@ -39,10 +39,10 @@ TEST_F(HomeFixture, DeepScanGroupsComAppleAsNativeSystemItems) {
   dcmm::Engine e;
   auto r = ui::runScan(e, ui::Module::DeepScan);
   ASSERT_FALSE(r.groups.empty());
-  EXPECT_EQ(r.groups.front().id, "native_system");
-  EXPECT_EQ(r.groups.front().title, "Native System Items");
+  EXPECT_EQ(r.groups.back().id, "native_system");
+  EXPECT_EQ(r.groups.back().title, "Native System Items");
   bool sawSafari = false, sawBird = false, sawJunkInNative = false;
-  for (const auto& it : r.groups.front().items) {
+  for (const auto& it : r.groups.back().items) {
     EXPECT_FALSE(it.selected);
     EXPECT_TRUE(it.reviewFirst);
     EXPECT_TRUE(ui::isNativeAppleScanItem(it));
