@@ -361,8 +361,30 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
     [_column addArrangedSubview:header];
     DCStackFullWidth(_column, header);
 
-    NSTextField* macLabel = DCSectionLabel(@"This Mac");
-    [_column addArrangedSubview:macLabel];
+    NSImage* macSymbol = [NSImage imageWithSystemSymbolName:@"macbook" accessibilityDescription:@"MacBook"];
+    if (!macSymbol)
+      macSymbol = [NSImage imageWithSystemSymbolName:@"laptopcomputer" accessibilityDescription:@"MacBook"];
+    macSymbol = [macSymbol imageWithSymbolConfiguration:[NSImageSymbolConfiguration
+                                                            configurationWithPointSize:32
+                                                                                weight:NSFontWeightRegular
+                                                                                 scale:NSImageSymbolScaleMedium]];
+    NSImageView* macIcon = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    macIcon.image = macSymbol;
+    macIcon.imageScaling = NSImageScaleProportionallyUpOrDown;
+    macIcon.contentTintColor = NSColor.labelColor;
+    macIcon.translatesAutoresizingMaskIntoConstraints = NO;
+    [macIcon.widthAnchor constraintEqualToConstant:128].active = YES;
+    [macIcon.heightAnchor constraintEqualToConstant:128].active = YES;
+    NSView* macIconRow = [[NSView alloc] initWithFrame:NSZeroRect];
+    macIconRow.translatesAutoresizingMaskIntoConstraints = NO;
+    [macIconRow addSubview:macIcon];
+    [NSLayoutConstraint activateConstraints:@[
+      [macIcon.centerXAnchor constraintEqualToAnchor:macIconRow.centerXAnchor],
+      [macIcon.topAnchor constraintEqualToAnchor:macIconRow.topAnchor],
+      [macIcon.bottomAnchor constraintEqualToAnchor:macIconRow.bottomAnchor],
+    ]];
+    [_column addArrangedSubview:macIconRow];
+    DCStackFullWidth(_column, macIconRow);
 
     _machineFacts = [NSStackView stackViewWithViews:@[]];
     _machineFacts.orientation = NSUserInterfaceLayoutOrientationVertical;
