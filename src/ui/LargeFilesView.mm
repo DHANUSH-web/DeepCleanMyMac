@@ -25,6 +25,7 @@ struct FlatRow {
   NSButton* _clean;
   NSTextField* _status;
   NSTableView* _table;
+  uint64_t _job;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -85,28 +86,29 @@ struct FlatRow {
 }
 
 - (void)startScan {
+  if (!_scan.enabled) return;
   _status.stringValue = @"Scanning…";
   _scan.enabled = NO;
   _clean.hidden = YES;
   __weak DCLargeFilesView* weakSelf = self;
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+  __block std::vector<dcmm::LargeFile> files;
+  DCRunBackground(&_job, ^{
     DCLargeFilesView* strong = weakSelf;
     if (!strong) return;
-    auto files = strong->_engine.findLargeFiles(ui::largeFileOptions());
-    dispatch_async(dispatch_get_main_queue(), ^{
-      DCLargeFilesView* s = weakSelf;
-      if (!s) return;
-      s->_groups = ui::groupLargeFiles(files);
-      [s rebuildRows];
-      [s->_table reloadData];
-      s->_scan.enabled = YES;
-      std::size_t n = 0;
-      for (const auto& g : s->_groups) n += g.files.size();
-      s->_status.stringValue =
-          [NSString stringWithFormat:@"%lu files of 50 MB or more in %lu folders", (unsigned long)n,
-                                     (unsigned long)s->_groups.size()];
-      [s refreshClean];
-    });
+    files = strong->_engine.findLargeFiles(ui::largeFileOptions());
+  }, ^{
+    DCLargeFilesView* s = weakSelf;
+    if (!s) return;
+    s->_groups = ui::groupLargeFiles(files);
+    [s rebuildRows];
+    [s->_table reloadData];
+    s->_scan.enabled = YES;
+    std::size_t n = 0;
+    for (const auto& g : s->_groups) n += g.files.size();
+    s->_status.stringValue =
+        [NSString stringWithFormat:@"%lu files of 50 MB or more in %lu folders", (unsigned long)n,
+                                   (unsigned long)s->_groups.size()];
+    [s refreshClean];
   });
 }
 
@@ -128,15 +130,27 @@ struct FlatRow {
   uint64_t bytes = ui::selectedLargeFileBytes(_groups);
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applyClean(_engine, paths, mode);
-  if (r.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-  } else {
-    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
-    _status.stringValue = msg;
-    DCInformCleaned(@"Clean finished", msg);
-  }
-  [self startScan];
+  _scan.enabled = NO;
+  _clean.hidden = YES;
+  __weak DCLargeFilesView* weakSelf = self;
+  __block dcmm::CleanResult r;
+  DCRunBackground(&_job, ^{
+    DCLargeFilesView* strong = weakSelf;
+    if (!strong) return;
+    r = ui::applyClean(strong->_engine, paths, mode);
+  }, ^{
+    DCLargeFilesView* s = weakSelf;
+    if (!s) return;
+    s->_scan.enabled = YES;
+    if (r.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+    } else {
+      NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
+      s->_status.stringValue = msg;
+      DCInformCleaned(@"Clean finished", msg);
+    }
+    [s startScan];
+  });
 }
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
@@ -294,13 +308,25 @@ struct FlatRow {
   auto& f = _groups[(size_t)fr.g].files[(size_t)fr.i];
   if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applyClean(_engine, {f.path}, mode);
-  if (r.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    return;
-  }
-  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
-  [self startScan];
+  std::string path = f.path;
+  _scan.enabled = NO;
+  __weak DCLargeFilesView* weakSelf = self;
+  __block dcmm::CleanResult r;
+  DCRunBackground(&_job, ^{
+    DCLargeFilesView* strong = weakSelf;
+    if (!strong) return;
+    r = ui::applyClean(strong->_engine, {path}, mode);
+  }, ^{
+    DCLargeFilesView* s = weakSelf;
+    if (!s) return;
+    s->_scan.enabled = YES;
+    if (r.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+      return;
+    }
+    DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
+    [s startScan];
+  });
 }
 
 @end

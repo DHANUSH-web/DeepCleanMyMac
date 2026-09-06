@@ -65,6 +65,7 @@
   NSButton* _clean;
   NSTextField* _status;
   NSOutlineView* _outline;
+  uint64_t _job;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -142,31 +143,33 @@
 }
 
 - (void)startScan {
+  if (!_scan.enabled) return;
   _status.stringValue = @"Measuring…";
   _scan.enabled = NO;
   __weak DCSpaceLensView* weakSelf = self;
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+  __block std::vector<dcmm::SpaceNode> n;
+  __block uint64_t volume = 0;
+  DCRunBackground(&_job, ^{
     DCSpaceLensView* strong = weakSelf;
     if (!strong) return;
-    auto n = strong->_engine.spaceLens();
-    uint64_t volume = ui::volumeInfo("/").totalBytes;
+    n = strong->_engine.spaceLens();
+    volume = ui::volumeInfo("/").totalBytes;
     if (volume == 0) volume = strong->_engine.disk("/").totalBytes;
-    dispatch_async(dispatch_get_main_queue(), ^{
-      DCSpaceLensView* s = weakSelf;
-      if (!s) return;
-      [s->_roots removeAllObjects];
-      for (auto& node : n) {
-        DCLensRow* row = [[DCLensRow alloc] initWithNode:std::move(node)];
-        [s->_roots addObject:row];
-      }
-      s->_volumeBytes = volume;
-      [s->_outline reloadData];
-      [s fitOutlineColumns];
-      s->_scan.enabled = YES;
-      s->_status.stringValue =
-          [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
-      [s refreshClean];
-    });
+  }, ^{
+    DCSpaceLensView* s = weakSelf;
+    if (!s) return;
+    [s->_roots removeAllObjects];
+    for (auto& node : n) {
+      DCLensRow* row = [[DCLensRow alloc] initWithNode:std::move(node)];
+      [s->_roots addObject:row];
+    }
+    s->_volumeBytes = volume;
+    [s->_outline reloadData];
+    [s fitOutlineColumns];
+    s->_scan.enabled = YES;
+    s->_status.stringValue =
+        [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
+    [s refreshClean];
   });
 }
 
@@ -230,15 +233,27 @@
   uint64_t bytes = [self selectedBytes];
   if (!DCConfirmSpaceLensClean(list, bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applySpaceLensClean(_engine, paths, mode);
-  if (r.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-  } else {
-    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
-    _status.stringValue = msg;
-    DCInformCleaned(@"Clean finished", msg);
-  }
-  [self startScan];
+  _scan.enabled = NO;
+  _clean.hidden = YES;
+  __weak DCSpaceLensView* weakSelf = self;
+  __block dcmm::CleanResult r;
+  DCRunBackground(&_job, ^{
+    DCSpaceLensView* strong = weakSelf;
+    if (!strong) return;
+    r = ui::applySpaceLensClean(strong->_engine, paths, mode);
+  }, ^{
+    DCSpaceLensView* s = weakSelf;
+    if (!s) return;
+    s->_scan.enabled = YES;
+    if (r.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+    } else {
+      NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
+      s->_status.stringValue = msg;
+      DCInformCleaned(@"Clean finished", msg);
+    }
+    [s startScan];
+  });
 }
 
 static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
@@ -429,13 +444,25 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   if (!item) return;
   if (!DCConfirmSpaceLensClean(@[ DCNS(item.node.path) ], item.node.bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applySpaceLensClean(_engine, {item.node.path}, mode);
-  if (r.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    return;
-  }
-  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
-  [self startScan];
+  std::string path = item.node.path;
+  _scan.enabled = NO;
+  __weak DCSpaceLensView* weakSelf = self;
+  __block dcmm::CleanResult r;
+  DCRunBackground(&_job, ^{
+    DCSpaceLensView* strong = weakSelf;
+    if (!strong) return;
+    r = ui::applySpaceLensClean(strong->_engine, {path}, mode);
+  }, ^{
+    DCSpaceLensView* s = weakSelf;
+    if (!s) return;
+    s->_scan.enabled = YES;
+    if (r.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+      return;
+    }
+    DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
+    [s startScan];
+  });
 }
 
 @end

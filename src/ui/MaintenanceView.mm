@@ -58,6 +58,8 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
 
 @implementation DCMaintenanceView {
   dcmm::Engine _engine;
+  uint64_t _job;
+  BOOL _busy;
 }
 
 - (NSView*)cardForTask:(const dcmm::MaintenanceTask&)task index:(NSInteger)index {
@@ -152,29 +154,62 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
 }
 
 - (void)runTask:(NSButton*)sender {
+  if (_busy) return;
   auto tasks = _engine.maintenanceTasks();
   if (sender.tag < 0 || sender.tag >= (NSInteger)tasks.size()) return;
-  const auto& task = tasks[(size_t)sender.tag];
-  auto preview = _engine.previewMaintenance(task.id);
-  if (preview.nothingToDo) {
-    DCInformNothingToClean(DCNS(preview.message));
-    return;
-  }
-  ConfirmCopy c = ConfirmForTask(task.id, task);
-  if (preview.bytesFreed > 0) {
-    c.body = [NSString stringWithFormat:@"%@\n\nCurrently using %@.", c.body,
-                                        DCNS(dcmm::formatBytes(preview.bytesFreed))];
-  }
-  if (!DCConfirmDestructive(c.title, c.body, c.proceed)) return;
-  auto result = _engine.runMaintenance(task.id);
-  if (result.nothingToDo) {
-    DCInformNothingToClean(DCNS(result.message));
-    return;
-  }
-  NSString* doneTitle = result.bytesFreed > 0
-                            ? [NSString stringWithFormat:@"Freed %@", DCNS(dcmm::formatBytes(result.bytesFreed))]
-                            : @"Finished";
-  DCInformCleaned(doneTitle, DCNS(result.message));
+  const auto task = tasks[(size_t)sender.tag];
+  const std::string id = task.id;
+  ConfirmCopy c = ConfirmForTask(id, task);
+  _busy = YES;
+  sender.enabled = NO;
+  __weak DCMaintenanceView* weakSelf = self;
+  __block dcmm::MaintenanceResult preview;
+  DCRunBackground(&_job, ^{
+    DCMaintenanceView* strong = weakSelf;
+    if (!strong) return;
+    preview = strong->_engine.previewMaintenance(id);
+  }, ^{
+    DCMaintenanceView* s = weakSelf;
+    if (!s) {
+      sender.enabled = YES;
+      return;
+    }
+    if (preview.nothingToDo) {
+      s->_busy = NO;
+      sender.enabled = YES;
+      DCInformNothingToClean(DCNS(preview.message));
+      return;
+    }
+    ConfirmCopy copy = c;
+    if (preview.bytesFreed > 0) {
+      copy.body = [NSString stringWithFormat:@"%@\n\nCurrently using %@.", copy.body,
+                                             DCNS(dcmm::formatBytes(preview.bytesFreed))];
+    }
+    if (!DCConfirmDestructive(copy.title, copy.body, copy.proceed)) {
+      s->_busy = NO;
+      sender.enabled = YES;
+      return;
+    }
+    __block dcmm::MaintenanceResult result;
+    DCRunBackground(&s->_job, ^{
+      DCMaintenanceView* st = weakSelf;
+      if (!st) return;
+      result = st->_engine.runMaintenance(id);
+    }, ^{
+      DCMaintenanceView* st = weakSelf;
+      if (st) st->_busy = NO;
+      sender.enabled = YES;
+      if (!st) return;
+      if (result.nothingToDo) {
+        DCInformNothingToClean(DCNS(result.message));
+        return;
+      }
+      NSString* doneTitle = result.bytesFreed > 0
+                                ? [NSString stringWithFormat:@"Freed %@", DCNS(dcmm::formatBytes(result.bytesFreed))]
+                                : @"Finished";
+      DCInformCleaned(doneTitle, DCNS(result.message));
+    });
+  });
 }
 
 @end

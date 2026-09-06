@@ -4,6 +4,8 @@
 
 #include "AppSettings.hpp"
 
+#include <atomic>
+#include <cstdint>
 #include <string>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -62,6 +64,12 @@ NSView* DCFlexibleSpace(void);
 
 /// Sheet on the main window when possible; otherwise a centered modal.
 NSModalResponse DCPresentAlert(NSAlert* alert);
+
+/// Increment `*jobSlot` and run `work` off the main thread. `done` runs on the
+/// main queue only if this is still the latest job (stale completions are dropped).
+void DCRunBackground(uint64_t* jobSlot, void (^work)(void), void (^_Nullable done)(void));
+/// Coalesce UI progress from a worker: skip if the last update was less than `minMs` ms ago.
+void DCDispatchMainThrottled(std::atomic<uint64_t>* lastMs, uint64_t minMs, void (^block)(void));
 
 extern NSNotificationName const DCSettingsDidChangeNotification;
 

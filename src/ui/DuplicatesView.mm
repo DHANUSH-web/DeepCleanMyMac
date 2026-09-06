@@ -21,6 +21,7 @@
   NSButton* _clean;
   NSTextField* _status;
   NSTableView* _table;
+  uint64_t _job;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -83,25 +84,26 @@
 }
 
 - (void)startScan {
+  if (!_scan.enabled) return;
   _status.stringValue = @"Hashing…";
   _scan.enabled = NO;
   _clean.hidden = YES;
   __weak DCDuplicatesView* weakSelf = self;
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+  __block std::vector<dcmm::DuplicateGroup> g;
+  DCRunBackground(&_job, ^{
     DCDuplicatesView* strong = weakSelf;
     if (!strong) return;
-    auto g = strong->_engine.findDuplicates(ui::duplicateOptions());
-    dispatch_async(dispatch_get_main_queue(), ^{
-      DCDuplicatesView* s = weakSelf;
-      if (!s) return;
-      s->_groups = std::move(g);
-      [s rebuild];
-      [s->_table reloadData];
-      s->_scan.enabled = YES;
-      s->_status.stringValue =
-          [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
-      [s refreshCleanTitle];
-    });
+    g = strong->_engine.findDuplicates(ui::duplicateOptions());
+  }, ^{
+    DCDuplicatesView* s = weakSelf;
+    if (!s) return;
+    s->_groups = std::move(g);
+    [s rebuild];
+    [s->_table reloadData];
+    s->_scan.enabled = YES;
+    s->_status.stringValue =
+        [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
+    [s refreshCleanTitle];
   });
 }
 
@@ -121,15 +123,27 @@
       }
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applyClean(_engine, paths, mode);
-  if (r.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-  } else {
-    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
-    _status.stringValue = msg;
-    DCInformCleaned(@"Clean finished", msg);
-  }
-  [self startScan];
+  _scan.enabled = NO;
+  _clean.hidden = YES;
+  __weak DCDuplicatesView* weakSelf = self;
+  __block dcmm::CleanResult r;
+  DCRunBackground(&_job, ^{
+    DCDuplicatesView* strong = weakSelf;
+    if (!strong) return;
+    r = ui::applyClean(strong->_engine, paths, mode);
+  }, ^{
+    DCDuplicatesView* s = weakSelf;
+    if (!s) return;
+    s->_scan.enabled = YES;
+    if (r.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+    } else {
+      NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
+      s->_status.stringValue = msg;
+      DCInformCleaned(@"Clean finished", msg);
+    }
+    [s startScan];
+  });
 }
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
@@ -203,13 +217,25 @@
   auto& f = _groups[rr.g].files[rr.f];
   if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applyClean(_engine, {f.path}, mode);
-  if (r.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    return;
-  }
-  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
-  [self startScan];
+  std::string path = f.path;
+  _scan.enabled = NO;
+  __weak DCDuplicatesView* weakSelf = self;
+  __block dcmm::CleanResult r;
+  DCRunBackground(&_job, ^{
+    DCDuplicatesView* strong = weakSelf;
+    if (!strong) return;
+    r = ui::applyClean(strong->_engine, {path}, mode);
+  }, ^{
+    DCDuplicatesView* s = weakSelf;
+    if (!s) return;
+    s->_scan.enabled = YES;
+    if (r.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+      return;
+    }
+    DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
+    [s startScan];
+  });
 }
 
 @end

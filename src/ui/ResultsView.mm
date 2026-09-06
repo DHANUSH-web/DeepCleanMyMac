@@ -6,6 +6,7 @@
 #include "Modules.h"
 #include "dcmm/dcmm.hpp"
 
+#include <atomic>
 #include <vector>
 
 namespace {
@@ -25,6 +26,8 @@ struct FlatRow {
   dcmm::ScanReport _report;
   std::vector<FlatRow> _rows;
   NSInteger _state;
+  uint64_t _job;
+  std::atomic<uint64_t> _progressMs;
 
   NSButton* _scanBtn;
   NSButton* _cleanBtn;
@@ -146,15 +149,19 @@ struct FlatRow {
   _selAll.hidden = YES;
   [_spin startAnimation:nil];
   _status.stringValue = @"Scanning…";
+  _progressMs.store(0);
   __weak DCResultsView* weakSelf = self;
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+  __block dcmm::ScanReport report;
+  DCRunBackground(&_job, ^{
     DCResultsView* strong = weakSelf;
     if (!strong) return;
     dcmm::ProgressFn cb = [weakSelf](const std::string& p, uint64_t vis, uint64_t) {
-      dispatch_async(dispatch_get_main_queue(), ^{
-        DCResultsView* s = weakSelf;
-        if (!s) return;
-        s->_status.stringValue =
+      DCResultsView* s = weakSelf;
+      if (!s) return;
+      DCDispatchMainThrottled(&s->_progressMs, 120, ^{
+        DCResultsView* ui = weakSelf;
+        if (!ui || ui->_state != 1) return;
+        ui->_status.stringValue =
             [NSString stringWithFormat:@"Scanning %@ — %llu items", DCNS(dcmm::displayName(p)),
                                        (unsigned long long)vis];
       });
@@ -164,11 +171,10 @@ struct FlatRow {
       page = ui::Module::Privacy;
     else if (strong->_mode == DCResultsModeSmart)
       page = ui::Module::SmartScan;
-    auto r = ui::runScan(strong->_engine, page, cb);
-    dispatch_async(dispatch_get_main_queue(), ^{
-      DCResultsView* s = weakSelf;
-      if (s) [s finishWithReport:r];
-    });
+    report = ui::runScan(strong->_engine, page, cb);
+  }, ^{
+    DCResultsView* s = weakSelf;
+    if (s) [s finishWithReport:report];
   });
 }
 
@@ -222,22 +228,24 @@ struct FlatRow {
   for (const auto& p : paths) [list addObject:DCNS(p)];
   if (!DCConfirmClean(list, _report.selectedBytes())) return;
   _cleanBtn.hidden = YES;
+  _scanBtn.enabled = NO;
   const auto mode = DCCleanPref();
   __weak DCResultsView* weakSelf = self;
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+  __block dcmm::CleanResult result;
+  DCRunBackground(&_job, ^{
     DCResultsView* strong = weakSelf;
     if (!strong) return;
-    auto result = ui::applyClean(strong->_engine, paths, mode);
-    dispatch_async(dispatch_get_main_queue(), ^{
-      DCResultsView* s = weakSelf;
-      if (!s) return;
-      if (result.trashedItems == 0 && result.trashedBytes == 0) {
-        DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-      } else {
-        DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
-      }
-      [s startScan];
-    });
+    result = ui::applyClean(strong->_engine, paths, mode);
+  }, ^{
+    DCResultsView* s = weakSelf;
+    if (!s) return;
+    s->_scanBtn.enabled = YES;
+    if (result.trashedItems == 0 && result.trashedBytes == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+    } else {
+      DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
+    }
+    [s startScan];
   });
 }
 
@@ -427,13 +435,25 @@ struct FlatRow {
   NSArray<NSString*>* list = @[ DCNS(it.path) ];
   if (!DCConfirmClean(list, it.bytes)) return;
   const auto mode = DCCleanPref();
-  auto result = ui::applyClean(_engine, {it.path}, mode);
-  if (result.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    return;
-  }
-  DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
-  [self startScan];
+  std::string path = it.path;
+  _scanBtn.enabled = NO;
+  __weak DCResultsView* weakSelf = self;
+  __block dcmm::CleanResult result;
+  DCRunBackground(&_job, ^{
+    DCResultsView* strong = weakSelf;
+    if (!strong) return;
+    result = ui::applyClean(strong->_engine, {path}, mode);
+  }, ^{
+    DCResultsView* s = weakSelf;
+    if (!s) return;
+    s->_scanBtn.enabled = YES;
+    if (result.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+      return;
+    }
+    DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
+    [s startScan];
+  });
 }
 
 @end

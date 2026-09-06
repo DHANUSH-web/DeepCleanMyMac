@@ -503,6 +503,28 @@ NSView* DCFlexibleSpace(void) {
   return spacer;
 }
 
+void DCRunBackground(uint64_t* jobSlot, void (^work)(void), void (^done)(void)) {
+  if (!jobSlot || !work) return;
+  const uint64_t job = ++(*jobSlot);
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    work();
+    if (!done) return;
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (*jobSlot != job) return;
+      done();
+    });
+  });
+}
+
+void DCDispatchMainThrottled(std::atomic<uint64_t>* lastMs, uint64_t minMs, void (^block)(void)) {
+  if (!lastMs || !block) return;
+  const uint64_t now = static_cast<uint64_t>(CFAbsoluteTimeGetCurrent() * 1000.0);
+  uint64_t prev = lastMs->load(std::memory_order_relaxed);
+  if (prev && now - prev < minMs) return;
+  if (!lastMs->compare_exchange_strong(prev, now, std::memory_order_relaxed)) return;
+  dispatch_async(dispatch_get_main_queue(), block);
+}
+
 NSModalResponse DCPresentAlert(NSAlert* alert) {
   NSWindow* parent = NSApp.mainWindow;
   if (!parent || !parent.isVisible) parent = NSApp.keyWindow;

@@ -22,6 +22,7 @@
   NSTextField* _status;
   NSTableView* _appsTable;
   BOOL _listed;
+  uint64_t _job;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -79,21 +80,24 @@
 
 - (void)reloadApps {
   _status.stringValue = @"Listing applications…";
+  _reload.enabled = NO;
+  _remove.hidden = YES;
   __weak DCUninstallerView* weakSelf = self;
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+  __block std::vector<dcmm::InstalledApp> apps;
+  DCRunBackground(&_job, ^{
     DCUninstallerView* strong = weakSelf;
     if (!strong) return;
-    auto apps = strong->_engine.listApps();
-    dispatch_async(dispatch_get_main_queue(), ^{
-      DCUninstallerView* s = weakSelf;
-      if (!s) return;
-      s->_apps.clear();
-      s->_apps.reserve(apps.size());
-      for (auto& a : apps) s->_apps.push_back({std::move(a), false});
-      [s->_appsTable reloadData];
-      s->_status.stringValue = [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
-      [s refreshUninstall];
-    });
+    apps = strong->_engine.listApps();
+  }, ^{
+    DCUninstallerView* s = weakSelf;
+    if (!s) return;
+    s->_apps.clear();
+    s->_apps.reserve(apps.size());
+    for (auto& a : apps) s->_apps.push_back({std::move(a), false});
+    [s->_appsTable reloadData];
+    s->_status.stringValue = [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
+    s->_reload.enabled = YES;
+    [s refreshUninstall];
   });
 }
 
@@ -133,26 +137,39 @@
 
 - (void)uninstall {
   auto apps = [self checkedApps];
-  for (auto& app : apps) _engine.attachLeftovers(app);
-  auto paths = ui::uninstallPaths(apps);
-  if (paths.empty()) {
+  if (apps.empty()) {
     DCInformNothingToClean(@"Check one or more applications in the list first.");
     return;
   }
-  NSMutableArray<NSString*>* list = [NSMutableArray array];
-  for (const auto& p : paths) [list addObject:DCNS(p)];
+  NSMutableArray<NSString*>* names = [NSMutableArray array];
   uint64_t bytes = ui::uninstallBytes(apps);
-  if (!DCConfirmClean(list, bytes)) return;
+  for (const auto& a : apps) [names addObject:DCNS(a.appPath)];
+  if (!DCConfirmClean(names, bytes)) return;
   const auto mode = DCCleanPref();
-  auto r = ui::applyClean(_engine, paths, mode);
-  if (r.trashedItems == 0) {
-    DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-  } else {
-    NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
-    _status.stringValue = msg;
-    DCInformCleaned(@"Uninstall finished", msg);
-  }
-  [self reloadApps];
+  _reload.enabled = NO;
+  _remove.hidden = YES;
+  __weak DCUninstallerView* weakSelf = self;
+  __block std::vector<dcmm::InstalledApp> workApps = std::move(apps);
+  __block dcmm::CleanResult r;
+  DCRunBackground(&_job, ^{
+    DCUninstallerView* strong = weakSelf;
+    if (!strong) return;
+    for (auto& app : workApps) strong->_engine.attachLeftovers(app);
+    auto paths = ui::uninstallPaths(workApps);
+    r = ui::applyClean(strong->_engine, paths, mode);
+  }, ^{
+    DCUninstallerView* s = weakSelf;
+    if (!s) return;
+    s->_reload.enabled = YES;
+    if (r.trashedItems == 0) {
+      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+    } else {
+      NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
+      s->_status.stringValue = msg;
+      DCInformCleaned(@"Uninstall finished", msg);
+    }
+    [s reloadApps];
+  });
 }
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
