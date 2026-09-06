@@ -83,6 +83,23 @@ TEST(SpaceLens, SizeBandByBytes) {
   EXPECT_EQ(ui::spaceSizeBand(1024ull * 1024ull * 1024ull + 1), ui::SpaceSizeBand::TooBig);
 }
 
+TEST_F(HomeFixture, SpaceLensParentSizeCoversChildren) {
+  writeBytes(home / "Library" / "Application Support" / "AppA" / "a.bin", 4096);
+  writeBytes(home / "Library" / "Application Support" / "AppB" / "b.bin", 8192);
+  writeBytes(home / "Library" / "Application Support" / "root.bin", 1024);
+  dcmm::Engine e;
+  const auto support = (home / "Library" / "Application Support").string();
+  auto parent = e.spaceLensChildren((home / "Library").string());
+  uint64_t parentBytes = 0;
+  for (const auto& n : parent)
+    if (n.path == support) parentBytes = n.bytes;
+  EXPECT_GT(parentBytes, 0u);
+  auto kids = e.spaceLensChildren(support);
+  uint64_t childSum = 0;
+  for (const auto& n : kids) childSum += n.bytes;
+  EXPECT_GE(parentBytes, childSum);
+}
+
 TEST_F(HomeFixture, SpaceLensChildrenListsNestedFolder) {
   writeBytes(home / "Downloads" / "heavy" / "clip.bin", 4096);
   writeBytes(home / "Downloads" / "notes.txt", 512);
