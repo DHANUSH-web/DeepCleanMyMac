@@ -315,14 +315,26 @@ std::string formatDiskBytes(uint64_t bytes) {
   return buf;
 }
 
-std::string formatCoreSummary(int physical, int performance, int efficiency) {
-  if (performance > 0 && efficiency > 0) {
-    const int total = physical > 0 ? physical : performance + efficiency;
-    return std::to_string(total) + " (" + std::to_string(performance) + " performance and " +
-           std::to_string(efficiency) + " efficiency)";
-  }
+std::string formatCoreCount(int physical, int performance, int efficiency) {
   if (physical > 0) return std::to_string(physical);
+  if (performance > 0 || efficiency > 0) return std::to_string(performance + efficiency);
   return {};
+}
+
+std::string formatCoreTooltip(int performance, int efficiency) {
+  if (performance > 0 && efficiency > 0)
+    return std::to_string(performance) + " performance cores, " + std::to_string(efficiency) +
+           " efficiency cores";
+  return {};
+}
+
+std::string formatCoreSummary(int physical, int performance, int efficiency) {
+  const std::string total = formatCoreCount(physical, performance, efficiency);
+  if (total.empty()) return {};
+  const std::string detail = formatCoreTooltip(performance, efficiency);
+  if (detail.empty()) return total;
+  return total + " (" + std::to_string(performance) + " performance and " +
+         std::to_string(efficiency) + " efficiency)";
 }
 
 std::string formatOsLine(const HostInfo& h) {
@@ -448,7 +460,7 @@ VolumeInfo volumeInfo(const std::string& path) {
 std::vector<std::pair<std::string, std::string>> machineFacts(const HostInfo& h) {
   std::vector<std::pair<std::string, std::string>> out;
   addFact(out, "Chip", h.chip);
-  addFact(out, "Cores", formatCoreSummary(h.physicalCpus, h.performanceCpus, h.efficiencyCpus));
+  addFact(out, "Cores", formatCoreCount(h.physicalCpus, h.performanceCpus, h.efficiencyCpus));
   if (h.memoryBytes)
     addFact(out, "Memory", dcmm::formatBytes(h.memoryBytes));
   addFact(out, "macOS", formatOsLine(h));

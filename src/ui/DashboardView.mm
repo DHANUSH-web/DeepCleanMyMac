@@ -238,7 +238,7 @@ NSVisualEffectView* DCMyMacCard(NSView* body) {
   return card;
 }
 
-NSView* DCMiniFactCard(NSString* label, NSString* value) {
+NSView* DCMiniFactCard(NSString* label, NSString* value, NSArray<NSArray<NSString*>*>* hoverRows) {
   NSTextField* l = DCCaptionLabel(label);
   l.font = [NSFont systemFontOfSize:11];
   NSTextField* v = DCLabel(value);
@@ -254,6 +254,18 @@ NSView* DCMiniFactCard(NSString* label, NSString* value) {
   NSVisualEffectView* card = DCMyMacCard(body);
   [card setContentHuggingPriority:NSLayoutPriorityDefaultLow
                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+  if (hoverRows.count)
+  {
+    DCHoverPopover* pop = [DCHoverPopover popoverWithRows:hoverRows];
+    pop.width = 180;
+    pop.columnSpacing = 24;
+    pop.rowSpacing = 6;
+    pop.contentInsets = NSEdgeInsetsMake(12, 16, 12, 16);
+    pop.labelFont = [NSFont systemFontOfSize:13];
+    pop.valueFont = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    [pop attachToView:card];
+  }
   return card;
 }
 
@@ -265,21 +277,31 @@ void DCClearStack(NSStackView* stack) {
   }
 }
 
-NSView* DCFactCard(const std::pair<std::string, std::string>& fact) {
+NSView* DCFactCard(const std::pair<std::string, std::string>& fact,
+                   NSArray<NSArray<NSString*>*>* hoverRows) {
   if (fact.first == "Serial Number")
     return [[DCSerialFactCard alloc] initWithSerial:DCNS(fact.second)];
-  return DCMiniFactCard(DCNS(fact.first), DCNS(fact.second));
+  return DCMiniFactCard(DCNS(fact.first), DCNS(fact.second), hoverRows);
 }
 
 void DCSetFactCards(NSStackView* stack,
-                    const std::vector<std::pair<std::string, std::string>>& facts) {
+                    const std::vector<std::pair<std::string, std::string>>& facts,
+                    const ui::HostInfo* host) {
   DCClearStack(stack);
   for (size_t i = 0; i < facts.size();) {
     NSMutableArray<NSView*>* views = [NSMutableArray array];
-    [views addObject:DCFactCard(facts[i])];
+    auto hoverFor = [&](const std::pair<std::string, std::string>& fact) -> NSArray* {
+      if (!host || fact.first != "Cores") return nil;
+      if (host->performanceCpus <= 0 || host->efficiencyCpus <= 0) return nil;
+      return @[
+        @[ @"Performance", [NSString stringWithFormat:@"%d", host->performanceCpus] ],
+        @[ @"Efficiency", [NSString stringWithFormat:@"%d", host->efficiencyCpus] ],
+      ];
+    };
+    [views addObject:DCFactCard(facts[i], hoverFor(facts[i]))];
     ++i;
     if (i < facts.size()) {
-      [views addObject:DCFactCard(facts[i])];
+      [views addObject:DCFactCard(facts[i], hoverFor(facts[i]))];
       ++i;
     } else {
       [views addObject:[[NSView alloc] initWithFrame:NSZeroRect]];
@@ -487,7 +509,7 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
   auto mac = ui::machineFacts(host);
   if (!host.modelName.empty()) mac.insert(mac.begin(), {"Mac", host.modelName});
   if (!host.computerName.empty()) mac.insert(mac.begin(), {"Name", host.computerName});
-  DCSetFactCards(_machineFacts, mac);
+  DCSetFactCards(_machineFacts, mac, &host);
 
   _volumeTitle.stringValue =
       vol.volumeName.empty() ? VolumeDisplayName() : DCNS(vol.volumeName);
@@ -500,7 +522,7 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
                                  DCNS(ui::formatDiskBytes(total))];
   _availableLine.stringValue =
       [NSString stringWithFormat:@"%@ available", DCNS(ui::formatDiskBytes(avail))];
-  DCSetFactCards(_storageFacts, ui::storageFacts(vol));
+  DCSetFactCards(_storageFacts, ui::storageFacts(vol), nullptr);
   [self setNeedsLayout:YES];
 }
 

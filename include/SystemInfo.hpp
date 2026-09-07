@@ -57,6 +57,8 @@ VolumeInfo volumeInfo(const std::string& path = "/");
 inline constexpr const char* kMaskedSerial = "********";
 
 std::string formatCoreSummary(int physical, int performance, int efficiency);
+std::string formatCoreCount(int physical, int performance, int efficiency);
+std::string formatCoreTooltip(int performance, int efficiency);
 std::string formatOsLine(const HostInfo& h);
 std::string formatStorageKind(const VolumeInfo& v);
 /// Decimal (1000) units, same as System Settings storage.

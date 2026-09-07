@@ -43,6 +43,10 @@ TEST(MyMac, CoreSummaryJoinsPerformanceAndEfficiency) {
   EXPECT_EQ(ui::formatCoreSummary(10, 4, 6), "10 (4 performance and 6 efficiency)");
   EXPECT_EQ(ui::formatCoreSummary(8, 0, 0), "8");
   EXPECT_TRUE(ui::formatCoreSummary(0, 0, 0).empty());
+  EXPECT_EQ(ui::formatCoreCount(10, 4, 6), "10");
+  EXPECT_EQ(ui::formatCoreCount(8, 0, 0), "8");
+  EXPECT_EQ(ui::formatCoreTooltip(4, 6), "4 performance cores, 6 efficiency cores");
+  EXPECT_TRUE(ui::formatCoreTooltip(0, 0).empty());
 }
 
 TEST(MyMac, HostInfoHasModelChipMemoryAndOs) {
