@@ -88,10 +88,9 @@
     DCStackFullWidth(page, actions);
     NSView* legend = [DCLegendView dangerLegendWithMessage:
                           @"Warning icon shows the folder might not be safe to delete."];
-    [page addArrangedSubview:legend];
-    DCStackFullWidth(page, legend);
+    NSView* legendRow = DCStackCentered(page, legend);
     [page setCustomSpacing:20 afterView:actions];
-    [page setCustomSpacing:20 afterView:legend];
+    [page setCustomSpacing:20 afterView:legendRow];
     _status = DCCaptionLabel(@"Measures folders in your home directory.");
     [page addArrangedSubview:_status];
 

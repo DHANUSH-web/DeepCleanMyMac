@@ -342,12 +342,16 @@ static char kDCHoverPopoverKey;
                           forOrientation:NSLayoutConstraintOrientationHorizontal];
     [_iconView setContentHuggingPriority:NSLayoutPriorityRequired
                           forOrientation:NSLayoutConstraintOrientationVertical];
+    [_iconView setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                        forOrientation:NSLayoutConstraintOrientationHorizontal];
     NSStackView* iconPad = [NSStackView stackViewWithViews:@[ _iconView ]];
     iconPad.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     iconPad.alignment = NSLayoutAttributeCenterY;
     iconPad.edgeInsets = NSEdgeInsetsMake(10, 14, 10, 14);
     [iconPad setContentHuggingPriority:NSLayoutPriorityRequired
                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [iconPad setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                      forOrientation:NSLayoutConstraintOrientationHorizontal];
 
     _divider = [[NSView alloc] initWithFrame:NSZeroRect];
     _divider.wantsLayer = YES;
@@ -362,7 +366,7 @@ static char kDCHoverPopoverKey;
     _text.font = [NSFont preferredFontForTextStyle:NSFontTextStyleCallout options:@{}];
     _text.textColor = [NSColor labelColor];
     _text.selectable = NO;
-    [_text setContentHuggingPriority:NSLayoutPriorityDefaultLow
+    [_text setContentHuggingPriority:NSLayoutPriorityDefaultHigh
                       forOrientation:NSLayoutConstraintOrientationHorizontal];
     [_text setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                     forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -370,20 +374,28 @@ static char kDCHoverPopoverKey;
     textPad.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     textPad.alignment = NSLayoutAttributeCenterY;
     textPad.edgeInsets = NSEdgeInsetsMake(10, 12, 10, 14);
-    [textPad setContentHuggingPriority:NSLayoutPriorityDefaultLow
+    [textPad setContentHuggingPriority:NSLayoutPriorityDefaultHigh
                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [textPad setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                      forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-    NSStackView* row = [NSStackView stackViewWithViews:@[ iconPad, _divider, textPad ]];
+    NSStackView* row = [[NSStackView alloc] initWithFrame:NSZeroRect];
     row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     row.alignment = NSLayoutAttributeCenterY;
     row.spacing = 0;
+    row.distribution = NSStackViewDistributionGravityAreas;
     row.translatesAutoresizingMaskIntoConstraints = NO;
+    [row addView:iconPad inGravity:NSStackViewGravityLeading];
+    [row addView:_divider inGravity:NSStackViewGravityLeading];
+    [row addView:textPad inGravity:NSStackViewGravityLeading];
     [self addSubview:row];
     DCPinEdges(row, self);
     [NSLayoutConstraint activateConstraints:@[
       [_divider.topAnchor constraintEqualToAnchor:row.topAnchor],
       [_divider.bottomAnchor constraintEqualToAnchor:row.bottomAnchor],
     ]];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
     [self setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationVertical];
     [self setContentCompressionResistancePriority:NSLayoutPriorityRequired

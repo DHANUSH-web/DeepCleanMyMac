@@ -73,10 +73,9 @@ struct FlatRow {
     if (mode == DCResultsModeJunk) {
       NSView* legend = [DCLegendView dangerLegendWithMessage:
                             @"Items with warning icons are not recommended to delete."];
-      [page addArrangedSubview:legend];
-      DCStackFullWidth(page, legend);
+      NSView* legendRow = DCStackCentered(page, legend);
       [page setCustomSpacing:20 afterView:actions];
-      [page setCustomSpacing:20 afterView:legend];
+      [page setCustomSpacing:20 afterView:legendRow];
     }
 
     _spin = [[NSProgressIndicator alloc] initWithFrame:NSZeroRect];
