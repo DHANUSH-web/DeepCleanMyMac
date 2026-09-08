@@ -72,7 +72,7 @@ struct FlatRow {
 
     if (mode == DCResultsModeJunk) {
       NSView* legend = [DCLegendView dangerLegendWithMessage:
-                            @"Native system items with this icon are not safe or recommended to delete."];
+                            @"Items with warning icons are not recommended to delete."];
       [page addArrangedSubview:legend];
       DCStackFullWidth(page, legend);
       [page setCustomSpacing:20 afterView:actions];

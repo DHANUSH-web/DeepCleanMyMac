@@ -87,7 +87,7 @@
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
     NSView* legend = [DCLegendView dangerLegendWithMessage:
-                          @"Warning icon shows the folder might not be safe to delete. Please clean at your own risk"];
+                          @"Warning icon shows the folder might not be safe to delete."];
     [page addArrangedSubview:legend];
     DCStackFullWidth(page, legend);
     [page setCustomSpacing:20 afterView:actions];
