@@ -83,6 +83,8 @@ NSStackView* DCHeaderStack(NSString* title, NSString* subtitle);
 NSStackView* DCTrailingButtons(NSArray<NSButton*>* buttons);
 NSStackView* DCEqualButtonRow(NSArray<NSButton*>* buttons);
 void DCStackFullWidth(NSStackView* stack, NSView* view);
+/// Full-width slot that centers `view` at its intrinsic width. Returns the slot.
+NSView* DCStackCentered(NSStackView* stack, NSView* view);
 void DCStackExpand(NSStackView* stack, NSView* view);
 NSView* DCFlexibleSpace(void);
 

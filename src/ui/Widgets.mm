@@ -604,6 +604,24 @@ void DCStackFullWidth(NSStackView* stack, NSView* view) {
       .active = YES;
 }
 
+NSView* DCStackCentered(NSStackView* stack, NSView* view) {
+  NSView* slot = [[NSView alloc] initWithFrame:NSZeroRect];
+  view.translatesAutoresizingMaskIntoConstraints = NO;
+  [slot addSubview:view];
+  [NSLayoutConstraint activateConstraints:@[
+    [view.centerXAnchor constraintEqualToAnchor:slot.centerXAnchor],
+    [view.topAnchor constraintEqualToAnchor:slot.topAnchor],
+    [view.bottomAnchor constraintEqualToAnchor:slot.bottomAnchor],
+    [view.leadingAnchor constraintGreaterThanOrEqualToAnchor:slot.leadingAnchor],
+    [view.trailingAnchor constraintLessThanOrEqualToAnchor:slot.trailingAnchor],
+  ]];
+  [slot setContentHuggingPriority:NSLayoutPriorityRequired
+                   forOrientation:NSLayoutConstraintOrientationVertical];
+  [stack addArrangedSubview:slot];
+  DCStackFullWidth(stack, slot);
+  return slot;
+}
+
 NSStackView* DCEqualButtonRow(NSArray<NSButton*>* buttons) {
   NSStackView* row = [NSStackView stackViewWithViews:buttons];
   row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
