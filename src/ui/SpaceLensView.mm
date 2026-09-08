@@ -384,7 +384,10 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
 - (void)tog:(NSButton*)s {
   NSInteger row = [_outline rowForView:s];
   if (row < 0) return;
-  DCLensRow* item = [_outline itemAtRow:row];
+  [self toggleSelect:[_outline itemAtRow:row]];
+}
+
+- (void)toggleSelect:(DCLensRow*)item {
   if (!item) return;
   BOOL on = [item checkState] != ui::GroupCheck::On;
   [item setSelectedDeep:on];
@@ -417,7 +420,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
                                                action:@selector(ctxToggleSelect:)
                                         keyEquivalent:@""];
   sel.target = self;
-  sel.tag = row;
+  sel.representedObject = item;
   [menu addItem:sel];
   NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrashRow:)
@@ -428,13 +431,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
 }
 
 - (void)ctxToggleSelect:(NSMenuItem*)sender {
-  NSInteger row = sender.tag;
-  if (row < 0) return;
-  DCLensRow* item = [_outline itemAtRow:row];
-  if (!item) return;
-  NSButton* fake = [NSButton checkboxWithTitle:@"" target:nil action:nil];
-  fake.tag = row;
-  [self tog:fake];
+  [self toggleSelect:sender.representedObject];
 }
 
 - (void)ctxTrashRow:(NSMenuItem*)sender {
