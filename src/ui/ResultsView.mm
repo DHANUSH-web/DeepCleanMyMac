@@ -35,6 +35,8 @@ struct FlatRow {
   NSProgressIndicator* _spin;
   NSTextField* _status;
   NSTableView* _table;
+  NSStackView* _content;
+  DCStartScreen* _startScreen;
 }
 
 - (instancetype)initWithMode:(DCResultsMode)mode {
@@ -57,6 +59,7 @@ struct FlatRow {
     _state = 0;
 
     NSStackView* page = DCPageStack(self);
+    _content = page;
     NSStackView* header = DCHeaderStack(title, subtitle);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
@@ -115,6 +118,27 @@ struct FlatRow {
     [_table addTableColumn:c3];
 
     DCStackExpand(page, DCWrapTable(_table));
+    if (mode == DCResultsModeSmart) {
+      __weak DCResultsView* weakSelf = self;
+      _startScreen = [[DCStartScreen alloc] initWithTitle:title
+                                                 subtitle:subtitle
+                                                   symbol:@"apple.intelligence"
+                                            iconPointSize:250
+                                                  colored:YES
+                                              buttonTitle:@"Scan"
+                                                 onAction:^{
+                                                   [weakSelf startScan];
+                                                 }];
+      _startScreen.subtitleMaxWidth = 360;
+      _startScreen.buttonControlSize = NSControlSizeLarge;
+      _startScreen.buttonMinWidth = 100;
+      _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+      _startScreen.defaultButton = YES;
+      [self addSubview:_startScreen];
+      DCPinEdges(_startScreen, self);
+      _content.hidden = YES;
+      _scanBtn.keyEquivalent = @"";
+    }
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(refreshCleanTitle)
                                                  name:DCSettingsDidChangeNotification
@@ -135,15 +159,27 @@ struct FlatRow {
   }
 }
 
+- (NSButton*)activeScanButton {
+  if (_startScreen && !_startScreen.hidden) return _startScreen.actionButton;
+  return _scanBtn;
+}
+
+- (void)showContent {
+  if (!_startScreen || _startScreen.hidden) return;
+  _startScreen.hidden = YES;
+  _content.hidden = NO;
+}
+
 - (void)startScan {
   if (_state == 1) {
     _engine.cancel();
     return;
   }
   _state = 1;
-  _scanBtn.title = @"Cancel";
-  _scanBtn.keyEquivalent = @".";
-  _scanBtn.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+  NSButton* scan = [self activeScanButton];
+  scan.title = @"Cancel";
+  scan.keyEquivalent = @".";
+  scan.keyEquivalentModifierMask = NSEventModifierFlagCommand;
   _cleanBtn.hidden = YES;
   _selAll.hidden = YES;
   [_spin startAnimation:nil];
@@ -194,6 +230,7 @@ struct FlatRow {
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
+  [self showContent];
 }
 
 - (BOOL)allItemsSelected {
