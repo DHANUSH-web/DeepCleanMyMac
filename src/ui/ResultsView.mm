@@ -118,11 +118,13 @@ struct FlatRow {
     [_table addTableColumn:c3];
 
     DCStackExpand(page, DCWrapTable(_table));
-    if (mode == DCResultsModeSmart) {
+    if (mode == DCResultsModeSmart || mode == DCResultsModeJunk) {
+      ui::Module mod =
+          mode == DCResultsModeSmart ? ui::Module::SmartScan : ui::Module::DeepScan;
       __weak DCResultsView* weakSelf = self;
       _startScreen = [[DCStartScreen alloc] initWithTitle:title
                                                  subtitle:subtitle
-                                                   symbol:@"apple.intelligence"
+                                                   symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(mod)]
                                             iconPointSize:250
                                                   colored:YES
                                               buttonTitle:@"Scan"
