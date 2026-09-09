@@ -118,9 +118,10 @@ struct FlatRow {
     [_table addTableColumn:c3];
 
     DCStackExpand(page, DCWrapTable(_table));
-    if (mode == DCResultsModeSmart || mode == DCResultsModeJunk) {
-      ui::Module mod =
-          mode == DCResultsModeSmart ? ui::Module::SmartScan : ui::Module::DeepScan;
+    {
+      ui::Module mod = ui::Module::DeepScan;
+      if (mode == DCResultsModeSmart) mod = ui::Module::SmartScan;
+      else if (mode == DCResultsModePrivacy) mod = ui::Module::Privacy;
       __weak DCResultsView* weakSelf = self;
       _startScreen = [[DCStartScreen alloc] initWithTitle:title
                                                  subtitle:subtitle
