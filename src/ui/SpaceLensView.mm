@@ -65,6 +65,8 @@
   NSButton* _clean;
   NSTextField* _status;
   NSOutlineView* _outline;
+  NSStackView* _content;
+  DCStartScreen* _startScreen;
   uint64_t _job;
 }
 
@@ -74,6 +76,7 @@
     _volumeBytes = 0;
     _roots = [NSMutableArray array];
     NSStackView* page = DCPageStack(self);
+    _content = page;
     NSStackView* header = DCHeaderStack(
         @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
     [page addArrangedSubview:header];
@@ -128,6 +131,26 @@
     NSScrollView* scroll = DCWrapTable(_outline);
     scroll.hasHorizontalScroller = YES;
     DCStackExpand(page, scroll);
+    __weak DCSpaceLensView* weakSelf = self;
+    _startScreen = [[DCStartScreen alloc]
+        initWithTitle:@"Space Lens"
+             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]
+               symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::SpaceLens)]
+        iconPointSize:250
+              colored:NO
+          buttonTitle:@"Analyze"
+             onAction:^{
+               [weakSelf startScan];
+             }];
+    _startScreen.subtitleMaxWidth = 360;
+    _startScreen.buttonControlSize = NSControlSizeLarge;
+    _startScreen.buttonMinWidth = 100;
+    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.defaultButton = YES;
+    [self addSubview:_startScreen];
+    DCPinEdges(_startScreen, self);
+    _content.hidden = YES;
+    _scan.keyEquivalent = @"";
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(refreshClean)
                                                  name:DCSettingsDidChangeNotification
@@ -141,10 +164,22 @@
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
+- (void)showContent {
+  if (!_startScreen || _startScreen.hidden) return;
+  _startScreen.hidden = YES;
+  _content.hidden = NO;
+  _scan.keyEquivalent = @"\r";
+}
+
+- (void)setScanEnabled:(BOOL)on {
+  _scan.enabled = on;
+  _startScreen.actionButton.enabled = on;
+}
+
 - (void)startScan {
   if (!_scan.enabled) return;
   _status.stringValue = @"Measuring…";
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   __weak DCSpaceLensView* weakSelf = self;
   __block std::vector<dcmm::SpaceNode> n;
   __block uint64_t volume = 0;
@@ -165,10 +200,11 @@
     s->_volumeBytes = volume;
     [s->_outline reloadData];
     [s fitOutlineColumns];
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
     [s refreshClean];
+    [s showContent];
   });
 }
 
@@ -232,7 +268,7 @@
   uint64_t bytes = [self selectedBytes];
   if (!DCConfirmSpaceLensClean(list, bytes)) return;
   const auto mode = DCCleanPref();
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCSpaceLensView* weakSelf = self;
   __block dcmm::CleanResult r;
@@ -243,7 +279,7 @@
   }, ^{
     DCSpaceLensView* s = weakSelf;
     if (!s) return;
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     if (r.trashedItems == 0) {
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     } else {
@@ -441,7 +477,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   if (!DCConfirmSpaceLensClean(@[ DCNS(item.node.path) ], item.node.bytes)) return;
   const auto mode = DCCleanPref();
   std::string path = item.node.path;
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   __weak DCSpaceLensView* weakSelf = self;
   __block dcmm::CleanResult r;
   DCRunBackground(&_job, ^{
@@ -451,7 +487,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   }, ^{
     DCSpaceLensView* s = weakSelf;
     if (!s) return;
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     if (r.trashedItems == 0) {
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
       return;
