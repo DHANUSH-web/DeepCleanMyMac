@@ -21,6 +21,8 @@
   NSButton* _clean;
   NSTextField* _status;
   NSTableView* _table;
+  NSStackView* _content;
+  DCStartScreen* _startScreen;
   uint64_t _job;
 }
 
@@ -28,6 +30,7 @@
   self = [super initWithFrame:frame];
   if (self) {
     NSStackView* page = DCPageStack(self);
+    _content = page;
     NSStackView* header = DCHeaderStack(
         @"Duplicates", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Duplicates)]);
     [page addArrangedSubview:header];
@@ -58,6 +61,26 @@
     c2.width = 90;
     [_table addTableColumn:c2];
     DCStackExpand(page, DCWrapTable(_table));
+    __weak DCDuplicatesView* weakSelf = self;
+    _startScreen = [[DCStartScreen alloc]
+        initWithTitle:@"Duplicates"
+             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::Duplicates)]
+               symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::Duplicates)]
+        iconPointSize:250
+              colored:NO
+          buttonTitle:@"Scan"
+             onAction:^{
+               [weakSelf startScan];
+             }];
+    _startScreen.subtitleMaxWidth = 360;
+    _startScreen.buttonControlSize = NSControlSizeLarge;
+    _startScreen.buttonMinWidth = 100;
+    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.defaultButton = YES;
+    [self addSubview:_startScreen];
+    DCPinEdges(_startScreen, self);
+    _content.hidden = YES;
+    _scan.keyEquivalent = @"";
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(refreshCleanTitle)
                                                  name:DCSettingsDidChangeNotification
@@ -83,10 +106,22 @@
     for (int f = 0; f < (int)_groups[g].files.size(); ++f) _rows.push_back({g, f});
 }
 
+- (void)showContent {
+  if (!_startScreen || _startScreen.hidden) return;
+  _startScreen.hidden = YES;
+  _content.hidden = NO;
+  _scan.keyEquivalent = @"\r";
+}
+
+- (void)setScanEnabled:(BOOL)on {
+  _scan.enabled = on;
+  _startScreen.actionButton.enabled = on;
+}
+
 - (void)startScan {
   if (!_scan.enabled) return;
   _status.stringValue = @"Hashing…";
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCDuplicatesView* weakSelf = self;
   __block std::vector<dcmm::DuplicateGroup> g;
@@ -100,10 +135,11 @@
     s->_groups = std::move(g);
     [s rebuild];
     [s->_table reloadData];
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
     [s refreshCleanTitle];
+    [s showContent];
   });
 }
 
@@ -123,7 +159,7 @@
       }
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCDuplicatesView* weakSelf = self;
   __block dcmm::CleanResult r;
@@ -134,7 +170,7 @@
   }, ^{
     DCDuplicatesView* s = weakSelf;
     if (!s) return;
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     if (r.trashedItems == 0) {
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     } else {
@@ -218,7 +254,7 @@
   if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
   const auto mode = DCCleanPref();
   std::string path = f.path;
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   __weak DCDuplicatesView* weakSelf = self;
   __block dcmm::CleanResult r;
   DCRunBackground(&_job, ^{
@@ -228,7 +264,7 @@
   }, ^{
     DCDuplicatesView* s = weakSelf;
     if (!s) return;
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     if (r.trashedItems == 0) {
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
       return;
