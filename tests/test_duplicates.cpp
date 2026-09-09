@@ -3,12 +3,10 @@
 
 #include <gtest/gtest.h>
 
-TEST_F(HomeFixture, DuplicatesScansDownloadsDesktopDocuments) {
+TEST_F(HomeFixture, DuplicatesScansHomeIncludingMediaFolders) {
   auto opt = ui::duplicateOptions(home.string());
-  ASSERT_EQ(opt.roots.size(), 3u);
-  EXPECT_EQ(opt.roots[0], (home / "Downloads").string());
-  EXPECT_EQ(opt.roots[1], (home / "Desktop").string());
-  EXPECT_EQ(opt.roots[2], (home / "Documents").string());
+  ASSERT_EQ(opt.roots.size(), 1u);
+  EXPECT_EQ(opt.roots[0], home.string());
   EXPECT_EQ(opt.minBytes, 256ull * 1024ull);
 }
 

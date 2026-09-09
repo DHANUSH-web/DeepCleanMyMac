@@ -41,7 +41,8 @@
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
-    _status = DCCaptionLabel(@"Matches identical files in Downloads, Desktop, and Documents (256 KB or larger).");
+    _status = DCCaptionLabel(
+        @"Matches identical files in Home, Desktop, Documents, Downloads, Pictures, Movies, and Music (256 KB or larger).");
     [page addArrangedSubview:_status];
 
     _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
