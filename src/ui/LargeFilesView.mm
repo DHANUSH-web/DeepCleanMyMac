@@ -25,6 +25,8 @@ struct FlatRow {
   NSButton* _clean;
   NSTextField* _status;
   NSTableView* _table;
+  NSStackView* _content;
+  DCStartScreen* _startScreen;
   uint64_t _job;
 }
 
@@ -32,6 +34,7 @@ struct FlatRow {
   self = [super initWithFrame:frame];
   if (self) {
     NSStackView* page = DCPageStack(self);
+    _content = page;
     NSStackView* header = DCHeaderStack(
         @"Large Files", [NSString stringWithUTF8String:ui::subtitle(ui::Module::LargeFiles)]);
     [page addArrangedSubview:header];
@@ -65,6 +68,26 @@ struct FlatRow {
     c2.width = 100;
     [_table addTableColumn:c2];
     DCStackExpand(page, DCWrapTable(_table));
+    __weak DCLargeFilesView* weakSelf = self;
+    _startScreen = [[DCStartScreen alloc]
+        initWithTitle:@"Large Files"
+             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::LargeFiles)]
+               symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::LargeFiles)]
+        iconPointSize:250
+              colored:NO
+          buttonTitle:@"Scan"
+             onAction:^{
+               [weakSelf startScan];
+             }];
+    _startScreen.subtitleMaxWidth = 360;
+    _startScreen.buttonControlSize = NSControlSizeLarge;
+    _startScreen.buttonMinWidth = 100;
+    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.defaultButton = YES;
+    [self addSubview:_startScreen];
+    DCPinEdges(_startScreen, self);
+    _content.hidden = YES;
+    _scan.keyEquivalent = @"";
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(refreshClean)
                                                  name:DCSettingsDidChangeNotification
@@ -85,10 +108,22 @@ struct FlatRow {
   }
 }
 
+- (void)showContent {
+  if (!_startScreen || _startScreen.hidden) return;
+  _startScreen.hidden = YES;
+  _content.hidden = NO;
+  _scan.keyEquivalent = @"\r";
+}
+
+- (void)setScanEnabled:(BOOL)on {
+  _scan.enabled = on;
+  _startScreen.actionButton.enabled = on;
+}
+
 - (void)startScan {
   if (!_scan.enabled) return;
   _status.stringValue = @"Scanning…";
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCLargeFilesView* weakSelf = self;
   __block std::vector<dcmm::LargeFile> files;
@@ -102,13 +137,14 @@ struct FlatRow {
     s->_groups = ui::groupLargeFiles(files);
     [s rebuildRows];
     [s->_table reloadData];
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     std::size_t n = 0;
     for (const auto& g : s->_groups) n += g.files.size();
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu files of 50 MB or more in %lu folders", (unsigned long)n,
                                    (unsigned long)s->_groups.size()];
     [s refreshClean];
+    [s showContent];
   });
 }
 
@@ -130,7 +166,7 @@ struct FlatRow {
   uint64_t bytes = ui::selectedLargeFileBytes(_groups);
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCLargeFilesView* weakSelf = self;
   __block dcmm::CleanResult r;
@@ -141,7 +177,7 @@ struct FlatRow {
   }, ^{
     DCLargeFilesView* s = weakSelf;
     if (!s) return;
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     if (r.trashedItems == 0) {
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     } else {
@@ -309,7 +345,7 @@ struct FlatRow {
   if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
   const auto mode = DCCleanPref();
   std::string path = f.path;
-  _scan.enabled = NO;
+  [self setScanEnabled:NO];
   __weak DCLargeFilesView* weakSelf = self;
   __block dcmm::CleanResult r;
   DCRunBackground(&_job, ^{
@@ -319,7 +355,7 @@ struct FlatRow {
   }, ^{
     DCLargeFilesView* s = weakSelf;
     if (!s) return;
-    s->_scan.enabled = YES;
+    [s setScanEnabled:YES];
     if (r.trashedItems == 0) {
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
       return;
