@@ -53,6 +53,37 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 + (instancetype)dangerLegendWithMessage:(NSString*)message;
 @end
 
+/// Centered [icon + title + subtitle + button] start screen. Callers pass every visible value.
+@interface DCStartScreen : NSView
+@property(nonatomic, copy, nullable) NSString* title;
+@property(nonatomic, strong, nullable) NSFont* titleFont;
+@property(nonatomic, copy, nullable) NSString* subtitle;
+@property(nonatomic, strong, nullable) NSFont* subtitleFont;
+@property(nonatomic, strong, nullable) NSColor* subtitleColor;
+@property(nonatomic) CGFloat subtitleMaxWidth;
+@property(nonatomic, copy, nullable) NSString* symbolName;
+@property(nonatomic, strong, nullable) NSImage* icon;
+@property(nonatomic) CGFloat iconPointSize;
+@property(nonatomic, strong, nullable) NSColor* iconTintColor;
+@property(nonatomic) BOOL colored;
+@property(nonatomic) CGFloat spacing;
+@property(nonatomic, copy, nullable) NSString* buttonTitle;
+@property(nonatomic) NSControlSize buttonControlSize;
+@property(nonatomic) CGFloat buttonMinWidth;
+@property(nonatomic, strong, nullable) NSFont* buttonFont;
+@property(nonatomic) BOOL defaultButton;
+@property(nonatomic, copy, nullable) void (^onAction)(void);
+@property(nonatomic, readonly) NSButton* actionButton;
+
+- (instancetype)initWithTitle:(nullable NSString*)title
+                     subtitle:(nullable NSString*)subtitle
+                       symbol:(nullable NSString*)symbolName
+                iconPointSize:(CGFloat)iconPointSize
+                      colored:(BOOL)colored
+                  buttonTitle:(nullable NSString*)buttonTitle
+                     onAction:(void (^_Nullable)(void))onAction;
+@end
+
 /// Settings-style hover popover: label on the left, value on the right.
 /// Attach to any view; replaces a previous hover popover on that view.
 /// Each row is `@[ label, value ]`. Pass an empty `rows` array to remove.

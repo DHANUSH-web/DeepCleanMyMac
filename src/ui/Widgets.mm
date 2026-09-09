@@ -528,6 +528,211 @@ static char kDCHoverPopoverKey;
 
 @end
 
+@implementation DCStartScreen {
+  NSTextField* _titleLabel;
+  NSTextField* _subtitleLabel;
+  NSImageView* _iconView;
+  NSButton* _button;
+  NSStackView* _cluster;
+  NSLayoutConstraint* _iconW;
+  NSLayoutConstraint* _iconH;
+  NSLayoutConstraint* _buttonMinW;
+  NSLayoutConstraint* _subtitleMaxW;
+}
+
+- (instancetype)initWithFrame:(NSRect)frame {
+  self = [super initWithFrame:frame];
+  if (self) {
+    _spacing = 16;
+    _buttonControlSize = NSControlSizeRegular;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+
+    _iconView = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    _iconView.imageScaling = NSImageScaleProportionallyUpOrDown;
+    [_iconView setContentHuggingPriority:NSLayoutPriorityRequired
+                          forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [_iconView setContentHuggingPriority:NSLayoutPriorityRequired
+                          forOrientation:NSLayoutConstraintOrientationVertical];
+    _iconW = [_iconView.widthAnchor constraintEqualToConstant:0];
+    _iconH = [_iconView.heightAnchor constraintEqualToConstant:0];
+
+    _titleLabel = DCTitleLabel(@"");
+    _titleLabel.alignment = NSTextAlignmentCenter;
+    _titleLabel.hidden = YES;
+
+    _subtitleLabel = DCSecondaryLabel(@"");
+    _subtitleLabel.alignment = NSTextAlignmentCenter;
+    _subtitleLabel.hidden = YES;
+    _subtitleMaxW = [_subtitleLabel.widthAnchor constraintLessThanOrEqualToConstant:0];
+
+    _button = DCPushButton(@"", self, @selector(tap:));
+    _buttonMinW = [_button.widthAnchor constraintGreaterThanOrEqualToConstant:0];
+
+    _cluster = [NSStackView stackViewWithViews:@[ _iconView, _titleLabel, _subtitleLabel, _button ]];
+    _cluster.orientation = NSUserInterfaceLayoutOrientationVertical;
+    _cluster.alignment = NSLayoutAttributeCenterX;
+    _cluster.spacing = _spacing;
+    _cluster.translatesAutoresizingMaskIntoConstraints = NO;
+    [_cluster setCustomSpacing:4 afterView:_titleLabel];
+    [self addSubview:_cluster];
+    [NSLayoutConstraint activateConstraints:@[
+      [_cluster.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
+      [_cluster.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
+      [_cluster.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.leadingAnchor],
+      [_cluster.trailingAnchor constraintLessThanOrEqualToAnchor:self.trailingAnchor],
+      [_subtitleLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor constant:-48],
+    ]];
+  }
+  return self;
+}
+
+- (instancetype)initWithTitle:(NSString*)title
+                     subtitle:(NSString*)subtitle
+                       symbol:(NSString*)symbolName
+                iconPointSize:(CGFloat)iconPointSize
+                      colored:(BOOL)colored
+                  buttonTitle:(NSString*)buttonTitle
+                     onAction:(void (^)(void))onAction {
+  self = [self initWithFrame:NSZeroRect];
+  if (self) {
+    self.title = title;
+    self.subtitle = subtitle;
+    self.symbolName = symbolName;
+    self.iconPointSize = iconPointSize;
+    self.colored = colored;
+    self.buttonTitle = buttonTitle;
+    self.onAction = onAction;
+  }
+  return self;
+}
+
+- (NSButton*)actionButton {
+  return _button;
+}
+
+- (void)tap:(id)sender {
+  (void)sender;
+  if (self.onAction) self.onAction();
+}
+
+- (void)refreshIcon {
+  const BOOL sized = _iconPointSize > 0;
+  _iconW.active = sized;
+  _iconH.active = sized;
+  if (sized) {
+    _iconW.constant = _iconPointSize;
+    _iconH.constant = _iconPointSize;
+  }
+  NSImage* img = self.icon;
+  if (!img && self.symbolName.length) {
+    NSString* desc = self.title.length ? self.title : self.buttonTitle;
+    img = [NSImage imageWithSystemSymbolName:self.symbolName accessibilityDescription:desc];
+    if (img) {
+      CGFloat pt = sized ? _iconPointSize : 32;
+      NSImageSymbolConfiguration* cfg =
+          [NSImageSymbolConfiguration configurationWithPointSize:pt weight:NSFontWeightRegular];
+      if (self.colored)
+        cfg = [cfg configurationByApplyingConfiguration:[NSImageSymbolConfiguration
+                                                            configurationPreferringMulticolor]];
+      img = [img imageWithSymbolConfiguration:cfg];
+    }
+  }
+  _iconView.image = img;
+  _iconView.contentTintColor = self.colored ? nil : self.iconTintColor;
+}
+
+- (void)setSymbolName:(NSString*)symbolName {
+  _symbolName = [symbolName copy];
+  [self refreshIcon];
+}
+
+- (void)setIcon:(NSImage*)icon {
+  _icon = icon;
+  [self refreshIcon];
+}
+
+- (void)setIconPointSize:(CGFloat)iconPointSize {
+  _iconPointSize = iconPointSize;
+  [self refreshIcon];
+}
+
+- (void)setIconTintColor:(NSColor*)iconTintColor {
+  _iconTintColor = iconTintColor;
+  [self refreshIcon];
+}
+
+- (void)setColored:(BOOL)colored {
+  _colored = colored;
+  [self refreshIcon];
+}
+
+- (void)setSpacing:(CGFloat)spacing {
+  _spacing = spacing;
+  _cluster.spacing = spacing;
+}
+
+- (void)setTitle:(NSString*)title {
+  _title = [title copy] ?: @"";
+  _titleLabel.stringValue = _title;
+  _titleLabel.hidden = _title.length == 0;
+  [self refreshIcon];
+}
+
+- (void)setTitleFont:(NSFont*)titleFont {
+  _titleFont = titleFont;
+  if (titleFont) _titleLabel.font = titleFont;
+}
+
+- (void)setSubtitle:(NSString*)subtitle {
+  _subtitle = [subtitle copy] ?: @"";
+  _subtitleLabel.stringValue = _subtitle;
+  _subtitleLabel.hidden = _subtitle.length == 0;
+}
+
+- (void)setSubtitleFont:(NSFont*)subtitleFont {
+  _subtitleFont = subtitleFont;
+  if (subtitleFont) _subtitleLabel.font = subtitleFont;
+}
+
+- (void)setSubtitleColor:(NSColor*)subtitleColor {
+  _subtitleColor = subtitleColor;
+  if (subtitleColor) _subtitleLabel.textColor = subtitleColor;
+}
+
+- (void)setSubtitleMaxWidth:(CGFloat)subtitleMaxWidth {
+  _subtitleMaxWidth = subtitleMaxWidth;
+  _subtitleMaxW.constant = subtitleMaxWidth;
+  _subtitleMaxW.active = subtitleMaxWidth > 0;
+}
+
+- (void)setButtonTitle:(NSString*)buttonTitle {
+  _buttonTitle = [buttonTitle copy] ?: @"";
+  _button.title = _buttonTitle;
+}
+
+- (void)setButtonControlSize:(NSControlSize)buttonControlSize {
+  _buttonControlSize = buttonControlSize;
+  _button.controlSize = buttonControlSize;
+}
+
+- (void)setButtonMinWidth:(CGFloat)buttonMinWidth {
+  _buttonMinWidth = buttonMinWidth;
+  _buttonMinW.constant = buttonMinWidth;
+  _buttonMinW.active = buttonMinWidth > 0;
+}
+
+- (void)setButtonFont:(NSFont*)buttonFont {
+  _buttonFont = buttonFont;
+  if (buttonFont) _button.font = buttonFont;
+}
+
+- (void)setDefaultButton:(BOOL)defaultButton {
+  _defaultButton = defaultButton;
+  _button.keyEquivalent = defaultButton ? @"\r" : @"";
+}
+
+@end
+
 NSTableCellView* DCCenteredCheckCell(NSButton* checkbox) {
   NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
   checkbox.translatesAutoresizingMaskIntoConstraints = NO;
