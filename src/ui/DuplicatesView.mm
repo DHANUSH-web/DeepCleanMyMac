@@ -122,6 +122,7 @@
 - (void)startScan {
   if (!_scan.enabled) return;
   _status.stringValue = @"Hashing…";
+  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
   [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCDuplicatesView* weakSelf = self;
@@ -140,6 +141,7 @@
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
     [s refreshCleanTitle];
+    [s->_startScreen endProgress];
     [s showContent];
   });
 }

@@ -179,10 +179,14 @@ struct FlatRow {
     return;
   }
   _state = 1;
-  NSButton* scan = [self activeScanButton];
-  scan.title = @"Cancel";
-  scan.keyEquivalent = @".";
-  scan.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+  if (_startScreen && !_startScreen.hidden) {
+    [_startScreen beginProgress];
+  } else {
+    NSButton* scan = [self activeScanButton];
+    scan.title = @"Cancel";
+    scan.keyEquivalent = @".";
+    scan.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+  }
   _cleanBtn.hidden = YES;
   _selAll.hidden = YES;
   [_spin startAnimation:nil];
@@ -233,6 +237,7 @@ struct FlatRow {
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
+  [_startScreen endProgress];
   [self showContent];
 }
 

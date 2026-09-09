@@ -140,6 +140,7 @@ struct FlatRow {
 - (void)startScan {
   if (!_scan.enabled) return;
   _status.stringValue = @"Scanning…";
+  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
   [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCLargeFilesView* weakSelf = self;
@@ -162,6 +163,7 @@ struct FlatRow {
         [NSString stringWithFormat:@"%lu %@ in %lu folders", (unsigned long)n, [s thresholdPhrase],
                                    (unsigned long)s->_groups.size()];
     [s refreshClean];
+    [s->_startScreen endProgress];
     [s showContent];
   });
 }
