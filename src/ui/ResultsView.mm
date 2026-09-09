@@ -126,7 +126,7 @@ struct FlatRow {
                                                  subtitle:subtitle
                                                    symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(mod)]
                                             iconPointSize:250
-                                                  colored:YES
+                                                  colored:NO
                                               buttonTitle:@"Scan"
                                                  onAction:^{
                                                    [weakSelf startScan];
