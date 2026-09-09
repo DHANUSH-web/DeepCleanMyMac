@@ -41,8 +41,8 @@
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
-    _status = DCCaptionLabel(
-        @"Matches identical files in Home, Desktop, Documents, Downloads, Pictures, Movies, and Music (256 KB or larger).");
+    _status = DCCaptionLabel(@"");
+    _status.stringValue = [self idleStatus];
     [page addArrangedSubview:_status];
 
     _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
@@ -83,7 +83,7 @@
     _content.hidden = YES;
     _scan.keyEquivalent = @"";
     [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(refreshCleanTitle)
+                                             selector:@selector(settingsChanged)
                                                  name:DCSettingsDidChangeNotification
                                                object:nil];
     [self refreshCleanTitle];
@@ -93,6 +93,17 @@
 
 - (void)dealloc {
   [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (NSString*)idleStatus {
+  if (DCDuplicatesScanHome())
+    return @"Matches identical files in your home folder (256 KB or larger).";
+  return @"Matches identical files in Documents, Downloads, Desktop, Pictures, Movies, and Music (256 KB or larger).";
+}
+
+- (void)settingsChanged {
+  [self refreshCleanTitle];
+  if (_startScreen && !_startScreen.hidden) _status.stringValue = [self idleStatus];
 }
 
 - (void)refreshCleanTitle {
@@ -130,7 +141,8 @@
   DCRunBackground(&_job, ^{
     DCDuplicatesView* strong = weakSelf;
     if (!strong) return;
-    g = strong->_engine.findDuplicates(ui::duplicateOptions());
+    g = strong->_engine.findDuplicates(
+        ui::duplicateOptions(dcmm::homeDirectory(), DCDuplicatesScanHome()));
   }, ^{
     DCDuplicatesView* s = weakSelf;
     if (!s) return;

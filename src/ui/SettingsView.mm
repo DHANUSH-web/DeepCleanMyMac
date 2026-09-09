@@ -14,6 +14,7 @@
   NSPopUpButton* _appearance;
   NSPopUpButton* _cleaning;
   NSTextField* _largeFileMin;
+  NSSwitch* _dupHome;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -71,6 +72,17 @@
     [page addArrangedSubview:largeCard];
     DCStackFullWidth(page, largeCard);
 
+    _dupHome = [[NSSwitch alloc] initWithFrame:NSZeroRect];
+    _dupHome.target = self;
+    _dupHome.action = @selector(duplicatesHomeChanged:);
+    [_dupHome setContentHuggingPriority:NSLayoutPriorityRequired
+                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSView* dupCard = [self cardTitle:@"Look for duplicates at Home"
+                               detail:@"Scan for entire home directory to find duplicate items beyond defaults."
+                              control:_dupHome];
+    [page addArrangedSubview:dupCard];
+    DCStackFullWidth(page, dupCard);
+
     NSView* spacer = DCFlexibleSpace();
     [page addArrangedSubview:spacer];
     DCStackFullWidth(page, spacer);
@@ -126,12 +138,17 @@
   [_appearance selectItemAtIndex:static_cast<NSInteger>(DCAppearancePref())];
   [_cleaning selectItemAtIndex:static_cast<NSInteger>(DCCleanPref())];
   _largeFileMin.stringValue = [NSString stringWithFormat:@"%ld", (long)DCLargeFileMinMB()];
+  _dupHome.state = DCDuplicatesScanHome() ? NSControlStateValueOn : NSControlStateValueOff;
 }
 
 - (void)appearanceChanged:(NSPopUpButton*)sender {
   NSInteger i = sender.indexOfSelectedItem;
   if (i < 0 || i > 2) i = 0;
   DCSetAppearancePref(static_cast<ui::AppearancePref>(i));
+}
+
+- (void)duplicatesHomeChanged:(NSSwitch*)sender {
+  DCSetDuplicatesScanHome(sender.state == NSControlStateValueOn);
 }
 
 - (void)cleaningChanged:(NSPopUpButton*)sender {

@@ -12,6 +12,7 @@ NSNotificationName const DCSettingsDidChangeNotification = @"DCSettingsDidChange
 static NSString* const kDCAppearanceKey = @"DCAppearance";
 static NSString* const kDCCleanPrefKey = @"DCCleanPref";
 static NSString* const kDCLargeFileMinMBKey = @"DCLargeFileMinMB";
+static NSString* const kDCDuplicatesScanHomeKey = @"DCDuplicatesScanHome";
 
 ui::AppearancePref DCAppearancePref(void) {
   NSString* id = [[NSUserDefaults standardUserDefaults] stringForKey:kDCAppearanceKey];
@@ -77,6 +78,16 @@ void DCSetLargeFileMinMB(NSInteger mb) {
 
 uint64_t DCLargeFileMinBytes(void) {
   return (uint64_t)DCLargeFileMinMB() * ui::kMebibyte;
+}
+
+BOOL DCDuplicatesScanHome(void) {
+  return [[NSUserDefaults standardUserDefaults] boolForKey:kDCDuplicatesScanHomeKey];
+}
+
+void DCSetDuplicatesScanHome(BOOL on) {
+  [[NSUserDefaults standardUserDefaults] setBool:on forKey:kDCDuplicatesScanHomeKey];
+  [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
+                                                      object:nil];
 }
 
 NSTextField* DCLabel(NSString* text) {

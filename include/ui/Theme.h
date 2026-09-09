@@ -145,6 +145,10 @@ NSInteger DCLargeFileMinMB(void);
 void DCSetLargeFileMinMB(NSInteger mb);
 uint64_t DCLargeFileMinBytes(void);
 
+/// Duplicates: include the home folder. Default off.
+BOOL DCDuplicatesScanHome(void);
+void DCSetDuplicatesScanHome(BOOL on);
+
 /// Cancel is the default (Return). Copy follows the Cleaning setting.
 BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes);
 /// Space Lens: user-confirmed folders, including ones that are not on the safe list.

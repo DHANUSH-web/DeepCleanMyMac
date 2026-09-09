@@ -244,25 +244,28 @@ inline void setLargeFileGroupSelected(LargeFileGroup& g, bool selected) {
   for (auto& f : g.files) f.selected = selected;
 }
 
-inline dcmm::DuplicateOptions duplicateOptions(const std::string& home = dcmm::homeDirectory()) {
+inline dcmm::DuplicateOptions duplicateOptions(const std::string& home = dcmm::homeDirectory(),
+                                              bool includeHome = false) {
   dcmm::DuplicateOptions opt;
-  opt.roots = {dcmm::joinPath(home, "Downloads"), dcmm::joinPath(home, "Desktop"),
-               dcmm::joinPath(home, "Documents"), dcmm::joinPath(home, "Pictures"),
-               dcmm::joinPath(home, "Movies"),    dcmm::joinPath(home, "Music"),
-               home};
-  std::sort(opt.roots.begin(), opt.roots.end(),
-            [](const std::string& a, const std::string& b) { return a.size() < b.size(); });
-  std::vector<std::string> kept;
-  for (const auto& r : opt.roots) {
-    bool nested = false;
-    for (const auto& k : kept)
-      if (largeFilePathInRoot(r, k)) {
-        nested = true;
-        break;
-      }
-    if (!nested) kept.push_back(r);
+  opt.roots = {dcmm::joinPath(home, "Documents"), dcmm::joinPath(home, "Downloads"),
+               dcmm::joinPath(home, "Desktop"), dcmm::joinPath(home, "Pictures"),
+               dcmm::joinPath(home, "Movies"), dcmm::joinPath(home, "Music")};
+  if (includeHome) {
+    opt.roots.push_back(home);
+    std::sort(opt.roots.begin(), opt.roots.end(),
+              [](const std::string& a, const std::string& b) { return a.size() < b.size(); });
+    std::vector<std::string> kept;
+    for (const auto& r : opt.roots) {
+      bool nested = false;
+      for (const auto& k : kept)
+        if (largeFilePathInRoot(r, k)) {
+          nested = true;
+          break;
+        }
+      if (!nested) kept.push_back(r);
+    }
+    opt.roots = std::move(kept);
   }
-  opt.roots = std::move(kept);
   opt.minBytes = 256ull * 1024ull;
   return opt;
 }
