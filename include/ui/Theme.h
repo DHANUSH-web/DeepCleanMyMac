@@ -75,6 +75,9 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 @property(nonatomic, copy, nullable) void (^onAction)(void);
 @property(nonatomic, readonly) NSButton* actionButton;
 
+- (void)beginProgress;
+- (void)endProgress;
+
 - (instancetype)initWithTitle:(nullable NSString*)title
                      subtitle:(nullable NSString*)subtitle
                        symbol:(nullable NSString*)symbolName

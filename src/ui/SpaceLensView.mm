@@ -179,6 +179,7 @@
 - (void)startScan {
   if (!_scan.enabled) return;
   _status.stringValue = @"Measuring…";
+  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
   [self setScanEnabled:NO];
   __weak DCSpaceLensView* weakSelf = self;
   __block std::vector<dcmm::SpaceNode> n;
@@ -204,6 +205,7 @@
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
     [s refreshClean];
+    [s->_startScreen endProgress];
     [s showContent];
   });
 }

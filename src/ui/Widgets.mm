@@ -560,11 +560,15 @@ static char kDCHoverPopoverKey;
   NSTextField* _subtitleLabel;
   NSImageView* _iconView;
   NSButton* _button;
+  NSProgressIndicator* _progress;
+  NSView* _actionSlot;
   NSStackView* _cluster;
   NSLayoutConstraint* _iconW;
   NSLayoutConstraint* _iconH;
   NSLayoutConstraint* _buttonMinW;
   NSLayoutConstraint* _subtitleMaxW;
+  NSLayoutConstraint* _progressW;
+  BOOL _progressing;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -593,9 +597,42 @@ static char kDCHoverPopoverKey;
     _subtitleMaxW = [_subtitleLabel.widthAnchor constraintLessThanOrEqualToConstant:0];
 
     _button = DCPushButton(@"", self, @selector(tap:));
+    _button.wantsLayer = YES;
     _buttonMinW = [_button.widthAnchor constraintGreaterThanOrEqualToConstant:0];
 
-    _cluster = [NSStackView stackViewWithViews:@[ _iconView, _titleLabel, _subtitleLabel, _button ]];
+    _progress = [[NSProgressIndicator alloc] initWithFrame:NSZeroRect];
+    _progress.style = NSProgressIndicatorStyleBar;
+    _progress.indeterminate = YES;
+    _progress.displayedWhenStopped = YES;
+    _progress.alphaValue = 0;
+    _progress.hidden = YES;
+    _progressW = [_progress.widthAnchor constraintEqualToConstant:80];
+    _progressW.active = NO;
+    [_progress.heightAnchor constraintEqualToConstant:12].active = YES;
+
+    _actionSlot = [[NSView alloc] initWithFrame:NSZeroRect];
+    _button.translatesAutoresizingMaskIntoConstraints = NO;
+    _progress.translatesAutoresizingMaskIntoConstraints = NO;
+    [_actionSlot addSubview:_button];
+    [_actionSlot addSubview:_progress];
+    [NSLayoutConstraint activateConstraints:@[
+      [_button.centerXAnchor constraintEqualToAnchor:_actionSlot.centerXAnchor],
+      [_button.centerYAnchor constraintEqualToAnchor:_actionSlot.centerYAnchor],
+      [_button.topAnchor constraintGreaterThanOrEqualToAnchor:_actionSlot.topAnchor],
+      [_button.bottomAnchor constraintLessThanOrEqualToAnchor:_actionSlot.bottomAnchor],
+      [_button.leadingAnchor constraintGreaterThanOrEqualToAnchor:_actionSlot.leadingAnchor],
+      [_button.trailingAnchor constraintLessThanOrEqualToAnchor:_actionSlot.trailingAnchor],
+      [_progress.centerXAnchor constraintEqualToAnchor:_actionSlot.centerXAnchor],
+      [_progress.centerYAnchor constraintEqualToAnchor:_actionSlot.centerYAnchor],
+      [_progress.topAnchor constraintGreaterThanOrEqualToAnchor:_actionSlot.topAnchor],
+      [_progress.bottomAnchor constraintLessThanOrEqualToAnchor:_actionSlot.bottomAnchor],
+      [_actionSlot.widthAnchor constraintGreaterThanOrEqualToAnchor:_button.widthAnchor],
+      [_actionSlot.heightAnchor constraintGreaterThanOrEqualToAnchor:_button.heightAnchor],
+      [_actionSlot.widthAnchor constraintGreaterThanOrEqualToAnchor:_progress.widthAnchor],
+      [_actionSlot.heightAnchor constraintGreaterThanOrEqualToAnchor:_progress.heightAnchor],
+    ]];
+
+    _cluster = [NSStackView stackViewWithViews:@[ _iconView, _titleLabel, _subtitleLabel, _actionSlot ]];
     _cluster.orientation = NSUserInterfaceLayoutOrientationVertical;
     _cluster.alignment = NSLayoutAttributeCenterX;
     _cluster.spacing = _spacing;
@@ -639,7 +676,41 @@ static char kDCHoverPopoverKey;
 
 - (void)tap:(id)sender {
   (void)sender;
+  if (_progressing) return;
   if (self.onAction) self.onAction();
+}
+
+- (void)beginProgress {
+  if (_progressing) return;
+  _progressing = YES;
+  _button.enabled = NO;
+  [self layoutSubtreeIfNeeded];
+  _progressW.constant = MAX(NSWidth(_button.frame), 80);
+  _progressW.active = YES;
+  _progress.hidden = NO;
+  _progress.alphaValue = 0;
+  [_progress startAnimation:nil];
+  [NSAnimationContext runAnimationGroup:^(NSAnimationContext* ctx) {
+    ctx.duration = 0.28;
+    ctx.allowsImplicitAnimation = YES;
+    self->_button.alphaValue = 0;
+    self->_progress.alphaValue = 1;
+    self->_progressW.constant = 220;
+    [self layoutSubtreeIfNeeded];
+  } completionHandler:^{
+    self->_button.hidden = YES;
+  }];
+}
+
+- (void)endProgress {
+  [_progress stopAnimation:nil];
+  _button.hidden = NO;
+  _button.enabled = YES;
+  _button.alphaValue = 1;
+  _progress.alphaValue = 0;
+  _progress.hidden = YES;
+  _progressW.active = NO;
+  _progressing = NO;
 }
 
 - (void)refreshIcon {
