@@ -4,9 +4,16 @@
 #include "AppSettings.hpp"
 #include "Modules.h"
 
+#include <cctype>
+#include <cstdlib>
+
+@interface DCSettingsView () <NSTextFieldDelegate>
+@end
+
 @implementation DCSettingsView {
   NSPopUpButton* _appearance;
   NSPopUpButton* _cleaning;
+  NSTextField* _largeFileMin;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame {
@@ -38,6 +45,32 @@
     [page addArrangedSubview:cleaningCard];
     DCStackFullWidth(page, cleaningCard);
 
+    _largeFileMin = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    _largeFileMin.translatesAutoresizingMaskIntoConstraints = NO;
+    _largeFileMin.bezelStyle = NSTextFieldRoundedBezel;
+    _largeFileMin.alignment = NSTextAlignmentRight;
+    _largeFileMin.placeholderString = @"50";
+    _largeFileMin.delegate = self;
+    _largeFileMin.target = self;
+    _largeFileMin.action = @selector(largeFileMinCommitted:);
+    [_largeFileMin.widthAnchor constraintEqualToConstant:64].active = YES;
+    NSTextField* mb = DCLabel(@"MB");
+    mb.font = [NSFont systemFontOfSize:13];
+    mb.textColor = [NSColor secondaryLabelColor];
+    NSStackView* sizeRow = [NSStackView stackViewWithViews:@[ _largeFileMin, mb ]];
+    sizeRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    sizeRow.alignment = NSLayoutAttributeCenterY;
+    sizeRow.spacing = 6;
+    [sizeRow setContentHuggingPriority:NSLayoutPriorityRequired
+                        forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [sizeRow setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                      forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSView* largeCard = [self cardTitle:@"Minimum Large Files threshold"
+                                 detail:@"Minimum size to scan for large files"
+                                control:sizeRow];
+    [page addArrangedSubview:largeCard];
+    DCStackFullWidth(page, largeCard);
+
     NSView* spacer = DCFlexibleSpace();
     [page addArrangedSubview:spacer];
     DCStackFullWidth(page, spacer);
@@ -58,12 +91,17 @@
   text.orientation = NSUserInterfaceLayoutOrientationVertical;
   text.alignment = NSLayoutAttributeLeading;
   text.spacing = 2;
-  NSStackView* body = [NSStackView stackViewWithViews:@[ text, control ]];
+  NSView* gap = [[NSView alloc] initWithFrame:NSZeroRect];
+  [gap setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [gap setContentCompressionResistancePriority:1
+                               forOrientation:NSLayoutConstraintOrientationHorizontal];
+  NSStackView* body = [NSStackView stackViewWithViews:@[ text, gap, control ]];
   body.orientation = NSUserInterfaceLayoutOrientationHorizontal;
   body.alignment = NSLayoutAttributeCenterY;
   body.distribution = NSStackViewDistributionFill;
   body.spacing = 16;
-  [text setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [text setContentHuggingPriority:NSLayoutPriorityDefaultLow
+                   forOrientation:NSLayoutConstraintOrientationHorizontal];
   [text setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
   [control setContentHuggingPriority:NSLayoutPriorityRequired
@@ -87,6 +125,7 @@
 - (void)reloadFromDefaults {
   [_appearance selectItemAtIndex:static_cast<NSInteger>(DCAppearancePref())];
   [_cleaning selectItemAtIndex:static_cast<NSInteger>(DCCleanPref())];
+  _largeFileMin.stringValue = [NSString stringWithFormat:@"%ld", (long)DCLargeFileMinMB()];
 }
 
 - (void)appearanceChanged:(NSPopUpButton*)sender {
@@ -99,6 +138,48 @@
   auto p = sender.indexOfSelectedItem == 1 ? ui::CleanPref::DeletePermanently
                                            : ui::CleanPref::MoveToTrash;
   DCSetCleanPref(p);
+}
+
+- (void)commitLargeFileMin {
+  NSInteger fallback = (NSInteger)(ui::kDefaultLargeFileMinBytes / ui::kMebibyte);
+  NSString* raw = [_largeFileMin.stringValue stringByTrimmingCharactersInSet:
+                                                 [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+  if (raw.length == 0) {
+    DCSetLargeFileMinMB(fallback);
+    [self reloadFromDefaults];
+    return;
+  }
+  NSScanner* scan = [NSScanner scannerWithString:raw];
+  NSInteger parsed = 0;
+  if (![scan scanInteger:&parsed] || !scan.atEnd) {
+    DCSetLargeFileMinMB(fallback);
+    [self reloadFromDefaults];
+    return;
+  }
+  DCSetLargeFileMinMB(std::abs(parsed));
+  [self reloadFromDefaults];
+}
+
+- (void)largeFileMinCommitted:(id)sender {
+  (void)sender;
+  [self commitLargeFileMin];
+}
+
+- (void)controlTextDidEndEditing:(NSNotification*)notification {
+  if (notification.object == _largeFileMin) [self commitLargeFileMin];
+}
+
+- (BOOL)control:(NSControl*)control
+       textView:(NSTextView*)textView
+shouldChangeTextInRange:(NSRange)range
+replacementString:(NSString*)string {
+  (void)textView;
+  (void)range;
+  if (control != _largeFileMin) return YES;
+  for (NSUInteger i = 0; i < string.length; ++i) {
+    if (!std::isdigit(static_cast<unsigned char>([string characterAtIndex:i]))) return NO;
+  }
+  return YES;
 }
 
 @end

@@ -162,12 +162,17 @@ inline std::vector<LargeFileRootSpec> largeFileRootSpecs(const std::string& home
   };
 }
 
-inline dcmm::LargeFileOptions largeFileOptions(const std::string& home = dcmm::homeDirectory()) {
+inline constexpr uint64_t kMebibyte = 1024ull * 1024ull;
+inline constexpr uint64_t kDefaultLargeFileMinBytes = 50ull * kMebibyte;
+
+inline dcmm::LargeFileOptions largeFileOptions(
+    const std::string& home = dcmm::homeDirectory(),
+    uint64_t minBytes = kDefaultLargeFileMinBytes) {
   dcmm::LargeFileOptions opt;
   for (const auto& s : largeFileRootSpecs(home)) opt.roots.push_back(s.path);
   const auto icloudLink = dcmm::joinPath(home, "iCloud Drive");
   if (dcmm::pathExists(icloudLink)) opt.roots.push_back(icloudLink);
-  opt.minBytes = 50ull * 1024ull * 1024ull;
+  opt.minBytes = minBytes;
   opt.limit = 300;
   return opt;
 }

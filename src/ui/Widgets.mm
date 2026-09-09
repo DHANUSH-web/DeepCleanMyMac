@@ -2,6 +2,8 @@
 
 #include "dcmm/path.hpp"
 
+#include <cstdlib>
+
 #import <Quartz/Quartz.h>
 #import <objc/runtime.h>
 
@@ -9,6 +11,7 @@ NSNotificationName const DCSettingsDidChangeNotification = @"DCSettingsDidChange
 
 static NSString* const kDCAppearanceKey = @"DCAppearance";
 static NSString* const kDCCleanPrefKey = @"DCCleanPref";
+static NSString* const kDCLargeFileMinMBKey = @"DCLargeFileMinMB";
 
 ui::AppearancePref DCAppearancePref(void) {
   NSString* id = [[NSUserDefaults standardUserDefaults] stringForKey:kDCAppearanceKey];
@@ -50,6 +53,30 @@ void DCSetCleanPref(ui::CleanPref pref) {
          forKey:kDCCleanPrefKey];
   [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
                                                       object:nil];
+}
+
+static NSInteger DCDefaultLargeFileMinMB(void) {
+  return (NSInteger)(ui::kDefaultLargeFileMinBytes / ui::kMebibyte);
+}
+
+NSInteger DCLargeFileMinMB(void) {
+  NSUserDefaults* d = [NSUserDefaults standardUserDefaults];
+  if (![d objectForKey:kDCLargeFileMinMBKey]) return DCDefaultLargeFileMinMB();
+  NSInteger mb = std::abs([d integerForKey:kDCLargeFileMinMBKey]);
+  if (mb > 1048576) return 1048576;
+  return mb;
+}
+
+void DCSetLargeFileMinMB(NSInteger mb) {
+  mb = std::abs(mb);
+  if (mb > 1048576) mb = 1048576;
+  [[NSUserDefaults standardUserDefaults] setInteger:mb forKey:kDCLargeFileMinMBKey];
+  [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
+                                                      object:nil];
+}
+
+uint64_t DCLargeFileMinBytes(void) {
+  return (uint64_t)DCLargeFileMinMB() * ui::kMebibyte;
 }
 
 NSTextField* DCLabel(NSString* text) {

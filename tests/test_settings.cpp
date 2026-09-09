@@ -17,6 +17,11 @@ TEST(Settings, AppearanceIdsRoundTrip) {
   EXPECT_EQ(ui::appearancePrefFromId("nope"), ui::AppearancePref::System);
 }
 
+TEST(Settings, LargeFileDefaultMinIs50MB) {
+  EXPECT_EQ(ui::kDefaultLargeFileMinBytes, 50ull * 1024ull * 1024ull);
+  EXPECT_EQ(ui::kMebibyte, 1024ull * 1024ull);
+}
+
 TEST(Settings, CleanIdsAndCopy) {
   EXPECT_STREQ(ui::cleanPrefId(ui::CleanPref::MoveToTrash), "trash");
   EXPECT_STREQ(ui::cleanPrefId(ui::CleanPref::DeletePermanently), "delete");

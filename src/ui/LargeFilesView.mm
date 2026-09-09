@@ -45,8 +45,8 @@ struct FlatRow {
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
-    _status = DCCaptionLabel(
-        @"Looks in Desktop, Documents, Downloads, Pictures, Movies, Music, iCloud Drive, and Bin for files of 50 MB or more.");
+    _status = DCCaptionLabel(@"");
+    _status.stringValue = [self idleStatus];
     [page addArrangedSubview:_status];
 
     _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
@@ -89,7 +89,7 @@ struct FlatRow {
     _content.hidden = YES;
     _scan.keyEquivalent = @"";
     [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(refreshClean)
+                                                selector:@selector(settingsChanged)
                                                  name:DCSettingsDidChangeNotification
                                                object:nil];
   }
@@ -106,6 +106,23 @@ struct FlatRow {
     _rows.push_back({true, g, -1});
     for (int i = 0; i < (int)_groups[(size_t)g].files.size(); ++i) _rows.push_back({false, g, i});
   }
+}
+
+- (NSString*)thresholdPhrase {
+  NSInteger mb = DCLargeFileMinMB();
+  if (mb <= 0) return @"files of any size";
+  return [NSString stringWithFormat:@"files of %ld MB or more", (long)mb];
+}
+
+- (NSString*)idleStatus {
+  return [NSString stringWithFormat:
+                      @"Looks in Desktop, Documents, Downloads, Pictures, Movies, Music, iCloud Drive, and Bin for %@.",
+                      [self thresholdPhrase]];
+}
+
+- (void)settingsChanged {
+  [self refreshClean];
+  if (_startScreen && !_startScreen.hidden) _status.stringValue = [self idleStatus];
 }
 
 - (void)showContent {
@@ -130,7 +147,8 @@ struct FlatRow {
   DCRunBackground(&_job, ^{
     DCLargeFilesView* strong = weakSelf;
     if (!strong) return;
-    files = strong->_engine.findLargeFiles(ui::largeFileOptions());
+    files = strong->_engine.findLargeFiles(
+        ui::largeFileOptions(dcmm::homeDirectory(), DCLargeFileMinBytes()));
   }, ^{
     DCLargeFilesView* s = weakSelf;
     if (!s) return;
@@ -141,7 +159,7 @@ struct FlatRow {
     std::size_t n = 0;
     for (const auto& g : s->_groups) n += g.files.size();
     s->_status.stringValue =
-        [NSString stringWithFormat:@"%lu files of 50 MB or more in %lu folders", (unsigned long)n,
+        [NSString stringWithFormat:@"%lu %@ in %lu folders", (unsigned long)n, [s thresholdPhrase],
                                    (unsigned long)s->_groups.size()];
     [s refreshClean];
     [s showContent];

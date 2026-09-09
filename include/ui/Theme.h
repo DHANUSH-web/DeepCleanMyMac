@@ -137,6 +137,11 @@ void DCApplyStoredAppearance(void);
 ui::CleanPref DCCleanPref(void);
 void DCSetCleanPref(ui::CleanPref pref);
 
+/// Large Files minimum size, in mebibytes (1024-based MB). Default 50. Missing key → 50.
+NSInteger DCLargeFileMinMB(void);
+void DCSetLargeFileMinMB(NSInteger mb);
+uint64_t DCLargeFileMinBytes(void);
+
 /// Cancel is the default (Return). Copy follows the Cleaning setting.
 BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes);
 /// Space Lens: user-confirmed folders, including ones that are not on the safe list.

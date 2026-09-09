@@ -19,7 +19,7 @@ TEST_F(HomeFixture, LargeFilesUsesHomeFolderRoots) {
   EXPECT_EQ(opt.roots[3], (home / "Pictures").string());
   EXPECT_EQ(opt.roots[5], (home / "Music").string());
   EXPECT_EQ(opt.roots[7], (home / ".Trash").string());
-  EXPECT_EQ(opt.minBytes, 50ull * 1024ull * 1024ull);
+  EXPECT_EQ(opt.minBytes, ui::kDefaultLargeFileMinBytes);
   EXPECT_EQ(opt.limit, 300u);
 }
 
