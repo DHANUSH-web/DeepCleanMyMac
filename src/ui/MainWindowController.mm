@@ -120,6 +120,7 @@ constexpr CGFloat kWindowMinHeight = 520;
   if (!page) return;
   [_content addSubview:page];
   DCPinEdges(page, _content);
+  if (m == ui::Module::MyMac) [(DCDashboardView*)page refreshStats];
 }
 
 - (void)showSettings {

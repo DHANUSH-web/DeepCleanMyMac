@@ -494,6 +494,11 @@ NSImageView* DCCardSymbol(NSString* name, NSString* a11y) {
   return self;
 }
 
+- (void)viewDidMoveToWindow {
+  [super viewDidMoveToWindow];
+  if (self.window) [self refreshStats];
+}
+
 - (void)layout {
   [super layout];
   CGFloat w = NSWidth(_scroll.contentView.bounds);
