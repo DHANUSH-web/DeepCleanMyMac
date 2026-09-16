@@ -36,6 +36,7 @@ NSButton* DCDestructiveButton(NSString* title, id target, SEL action);
 @property(nonatomic) NSTimeInterval orbitPeriod;
 @property(nonatomic) CGFloat glowDashFraction;
 @property(nonatomic) CGFloat glowShadowRadius;
+@property(nonatomic) BOOL fullyRounded;
 @property(nonatomic, strong, nullable) NSColor* buttonColor;
 @property(nonatomic, strong, nullable) NSColor* titleColor;
 @property(nonatomic, strong, nullable) NSColor* borderColor;
@@ -109,7 +110,7 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 @property(nonatomic, strong, nullable) NSFont* buttonFont;
 @property(nonatomic) BOOL defaultButton;
 @property(nonatomic, copy, nullable) void (^onAction)(void);
-@property(nonatomic, readonly) NSButton* actionButton;
+@property(nonatomic, readonly) DCGlowButton* actionButton;
 
 - (void)beginProgress;
 - (void)endProgress;
