@@ -3,6 +3,8 @@
 #include "dcmm/dcmm.hpp"
 #include "Modules.h"
 
+#include <vector>
+
 namespace {
 
 struct ConfirmCopy {
@@ -58,8 +60,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
 
 @implementation DCMaintenanceView {
   dcmm::Engine _engine;
-  uint64_t _job;
-  BOOL _busy;
+  std::vector<uint64_t> _taskJobs;
   NSMutableArray<DCGlowButton*>* _runButtons;
 }
 
@@ -137,6 +138,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
 
     _runButtons = [NSMutableArray array];
     auto tasks = _engine.maintenanceTasks();
+    _taskJobs.assign(tasks.size(), 0);
     NSMutableArray<NSView*>* cards = [NSMutableArray array];
     for (size_t i = 0; i < tasks.size(); ++i) {
       [cards addObject:[self cardForTask:tasks[i] index:(NSInteger)i]];
@@ -161,29 +163,30 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   return self;
 }
 
-- (void)setRunButtonsEnabled:(BOOL)on {
-  for (DCGlowButton* b in _runButtons) b.enabled = on;
+- (void)finishTask:(NSButton*)sender {
+  DCGlowButtonSetActive(sender, NO);
+  sender.enabled = YES;
 }
 
-- (void)finishTask:(NSButton*)sender {
-  _busy = NO;
-  DCGlowButtonSetActive(sender, NO);
-  [self setRunButtonsEnabled:YES];
+- (uint64_t*)jobSlotFor:(NSButton*)sender {
+  if (sender.tag < 0 || (size_t)sender.tag >= _taskJobs.size()) return nullptr;
+  return &_taskJobs[(size_t)sender.tag];
 }
 
 - (void)runTask:(NSButton*)sender {
-  if (_busy) return;
+  if (!sender.enabled) return;
   auto tasks = _engine.maintenanceTasks();
   if (sender.tag < 0 || sender.tag >= (NSInteger)tasks.size()) return;
+  uint64_t* slot = [self jobSlotFor:sender];
+  if (!slot) return;
   const auto task = tasks[(size_t)sender.tag];
   const std::string id = task.id;
   ConfirmCopy c = ConfirmForTask(id, task);
-  _busy = YES;
-  [self setRunButtonsEnabled:NO];
+  sender.enabled = NO;
   DCGlowButtonSetActive(sender, YES);
   __weak DCMaintenanceView* weakSelf = self;
   __block dcmm::MaintenanceResult preview;
-  DCRunBackground(&_job, ^{
+  DCRunBackground(slot, ^{
     DCMaintenanceView* strong = weakSelf;
     if (!strong) return;
     preview = strong->_engine.previewMaintenance(id);
@@ -209,7 +212,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
       return;
     }
     __block dcmm::MaintenanceResult result;
-    DCRunBackground(&s->_job, ^{
+    DCRunBackground([s jobSlotFor:sender], ^{
       DCMaintenanceView* st = weakSelf;
       if (!st) return;
       result = st->_engine.runMaintenance(id);
