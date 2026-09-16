@@ -7,6 +7,7 @@
 #include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
 
+#include <tuple>
 #include <vector>
 
 static char kDCDevUninstallRowKey;
@@ -22,6 +23,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
 @property(nonatomic, copy) NSString* iconPath;
 @property(nonatomic) uint64_t bytes;
 @property(nonatomic) dcmm::VsCodeEdition edition;
+@property(nonatomic) BOOL cursorApp;
 @property(nonatomic) BOOL selected;
 @property(nonatomic) BOOL loaded;
 @property(nonatomic) BOOL loading;
@@ -169,22 +171,25 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   _scanApps.enabled = NO;
   [_scanApps beginGlow];
   __weak DCDevCornerView* weakSelf = self;
-  __block std::vector<dcmm::VsCodeInstall> installs;
+  __block std::vector<dcmm::VsCodeInstall> vscode;
+  __block std::vector<dcmm::CursorInstall> cursor;
   DCRunBackground(&_job, ^{
     DCDevCornerView* strong = weakSelf;
     if (!strong) return;
-    installs = strong->_engine.listVsCode();
+    vscode = strong->_engine.listVsCode();
+    cursor = strong->_engine.listCursor();
   }, ^{
     DCDevCornerView* s = weakSelf;
     if (!s) return;
     [s->_roots removeAllObjects];
-    for (auto& inst : installs) {
+    for (auto& inst : vscode) {
       DCDevRow* app = [[DCDevRow alloc] init];
       app.kind = DCDevKindApp;
       app.title = DCNS(inst.displayName);
       app.appPath = DCNS(inst.appPath);
       app.bytes = inst.bytes;
       app.edition = inst.edition;
+      app.cursorApp = NO;
       for (auto& it : inst.items) {
         DCDevRow* child = [[DCDevRow alloc] init];
         child.kind = DCDevKindFolder;
@@ -192,6 +197,27 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
         child.path = DCNS(it.path);
         child.bytes = it.bytes;
         child.edition = inst.edition;
+        child.cursorApp = NO;
+        child.loaded = !it.extensions;
+        child.parent = app;
+        [app.children addObject:child];
+      }
+      [s->_roots addObject:app];
+    }
+    for (auto& inst : cursor) {
+      DCDevRow* app = [[DCDevRow alloc] init];
+      app.kind = DCDevKindApp;
+      app.title = DCNS(inst.displayName);
+      app.appPath = DCNS(inst.appPath);
+      app.bytes = inst.bytes;
+      app.cursorApp = YES;
+      for (auto& it : inst.items) {
+        DCDevRow* child = [[DCDevRow alloc] init];
+        child.kind = DCDevKindFolder;
+        child.title = DCNS(it.label);
+        child.path = DCNS(it.path);
+        child.bytes = it.bytes;
+        child.cursorApp = YES;
         child.loaded = !it.extensions;
         child.parent = app;
         [app.children addObject:child];
@@ -211,14 +237,21 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   if (row.kind != DCDevKindFolder || row.loaded || row.loading) return;
   if (![row.title isEqualToString:@"Extensions"]) return;
   row.loading = YES;
+  const BOOL cursor = row.cursorApp;
   dcmm::VsCodeEdition edition = row.edition;
   __weak DCDevCornerView* weakSelf = self;
   __weak DCDevRow* weakRow = row;
-  __block std::vector<dcmm::VsCodeExtension> exts;
+  __block std::vector<std::tuple<std::string, std::string, std::string, uint64_t>> exts;
   DCRunBackground(&_extJob, ^{
     DCDevCornerView* strong = weakSelf;
     if (!strong) return;
-    exts = strong->_engine.listVsCodeExtensions(edition);
+    if (cursor) {
+      for (auto& e : strong->_engine.listCursorExtensions())
+        exts.emplace_back(e.name, e.path, e.iconPath, e.bytes);
+    } else {
+      for (auto& e : strong->_engine.listVsCodeExtensions(edition))
+        exts.emplace_back(e.name, e.path, e.iconPath, e.bytes);
+    }
   }, ^{
     DCDevCornerView* s = weakSelf;
     DCDevRow* parent = weakRow;
@@ -227,10 +260,10 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
     for (auto& e : exts) {
       DCDevRow* child = [[DCDevRow alloc] init];
       child.kind = DCDevKindExtension;
-      child.title = DCNS(e.name);
-      child.path = DCNS(e.path);
-      child.iconPath = DCNS(e.iconPath);
-      child.bytes = e.bytes;
+      child.title = DCNS(std::get<0>(e));
+      child.path = DCNS(std::get<1>(e));
+      child.iconPath = DCNS(std::get<2>(e));
+      child.bytes = std::get<3>(e);
       child.parent = parent;
       [parent.children addObject:child];
     }
@@ -304,7 +337,8 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   if (_uninstalling) return;
   DCDevRow* row = objc_getAssociatedObject(sender, &kDCDevUninstallRowKey);
   if (!row || row.kind != DCDevKindApp) return;
-  std::vector<std::string> paths = dcmm::vsCodeNukePaths(row.edition);
+  std::vector<std::string> paths =
+      row.cursorApp ? dcmm::cursorNukePaths() : dcmm::vsCodeNukePaths(row.edition);
   if (paths.empty()) {
     DCInformNothingToClean(@"Nothing to remove.");
     return;
