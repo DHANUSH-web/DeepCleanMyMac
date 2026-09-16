@@ -47,6 +47,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   DCGlowButton* _clean;
   DCGlowButton* _scanApps;
   BOOL _scanning;
+  BOOL _uninstalling;
   NSStackView* _actions;
   NSSegmentedControl* _tabs;
   NSView* _tableWrap;
@@ -60,12 +61,12 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   if (self) {
     _roots = [NSMutableArray array];
     NSStackView* page = DCPageStack(self);
-    _scanApps = [DCGlowButton buttonWithTitle:@"Scan Applications"
-                                       target:self
-                                       action:@selector(reload)
-                                    glowColor:NSColor.controlAccentColor
-                                glowLineWidth:2.5
-                                   clockwise:YES];
+    _scanApps = [DCGlowButton defaultButtonWithTitle:@"Scan Applications"
+                                              target:self
+                                              action:@selector(reload)
+                                           glowColor:NSColor.controlAccentColor
+                                       glowLineWidth:2.5
+                                          clockwise:YES];
     _clean = [DCGlowButton buttonWithTitle:DCNS(ui::cleanButtonTitle(DCCleanPref()))
                                     target:self
                                     action:@selector(cleanSelected)
@@ -165,6 +166,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
 - (void)reload {
   if (_scanning) return;
   _scanning = YES;
+  _scanApps.enabled = NO;
   [_scanApps beginGlow];
   __weak DCDevCornerView* weakSelf = self;
   __block std::vector<dcmm::VsCodeInstall> installs;
@@ -270,6 +272,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   [self sumSelected:_roots bytes:&bytes];
   if (!DCConfirmSpaceLensClean(list, bytes)) return;
   const auto mode = DCCleanPref();
+  _clean.enabled = NO;
   [_clean beginGlow];
   __weak DCDevCornerView* weakSelf = self;
   __block dcmm::CleanResult r;
@@ -281,6 +284,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
     DCDevCornerView* s = weakSelf;
     if (!s) return;
     [s->_clean endGlow];
+    s->_clean.enabled = YES;
     if (r.trashedItems == 0)
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     else
@@ -297,6 +301,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
 }
 
 - (void)uninstall:(NSButton*)sender {
+  if (_uninstalling) return;
   DCDevRow* row = objc_getAssociatedObject(sender, &kDCDevUninstallRowKey);
   if (!row || row.kind != DCDevKindApp) return;
   std::vector<std::string> paths = dcmm::vsCodeNukePaths(row.edition);
@@ -308,6 +313,10 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   for (const auto& p : paths) [list addObject:DCNS(p)];
   if (!DCConfirmSpaceLensClean(list, row.bytes)) return;
   const auto mode = DCCleanPref();
+  _uninstalling = YES;
+  sender.enabled = NO;
+  [_outline reloadData];
+  for (DCDevRow* app in _roots) [_outline expandItem:app];
   __weak DCDevCornerView* weakSelf = self;
   __block dcmm::CleanResult r;
   DCRunBackground(&_job, ^{
@@ -317,6 +326,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   }, ^{
     DCDevCornerView* s = weakSelf;
     if (!s) return;
+    s->_uninstalling = NO;
     if (r.trashedItems == 0)
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     else
@@ -360,6 +370,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   if ([col.identifier isEqualToString:@"action"]) {
     if (row.kind != DCDevKindApp) return DCCenteredTextCell(DCLabel(@""));
     NSButton* u = DCDestructiveButton(@"Uninstall", self, @selector(uninstall:));
+    u.enabled = !_uninstalling;
     objc_setAssociatedObject(u, &kDCDevUninstallRowKey, row, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     return DCCenteredFillCell(u);
   }
