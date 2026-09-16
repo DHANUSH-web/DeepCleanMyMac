@@ -395,7 +395,8 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
 - (NSView*)outlineView:(NSOutlineView*)ov viewForTableColumn:(NSTableColumn*)col item:(id)item {
   DCDevRow* row = item;
   if ([col.identifier isEqualToString:@"check"]) {
-    if (row.kind == DCDevKindApp) return DCCenteredTextCell(DCLabel(@""));
+    if (row.kind == DCDevKindApp || row.kind == DCDevKindExtension)
+      return DCCenteredTextCell(DCLabel(@""));
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
     b.state = row.selected ? NSControlStateValueOn : NSControlStateValueOff;
     objc_setAssociatedObject(b, &kDCDevCheckRowKey, row, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
