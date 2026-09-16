@@ -24,6 +24,42 @@ NSButton* DCPushButton(NSString* title, id target, SEL action);
 NSButton* DCDefaultButton(NSString* title, id target, SEL action);
 NSButton* DCDestructiveButton(NSString* title, id target, SEL action);
 
+/// Push button with a traveling glow along the bezel. Callers pass title, action,
+/// glow color, stroke width, and orbit direction. Face, title, and border colors
+/// are properties, as are the other layout knobs.
+@interface DCGlowButton : NSButton
+@property(nonatomic, strong, nullable) NSColor* glowColor;
+@property(nonatomic) CGFloat glowLineWidth;
+@property(nonatomic) BOOL clockwise;
+@property(nonatomic) CGFloat glowCornerRadius;
+@property(nonatomic) CGFloat glowInset;
+@property(nonatomic) NSTimeInterval orbitPeriod;
+@property(nonatomic) CGFloat glowDashFraction;
+@property(nonatomic) CGFloat glowShadowRadius;
+@property(nonatomic, strong, nullable) NSColor* buttonColor;
+@property(nonatomic, strong, nullable) NSColor* titleColor;
+@property(nonatomic, strong, nullable) NSColor* borderColor;
+@property(nonatomic) CGFloat borderWidth;
+@property(nonatomic, readonly, getter=isGlowing) BOOL glowing;
+
++ (instancetype)buttonWithTitle:(NSString*)title
+                         target:(nullable id)target
+                         action:(nullable SEL)action
+                      glowColor:(NSColor*)glowColor
+                  glowLineWidth:(CGFloat)glowLineWidth
+                     clockwise:(BOOL)clockwise;
++ (instancetype)defaultButtonWithTitle:(NSString*)title
+                                target:(nullable id)target
+                                action:(nullable SEL)action
+                             glowColor:(NSColor*)glowColor
+                         glowLineWidth:(CGFloat)glowLineWidth
+                            clockwise:(BOOL)clockwise;
+- (void)beginGlow;
+- (void)endGlow;
+@end
+
+void DCGlowButtonSetActive(NSButton* _Nullable button, BOOL on);
+
 void DCStyleTable(NSTableView* table);
 NSScrollView* DCWrapTable(NSTableView* table);
 NSTableCellView* DCCenteredTextCell(NSTextField* field);

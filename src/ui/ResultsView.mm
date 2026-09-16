@@ -64,7 +64,12 @@ struct FlatRow {
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
 
-    _scanBtn = DCDefaultButton(@"Scan", self, @selector(startScan));
+    _scanBtn = [DCGlowButton defaultButtonWithTitle:@"Scan"
+                                             target:self
+                                             action:@selector(startScan)
+                                          glowColor:NSColor.controlAccentColor
+                                      glowLineWidth:2.5
+                                         clockwise:YES];
     _cleanBtn = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
     _cleanBtn.hidden = YES;
     _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
@@ -181,11 +186,13 @@ struct FlatRow {
   _state = 1;
   if (_startScreen && !_startScreen.hidden) {
     [_startScreen beginProgress];
+    DCGlowButtonSetActive(_startScreen.actionButton, YES);
   } else {
     NSButton* scan = [self activeScanButton];
     scan.title = @"Cancel";
     scan.keyEquivalent = @".";
     scan.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+    DCGlowButtonSetActive(scan, YES);
   }
   _cleanBtn.hidden = YES;
   _selAll.hidden = YES;
@@ -238,6 +245,8 @@ struct FlatRow {
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
   [_startScreen endProgress];
+  DCGlowButtonSetActive(_scanBtn, NO);
+  DCGlowButtonSetActive(_startScreen.actionButton, NO);
   [self showContent];
 }
 

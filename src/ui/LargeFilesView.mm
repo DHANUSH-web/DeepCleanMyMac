@@ -39,7 +39,12 @@ struct FlatRow {
         @"Large Files", [NSString stringWithUTF8String:ui::subtitle(ui::Module::LargeFiles)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    _scan = DCDefaultButton(@"Scan", self, @selector(startScan));
+    _scan = [DCGlowButton defaultButtonWithTitle:@"Scan"
+                                          target:self
+                                          action:@selector(startScan)
+                                       glowColor:NSColor.controlAccentColor
+                                   glowLineWidth:2.5
+                                      clockwise:YES];
     _clean = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
     _clean.hidden = YES;
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
@@ -141,6 +146,8 @@ struct FlatRow {
   if (!_scan.enabled) return;
   _status.stringValue = @"Scanning…";
   if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
+  DCGlowButtonSetActive(_scan, YES);
+  DCGlowButtonSetActive(_startScreen.actionButton, YES);
   [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCLargeFilesView* weakSelf = self;
@@ -157,6 +164,8 @@ struct FlatRow {
     [s rebuildRows];
     [s->_table reloadData];
     [s setScanEnabled:YES];
+    DCGlowButtonSetActive(s->_scan, NO);
+    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
     std::size_t n = 0;
     for (const auto& g : s->_groups) n += g.files.size();
     s->_status.stringValue =

@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #import <Quartz/Quartz.h>
+#import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
 
 NSNotificationName const DCSettingsDidChangeNotification = @"DCSettingsDidChangeNotification";
@@ -135,6 +136,176 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
   NSButton* b = MakePush(title, target, action);
   b.keyEquivalent = @"\r";
   return b;
+}
+
+@implementation DCGlowButton {
+  CAShapeLayer* _orbit;
+}
+
++ (instancetype)buttonWithTitle:(NSString*)title
+                         target:(id)target
+                         action:(SEL)action
+                      glowColor:(NSColor*)glowColor
+                  glowLineWidth:(CGFloat)glowLineWidth
+                     clockwise:(BOOL)clockwise {
+  DCGlowButton* b = [DCGlowButton buttonWithTitle:title ?: @"" target:target action:action];
+  b.bezelStyle = NSBezelStyleRounded;
+  b.controlSize = NSControlSizeRegular;
+  b.wantsLayer = YES;
+  b.layer.masksToBounds = NO;
+  b.glowColor = glowColor;
+  b.glowLineWidth = glowLineWidth;
+  b.clockwise = clockwise;
+  b.glowCornerRadius = 6;
+  b.glowInset = 1.5;
+  b.orbitPeriod = 1.1;
+  b.glowDashFraction = 0.18;
+  b.glowShadowRadius = 6;
+  b.borderWidth = 0;
+  return b;
+}
+
+- (void)applyTitleColor {
+  if (!_titleColor) return;
+  NSString* text = self.title ?: @"";
+  NSMutableAttributedString* s = [[NSMutableAttributedString alloc] initWithString:text];
+  NSRange r = NSMakeRange(0, s.length);
+  if (r.length == 0) return;
+  [s addAttribute:NSForegroundColorAttributeName value:_titleColor range:r];
+  if (self.font) [s addAttribute:NSFontAttributeName value:self.font range:r];
+  self.attributedTitle = s;
+}
+
+- (void)setTitle:(NSString*)title {
+  [super setTitle:title];
+  [self applyTitleColor];
+}
+
+- (void)setFont:(NSFont*)font {
+  [super setFont:font];
+  [self applyTitleColor];
+}
+
+- (void)setTitleColor:(NSColor*)titleColor {
+  _titleColor = titleColor;
+  [self applyTitleColor];
+}
+
+- (void)setButtonColor:(NSColor*)buttonColor {
+  _buttonColor = buttonColor;
+  self.bezelColor = buttonColor;
+}
+
+- (void)setBorderColor:(NSColor*)borderColor {
+  _borderColor = borderColor;
+  self.layer.borderColor = borderColor.CGColor;
+}
+
+- (void)setBorderWidth:(CGFloat)borderWidth {
+  _borderWidth = borderWidth;
+  self.layer.borderWidth = borderWidth;
+}
+
+- (void)setGlowColor:(NSColor*)glowColor {
+  _glowColor = glowColor;
+  if (_orbit) {
+    CGColorRef c = (glowColor ?: NSColor.controlAccentColor).CGColor;
+    _orbit.strokeColor = c;
+    _orbit.shadowColor = c;
+  }
+}
+
+- (void)setGlowLineWidth:(CGFloat)glowLineWidth {
+  _glowLineWidth = glowLineWidth;
+  if (_orbit) {
+    _orbit.lineWidth = glowLineWidth > 0 ? glowLineWidth : 2.5;
+    [self rebuildOrbit];
+  }
+}
+
++ (instancetype)defaultButtonWithTitle:(NSString*)title
+                                target:(id)target
+                                action:(SEL)action
+                             glowColor:(NSColor*)glowColor
+                         glowLineWidth:(CGFloat)glowLineWidth
+                            clockwise:(BOOL)clockwise {
+  DCGlowButton* b = [self buttonWithTitle:title
+                                   target:target
+                                   action:action
+                                glowColor:glowColor
+                            glowLineWidth:glowLineWidth
+                               clockwise:clockwise];
+  b.keyEquivalent = @"\r";
+  return b;
+}
+
+- (void)layout {
+  [super layout];
+  if (_orbit) [self rebuildOrbit];
+}
+
+- (void)rebuildOrbit {
+  if (!_orbit) return;
+  NSRect b = NSInsetRect(self.bounds, _glowInset, _glowInset);
+  CGFloat r = _glowCornerRadius;
+  CGFloat cap = MIN(NSWidth(b), NSHeight(b)) / 2;
+  if (r > cap) r = cap;
+  CGPathRef path = CGPathCreateWithRoundedRect(NSRectToCGRect(b), r, r, nil);
+  _orbit.path = path;
+  CGPathRelease(path);
+  const CGFloat peri = 2 * (NSWidth(b) + NSHeight(b));
+  CGFloat frac = _glowDashFraction;
+  if (frac < 0.02) frac = 0.02;
+  if (frac > 0.9) frac = 0.9;
+  const CGFloat dash = MAX(_glowLineWidth * 4, peri * frac);
+  _orbit.lineDashPattern = @[ @(dash), @(MAX(1, peri - dash)) ];
+}
+
+- (void)beginGlow {
+  if (_orbit) return;
+  [self layoutSubtreeIfNeeded];
+  NSColor* color = _glowColor ?: NSColor.controlAccentColor;
+  CGColorRef glow = color.CGColor;
+  _orbit = [CAShapeLayer layer];
+  _orbit.fillColor = nil;
+  _orbit.strokeColor = glow;
+  _orbit.lineWidth = _glowLineWidth > 0 ? _glowLineWidth : 2.5;
+  _orbit.lineCap = kCALineCapRound;
+  _orbit.shadowColor = glow;
+  _orbit.shadowRadius = _glowShadowRadius;
+  _orbit.shadowOpacity = 1;
+  _orbit.shadowOffset = CGSizeZero;
+  [self rebuildOrbit];
+  [self.layer addSublayer:_orbit];
+  const CGFloat peri = 2 * (NSWidth(self.bounds) + NSHeight(self.bounds));
+  CABasicAnimation* march = [CABasicAnimation animationWithKeyPath:@"lineDashPhase"];
+  const BOOL cw = _clockwise;
+  march.fromValue = cw ? @0 : @(peri);
+  march.toValue = cw ? @(peri) : @0;
+  march.duration = _orbitPeriod > 0 ? _orbitPeriod : 1.1;
+  march.repeatCount = HUGE_VALF;
+  march.removedOnCompletion = NO;
+  [_orbit addAnimation:march forKey:@"orbit"];
+}
+
+- (void)endGlow {
+  [_orbit removeFromSuperlayer];
+  _orbit = nil;
+}
+
+- (BOOL)isGlowing {
+  return _orbit != nil;
+}
+
+@end
+
+void DCGlowButtonSetActive(NSButton* button, BOOL on) {
+  if (![button isKindOfClass:[DCGlowButton class]]) return;
+  DCGlowButton* g = (DCGlowButton*)button;
+  if (on)
+    [g beginGlow];
+  else
+    [g endGlow];
 }
 
 NSButton* DCDestructiveButton(NSString* title, id target, SEL action) {
@@ -607,7 +778,12 @@ static char kDCHoverPopoverKey;
     _subtitleLabel.hidden = YES;
     _subtitleMaxW = [_subtitleLabel.widthAnchor constraintLessThanOrEqualToConstant:0];
 
-    _button = DCPushButton(@"", self, @selector(tap:));
+    _button = [DCGlowButton buttonWithTitle:@""
+                                     target:self
+                                     action:@selector(tap:)
+                                  glowColor:NSColor.controlAccentColor
+                              glowLineWidth:2.5
+                                 clockwise:YES];
     _button.wantsLayer = YES;
     _buttonMinW = [_button.widthAnchor constraintGreaterThanOrEqualToConstant:0];
 

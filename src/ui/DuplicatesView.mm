@@ -35,7 +35,12 @@
         @"Duplicates", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Duplicates)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    _scan = DCDefaultButton(@"Scan", self, @selector(startScan));
+    _scan = [DCGlowButton defaultButtonWithTitle:@"Scan"
+                                          target:self
+                                          action:@selector(startScan)
+                                       glowColor:NSColor.controlAccentColor
+                                   glowLineWidth:2.5
+                                      clockwise:YES];
     _clean = DCDestructiveButton(@"Move Copies to Trash", self, @selector(cleanSelected));
     _clean.hidden = YES;
     NSStackView* actions = DCTrailingButtons(@[ _clean, _scan ]);
@@ -134,6 +139,8 @@
   if (!_scan.enabled) return;
   _status.stringValue = @"Hashing…";
   if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
+  DCGlowButtonSetActive(_scan, YES);
+  DCGlowButtonSetActive(_startScreen.actionButton, YES);
   [self setScanEnabled:NO];
   _clean.hidden = YES;
   __weak DCDuplicatesView* weakSelf = self;
@@ -150,6 +157,8 @@
     [s rebuild];
     [s->_table reloadData];
     [s setScanEnabled:YES];
+    DCGlowButtonSetActive(s->_scan, NO);
+    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
     [s refreshCleanTitle];

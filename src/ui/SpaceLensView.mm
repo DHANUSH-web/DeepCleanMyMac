@@ -81,7 +81,12 @@
         @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    _scan = DCDefaultButton(@"Analyze", self, @selector(startScan));
+    _scan = [DCGlowButton defaultButtonWithTitle:@"Analyze"
+                                          target:self
+                                          action:@selector(startScan)
+                                       glowColor:NSColor.controlAccentColor
+                                   glowLineWidth:2.5
+                                      clockwise:YES];
     _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
     _selAll.enabled = NO;
     _clean = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
@@ -180,6 +185,8 @@
   if (!_scan.enabled) return;
   _status.stringValue = @"Measuring…";
   if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
+  DCGlowButtonSetActive(_scan, YES);
+  DCGlowButtonSetActive(_startScreen.actionButton, YES);
   [self setScanEnabled:NO];
   __weak DCSpaceLensView* weakSelf = self;
   __block std::vector<dcmm::SpaceNode> n;
@@ -202,6 +209,8 @@
     [s->_outline reloadData];
     [s fitOutlineColumns];
     [s setScanEnabled:YES];
+    DCGlowButtonSetActive(s->_scan, NO);
+    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
     [s refreshClean];

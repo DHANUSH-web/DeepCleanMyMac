@@ -44,8 +44,9 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   dcmm::Engine _engine;
   NSMutableArray<DCDevRow*>* _roots;
   NSOutlineView* _outline;
-  NSButton* _clean;
-  NSButton* _scanApps;
+  DCGlowButton* _clean;
+  DCGlowButton* _scanApps;
+  BOOL _scanning;
   NSStackView* _actions;
   NSSegmentedControl* _tabs;
   NSView* _tableWrap;
@@ -59,8 +60,21 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   if (self) {
     _roots = [NSMutableArray array];
     NSStackView* page = DCPageStack(self);
-    _scanApps = DCPushButton(@"Scan Applications", self, @selector(reload));
-    _clean = DCDestructiveButton(DCNS(ui::cleanButtonTitle(DCCleanPref())), self, @selector(cleanSelected));
+    _scanApps = [DCGlowButton buttonWithTitle:@"Scan Applications"
+                                       target:self
+                                       action:@selector(reload)
+                                    glowColor:NSColor.controlAccentColor
+                                glowLineWidth:2.5
+                                   clockwise:YES];
+    _clean = [DCGlowButton buttonWithTitle:DCNS(ui::cleanButtonTitle(DCCleanPref()))
+                                    target:self
+                                    action:@selector(cleanSelected)
+                                 glowColor:NSColor.systemRedColor
+                             glowLineWidth:2.5
+                                clockwise:YES];
+    _clean.buttonColor = NSColor.systemRedColor;
+    _clean.titleColor = NSColor.whiteColor;
+    _clean.hasDestructiveAction = YES;
     _clean.hidden = YES;
     _actions = DCTrailingButtons(@[ _scanApps, _clean ]);
 
@@ -149,7 +163,9 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
 }
 
 - (void)reload {
-  _scanApps.enabled = NO;
+  if (_scanning) return;
+  _scanning = YES;
+  [_scanApps beginGlow];
   __weak DCDevCornerView* weakSelf = self;
   __block std::vector<dcmm::VsCodeInstall> installs;
   DCRunBackground(&_job, ^{
@@ -182,7 +198,9 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
     }
     [s->_outline reloadData];
     for (DCDevRow* app in s->_roots) [s->_outline expandItem:app];
+    [s->_scanApps endGlow];
     s->_scanApps.enabled = YES;
+    s->_scanning = NO;
     [s refreshClean];
   });
 }
@@ -252,8 +270,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   [self sumSelected:_roots bytes:&bytes];
   if (!DCConfirmSpaceLensClean(list, bytes)) return;
   const auto mode = DCCleanPref();
-  _clean.hidden = YES;
-  _scanApps.enabled = NO;
+  [_clean beginGlow];
   __weak DCDevCornerView* weakSelf = self;
   __block dcmm::CleanResult r;
   DCRunBackground(&_job, ^{
@@ -263,6 +280,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
   }, ^{
     DCDevCornerView* s = weakSelf;
     if (!s) return;
+    [s->_clean endGlow];
     if (r.trashedItems == 0)
       DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
     else
