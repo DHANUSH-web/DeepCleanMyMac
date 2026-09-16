@@ -11,6 +11,7 @@ enum class Module : int {
   Uninstaller,
   Privacy,
   SpaceLens,
+  DevCorner,
   Maintenance,
   Settings,
   Count
@@ -26,6 +27,7 @@ inline const char* title(Module m) {
     case Module::Uninstaller: return "Uninstaller";
     case Module::Privacy: return "Privacy";
     case Module::SpaceLens: return "Space Lens";
+    case Module::DevCorner: return "Dev Corner";
     case Module::Maintenance: return "Maintenance";
     case Module::Settings: return "Settings";
     default: return "";
@@ -43,6 +45,7 @@ inline const char* subtitle(Module m) {
     case Module::Uninstaller: return "Uninstall multiple apps and their leftover files at once";
     case Module::Privacy: return "Browser traces and tracking leftovers";
     case Module::SpaceLens: return "Find all the heavy items, including hidden files and folders";
+    case Module::DevCorner: return "Clean developer tools, toolchains and caches";
     case Module::Maintenance: return "Some more tools for your MacBook";
     case Module::Settings: return "Manage DCMM appearance and behaviour";
     default: return "";

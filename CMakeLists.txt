@@ -38,6 +38,7 @@ set(UI_SOURCES
   src/ui/LargeFilesView.mm
   src/ui/UninstallerView.mm
   src/ui/SpaceLensView.mm
+  src/ui/DevCornerView.mm
   src/ui/MaintenanceView.mm
   src/ui/SettingsView.mm
   src/ui/MainWindowController.mm

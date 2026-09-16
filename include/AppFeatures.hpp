@@ -23,6 +23,7 @@ inline const char* sidebarSymbol(Module m) {
     case Module::Uninstaller: return "trash.fill";
     case Module::Privacy:     return "hand.raised.fill";
     case Module::SpaceLens:   return "binoculars.fill";
+    case Module::DevCorner:   return "chevron.left.forwardslash.chevron.right";
     case Module::Maintenance: return "bolt.fill";
     case Module::Settings:    return "gear";
     default:                  return "questionmark.circle.fill";
@@ -36,7 +37,7 @@ struct DashboardTool {
   const char* subtitle;
 };
 
-inline std::array<DashboardTool, 8> dashboardTools() {
+inline std::array<DashboardTool, 9> dashboardTools() {
   return {{
       {Module::SmartScan, sidebarSymbol(Module::SmartScan), "Smart Scan",
        "Recommended caches and logs. Clean whole groups, not individual files."},
@@ -52,6 +53,8 @@ inline std::array<DashboardTool, 8> dashboardTools() {
        "Browser caches and tracking leftovers you choose."},
       {Module::SpaceLens, sidebarSymbol(Module::SpaceLens), "Space Lens",
         "Find all hidden heavy items in your MacBook."},
+      {Module::DevCorner, sidebarSymbol(Module::DevCorner), "Dev Corner",
+       "Clean VS Code, toolchains and other developer leftovers."},
       {Module::Maintenance, sidebarSymbol(Module::Maintenance), "Maintenance",
        "Empty Trash, flush DNS, rebuild Launch Services."},
   }};

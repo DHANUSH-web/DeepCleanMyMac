@@ -1,5 +1,6 @@
 #import "ui/MainWindowController.h"
 #import "ui/DashboardView.h"
+#import "ui/DevCornerView.h"
 #import "ui/DuplicatesView.h"
 #import "ui/LargeFilesView.h"
 #import "ui/MaintenanceView.h"
@@ -94,6 +95,7 @@ constexpr CGFloat kWindowMinHeight = 520;
                title:@"Privacy"
             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::Privacy)]];
     _pages[@((int)ui::Module::SpaceLens)] = [[DCSpaceLensView alloc] initWithFrame:NSZeroRect];
+    _pages[@((int)ui::Module::DevCorner)] = [[DCDevCornerView alloc] initWithFrame:NSZeroRect];
     _pages[@((int)ui::Module::Maintenance)] = [[DCMaintenanceView alloc] initWithFrame:NSZeroRect];
     _pages[@((int)ui::Module::Settings)] = [[DCSettingsView alloc] initWithFrame:NSZeroRect];
 

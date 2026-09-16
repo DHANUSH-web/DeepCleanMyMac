@@ -14,9 +14,10 @@ TEST(Modules, CountAndOrder) {
   EXPECT_EQ(static_cast<int>(ui::Module::Uninstaller), 5);
   EXPECT_EQ(static_cast<int>(ui::Module::Privacy), 6);
   EXPECT_EQ(static_cast<int>(ui::Module::SpaceLens), 7);
-  EXPECT_EQ(static_cast<int>(ui::Module::Maintenance), 8);
-  EXPECT_EQ(static_cast<int>(ui::Module::Settings), 9);
-  EXPECT_EQ(static_cast<int>(ui::Module::Count), 10);
+  EXPECT_EQ(static_cast<int>(ui::Module::DevCorner), 8);
+  EXPECT_EQ(static_cast<int>(ui::Module::Maintenance), 9);
+  EXPECT_EQ(static_cast<int>(ui::Module::Settings), 10);
+  EXPECT_EQ(static_cast<int>(ui::Module::Count), 11);
 }
 
 TEST(Modules, EveryPageHasTitleAndSubtitle) {
@@ -42,6 +43,7 @@ TEST(Modules, Titles) {
   EXPECT_STREQ(ui::title(ui::Module::Uninstaller), "Uninstaller");
   EXPECT_STREQ(ui::title(ui::Module::Privacy), "Privacy");
   EXPECT_STREQ(ui::title(ui::Module::SpaceLens), "Space Lens");
+  EXPECT_STREQ(ui::title(ui::Module::DevCorner), "Dev Corner");
   EXPECT_STREQ(ui::title(ui::Module::Maintenance), "Maintenance");
   EXPECT_STREQ(ui::title(ui::Module::Settings), "Settings");
 }
@@ -57,6 +59,7 @@ TEST(Modules, Subtitles) {
   EXPECT_STREQ(ui::subtitle(ui::Module::Privacy), "Browser traces and tracking leftovers");
   EXPECT_STREQ(ui::subtitle(ui::Module::SpaceLens),
                "Find all the heavy items, including hidden files and folders");
+  EXPECT_STREQ(ui::subtitle(ui::Module::DevCorner), "Clean developer tools, toolchains and caches");
   EXPECT_STREQ(ui::subtitle(ui::Module::Maintenance), "Some more tools for your MacBook");
   EXPECT_STREQ(ui::subtitle(ui::Module::Settings), "Manage DCMM appearance and behaviour");
 }

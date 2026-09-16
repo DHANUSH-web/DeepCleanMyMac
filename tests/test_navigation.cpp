@@ -13,7 +13,7 @@ TEST(Navigation, SidebarHasASymbolPerModule) {
 
 TEST(Navigation, DashboardToolsAreASubsetOfSidebar) {
   auto tools = ui::dashboardTools();
-  EXPECT_EQ(tools.size(), 8u);
+  EXPECT_EQ(tools.size(), 9u);
   std::set<int> seen;
   for (const auto& t : tools) {
     EXPECT_GE(static_cast<int>(t.module), 0);
@@ -34,6 +34,7 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
   hasUninstaller    = false,
   hasPrivacy        = false,
   hasSpaceLens      = false,
+  hasDevCorner      = false,
   hasMyMac          = false,
   hasSettings       = false,
   hasMaintenance    = false;
@@ -54,6 +55,8 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
       hasPrivacy = true;
     else if (t.module == ui::Module::SpaceLens)
       hasSpaceLens = true;
+    else if (t.module == ui::Module::DevCorner)
+      hasDevCorner = true;
     else if (t.module == ui::Module::Maintenance)
       hasMaintenance = true;
     else if (t.module == ui::Module::Settings)
@@ -69,6 +72,7 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
   EXPECT_TRUE(hasUninstaller);
   EXPECT_TRUE(hasPrivacy);
   EXPECT_TRUE(hasSpaceLens);
+  EXPECT_TRUE(hasDevCorner);
   EXPECT_TRUE(hasMaintenance);
   EXPECT_FALSE(hasMyMac);
   EXPECT_FALSE(hasSettings);
