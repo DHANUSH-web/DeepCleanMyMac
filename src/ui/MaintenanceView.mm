@@ -60,6 +60,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   dcmm::Engine _engine;
   uint64_t _job;
   BOOL _busy;
+  NSMutableArray<DCGlowButton*>* _runButtons;
 }
 
 - (NSView*)cardForTask:(const dcmm::MaintenanceTask&)task index:(NSInteger)index {
@@ -87,12 +88,18 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   [text setContentCompressionResistancePriority:1
                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-  NSButton* run = DCPushButton(@"Execute", self, @selector(runTask:));
+  DCGlowButton* run = [DCGlowButton defaultButtonWithTitle:@"Execute"
+                                                    target:self
+                                                    action:@selector(runTask:)
+                                                 glowColor:NSColor.controlAccentColor
+                                             glowLineWidth:2.5
+                                                clockwise:YES];
   run.tag = index;
   [run setContentHuggingPriority:NSLayoutPriorityRequired
                   forOrientation:NSLayoutConstraintOrientationHorizontal];
   [run setContentCompressionResistancePriority:NSLayoutPriorityRequired
                                 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [_runButtons addObject:run];
 
   NSView* spacer = [[NSView alloc] initWithFrame:NSZeroRect];
   [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -128,6 +135,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
 
+    _runButtons = [NSMutableArray array];
     auto tasks = _engine.maintenanceTasks();
     NSMutableArray<NSView*>* cards = [NSMutableArray array];
     for (size_t i = 0; i < tasks.size(); ++i) {
@@ -153,6 +161,16 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   return self;
 }
 
+- (void)setRunButtonsEnabled:(BOOL)on {
+  for (DCGlowButton* b in _runButtons) b.enabled = on;
+}
+
+- (void)finishTask:(NSButton*)sender {
+  _busy = NO;
+  DCGlowButtonSetActive(sender, NO);
+  [self setRunButtonsEnabled:YES];
+}
+
 - (void)runTask:(NSButton*)sender {
   if (_busy) return;
   auto tasks = _engine.maintenanceTasks();
@@ -161,7 +179,8 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   const std::string id = task.id;
   ConfirmCopy c = ConfirmForTask(id, task);
   _busy = YES;
-  sender.enabled = NO;
+  [self setRunButtonsEnabled:NO];
+  DCGlowButtonSetActive(sender, YES);
   __weak DCMaintenanceView* weakSelf = self;
   __block dcmm::MaintenanceResult preview;
   DCRunBackground(&_job, ^{
@@ -172,11 +191,11 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
     DCMaintenanceView* s = weakSelf;
     if (!s) {
       sender.enabled = YES;
+      DCGlowButtonSetActive(sender, NO);
       return;
     }
     if (preview.nothingToDo) {
-      s->_busy = NO;
-      sender.enabled = YES;
+      [s finishTask:sender];
       DCInformNothingToClean(DCNS(preview.message));
       return;
     }
@@ -186,8 +205,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
                                              DCNS(dcmm::formatBytes(preview.bytesFreed))];
     }
     if (!DCConfirmDestructive(copy.title, copy.body, copy.proceed)) {
-      s->_busy = NO;
-      sender.enabled = YES;
+      [s finishTask:sender];
       return;
     }
     __block dcmm::MaintenanceResult result;
@@ -197,8 +215,11 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
       result = st->_engine.runMaintenance(id);
     }, ^{
       DCMaintenanceView* st = weakSelf;
-      if (st) st->_busy = NO;
-      sender.enabled = YES;
+      if (st) [st finishTask:sender];
+      else {
+        sender.enabled = YES;
+        DCGlowButtonSetActive(sender, NO);
+      }
       if (!st) return;
       if (result.nothingToDo) {
         DCInformNothingToClean(DCNS(result.message));
