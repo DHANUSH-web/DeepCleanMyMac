@@ -16,7 +16,7 @@
     bool selected = false;
   };
   std::vector<AppRow> _apps;
-  NSButton* _reload;
+  DCGlowButton* _reload;
   NSButton* _selAll;
   NSButton* _remove;
   NSTextField* _status;
@@ -33,7 +33,12 @@
         @"Uninstaller", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Uninstaller)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    _reload = DCPushButton(@"Refresh", self, @selector(reloadApps));
+    _reload = [DCGlowButton defaultButtonWithTitle:@"Refresh"
+                                            target:self
+                                            action:@selector(reloadApps)
+                                         glowColor:NSColor.controlAccentColor
+                                     glowLineWidth:2.5
+                                        clockwise:YES];
     _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
     _remove = DCDestructiveButton(@"Uninstall", self, @selector(uninstall));
     _remove.hidden = YES;
@@ -81,6 +86,7 @@
 - (void)reloadApps {
   _status.stringValue = @"Listing applications…";
   _reload.enabled = NO;
+  [_reload beginGlow];
   _remove.hidden = YES;
   __weak DCUninstallerView* weakSelf = self;
   __block std::vector<dcmm::InstalledApp> apps;
@@ -96,6 +102,7 @@
     for (auto& a : apps) s->_apps.push_back({std::move(a), false});
     [s->_appsTable reloadData];
     s->_status.stringValue = [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
+    [s->_reload endGlow];
     s->_reload.enabled = YES;
     [s refreshUninstall];
   });
