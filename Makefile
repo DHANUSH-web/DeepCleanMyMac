@@ -60,6 +60,11 @@ run: build
 
 open: run
 
+install: build
+	@echo "Installing $(APP) to /Applications"
+	@rm -rf /Applications/DeepCleanMyMac.app
+	@mv $(APP) /Applications && echo "Successfully installed $(APP) to /Applications"
+
 relaunch: build
 	-pkill -x DeepCleanMyMac
 	open "$(APP)"
@@ -88,6 +93,8 @@ help:
 	@echo "  make run             build and open DeepCleanMyMac.app"
 	@echo "  make run release     same, release preset"
 	@echo "  make relaunch        pkill + open (after UI changes)"
+	@echo "  make install         Install DeepCleanMyMac to /Applications (debug)"
+	@echo "  make install release Install DeepCleanMyMac to /Applications (release)"
 	@echo "  make clean           remove build/"
 	@echo "  make clean debug     remove build/debug"
 	@echo "  make init            clone/update extras/dcmmlib from GitHub main"
