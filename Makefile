@@ -97,6 +97,7 @@ help:
 	@echo "  make install release Install DeepCleanMyMac to /Applications (release)"
 	@echo "  make clean           remove build/"
 	@echo "  make clean debug     remove build/debug"
+	@echo "  make clean release   remove build/release"
 	@echo "  make init            clone/update extras/dcmmlib from GitHub main"
 	@echo "  make icon            rebuild AppIcon.icns from resources/app-icon.png"
 	@echo
