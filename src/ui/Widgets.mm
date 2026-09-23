@@ -129,14 +129,22 @@ static void DCApplySystemPushBezel(NSButton* b) {
   } else {
     b.bezelStyle = NSBezelStylePush;
   }
-  b.wantsLayer = YES;
 }
 
-static void DCApplyPillShape(NSButton* b) {
-  if (!b.layer) return;
-  CGFloat r = NSHeight(b.bounds) / 2;
-  b.layer.cornerRadius = r;
-  b.layer.cornerCurve = kCACornerCurveContinuous;
+static BOOL DCNativePillBezel(void) {
+  if (@available(macOS 26.0, *)) return YES;
+  return NO;
+}
+
+// AppKit Glass on 26+ is not a capsule. Clip the native bezel to a pill on 26+ only.
+static void DCClipToCapsuleOn26(NSButton* b) {
+  if (@available(macOS 26.0, *)) {
+    b.wantsLayer = YES;
+    CGFloat r = NSHeight(b.bounds) / 2;
+    b.layer.cornerRadius = r;
+    b.layer.cornerCurve = kCACornerCurveContinuous;
+    b.layer.masksToBounds = YES;
+  }
 }
 
 @interface DCSystemPushButton : NSButton
@@ -144,7 +152,7 @@ static void DCApplyPillShape(NSButton* b) {
 @implementation DCSystemPushButton
 - (void)layout {
   [super layout];
-  DCApplyPillShape(self);
+  DCClipToCapsuleOn26(self);
 }
 @end
 
@@ -165,7 +173,17 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
   return b;
 }
 
+@interface DCGlowOrbitHost : NSView
+@end
+@implementation DCGlowOrbitHost
+- (NSView*)hitTest:(NSPoint)point {
+  (void)point;
+  return nil;
+}
+@end
+
 @implementation DCGlowButton {
+  DCGlowOrbitHost* _orbitHost;
   CAShapeLayer* _orbit;
 }
 
@@ -178,13 +196,11 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
   DCGlowButton* b = [DCGlowButton buttonWithTitle:title ?: @"" target:target action:action];
   DCApplySystemPushBezel(b);
   b.controlSize = NSControlSizeRegular;
-  b.wantsLayer = YES;
-  b.layer.masksToBounds = NO;
   b.glowColor = glowColor;
   b.glowLineWidth = glowLineWidth;
   b.clockwise = clockwise;
   b.glowCornerRadius = 6;
-  b.fullyRounded = YES;
+  b.fullyRounded = DCNativePillBezel();
   b.glowInset = 1.5;
   b.orbitPeriod = 1.1;
   b.glowDashFraction = 0.18;
@@ -226,12 +242,13 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
 
 - (void)setBorderColor:(NSColor*)borderColor {
   _borderColor = borderColor;
-  self.layer.borderColor = borderColor.CGColor;
+  if (self.wantsLayer) self.layer.borderColor = borderColor.CGColor;
 }
 
 - (void)setBorderWidth:(CGFloat)borderWidth {
   _borderWidth = borderWidth;
-  self.layer.borderWidth = borderWidth;
+  if (borderWidth > 0) self.wantsLayer = YES;
+  if (self.wantsLayer) self.layer.borderWidth = borderWidth;
 }
 
 - (void)setGlowColor:(NSColor*)glowColor {
@@ -269,10 +286,9 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
 
 - (void)layout {
   [super layout];
-  if (_fullyRounded) {
-    DCApplyPillShape(self);
-    _glowCornerRadius = NSHeight(self.bounds) / 2;
-  }
+  DCClipToCapsuleOn26(self);
+  if (_fullyRounded) _glowCornerRadius = NSHeight(self.bounds) / 2;
+  _orbitHost.frame = self.bounds;
   if (_orbit) [self rebuildOrbit];
 }
 
@@ -301,6 +317,14 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
 - (void)beginGlow {
   if (_orbit) return;
   [self layoutSubtreeIfNeeded];
+  if (!_orbitHost) {
+    _orbitHost = [[DCGlowOrbitHost alloc] initWithFrame:self.bounds];
+    _orbitHost.wantsLayer = YES;
+    _orbitHost.layer.masksToBounds = NO;
+    _orbitHost.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    [self addSubview:_orbitHost];
+  }
+  _orbitHost.frame = self.bounds;
   NSColor* color = _glowColor ?: NSColor.controlAccentColor;
   CGColorRef glow = color.CGColor;
   _orbit = [CAShapeLayer layer];
@@ -313,7 +337,7 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
   _orbit.shadowOpacity = 1;
   _orbit.shadowOffset = CGSizeZero;
   [self rebuildOrbit];
-  [self.layer addSublayer:_orbit];
+  [_orbitHost.layer addSublayer:_orbit];
   const CGFloat peri = 2 * (NSWidth(self.bounds) + NSHeight(self.bounds));
   CABasicAnimation* march = [CABasicAnimation animationWithKeyPath:@"lineDashPhase"];
   const BOOL cw = _clockwise;
@@ -328,6 +352,8 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
 - (void)endGlow {
   [_orbit removeFromSuperlayer];
   _orbit = nil;
+  [_orbitHost removeFromSuperview];
+  _orbitHost = nil;
 }
 
 - (BOOL)isGlowing {
@@ -818,7 +844,7 @@ static char kDCHoverPopoverKey;
                                   glowColor:NSColor.controlAccentColor
                               glowLineWidth:2.5
                                  clockwise:YES];
-    _button.fullyRounded = YES;
+    _button.fullyRounded = DCNativePillBezel();
     _buttonMinW = [_button.widthAnchor constraintGreaterThanOrEqualToConstant:0];
 
     _cluster = [NSStackView stackViewWithViews:@[ _iconView, _titleLabel, _subtitleLabel, _button ]];
