@@ -121,9 +121,36 @@ NSTextField* DCTitleLabel(NSString* text) {
   return t;
 }
 
+static void DCApplySystemPushBezel(NSButton* b) {
+  if (@available(macOS 26.0, *)) {
+    b.bezelStyle = NSBezelStyleGlass;
+  } else if (@available(macOS 14.0, *)) {
+    b.bezelStyle = NSBezelStyleAutomatic;
+  } else {
+    b.bezelStyle = NSBezelStylePush;
+  }
+  b.wantsLayer = YES;
+}
+
+static void DCApplyPillShape(NSButton* b) {
+  if (!b.layer) return;
+  CGFloat r = NSHeight(b.bounds) / 2;
+  b.layer.cornerRadius = r;
+  b.layer.cornerCurve = kCACornerCurveContinuous;
+}
+
+@interface DCSystemPushButton : NSButton
+@end
+@implementation DCSystemPushButton
+- (void)layout {
+  [super layout];
+  DCApplyPillShape(self);
+}
+@end
+
 static NSButton* MakePush(NSString* title, id target, SEL action) {
-  NSButton* b = [NSButton buttonWithTitle:title ?: @"" target:target action:action];
-  b.bezelStyle = NSBezelStyleRounded;
+  NSButton* b = [DCSystemPushButton buttonWithTitle:title ?: @"" target:target action:action];
+  DCApplySystemPushBezel(b);
   b.controlSize = NSControlSizeRegular;
   return b;
 }
@@ -149,7 +176,7 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
                   glowLineWidth:(CGFloat)glowLineWidth
                      clockwise:(BOOL)clockwise {
   DCGlowButton* b = [DCGlowButton buttonWithTitle:title ?: @"" target:target action:action];
-  b.bezelStyle = NSBezelStyleRounded;
+  DCApplySystemPushBezel(b);
   b.controlSize = NSControlSizeRegular;
   b.wantsLayer = YES;
   b.layer.masksToBounds = NO;
@@ -157,6 +184,7 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
   b.glowLineWidth = glowLineWidth;
   b.clockwise = clockwise;
   b.glowCornerRadius = 6;
+  b.fullyRounded = YES;
   b.glowInset = 1.5;
   b.orbitPeriod = 1.1;
   b.glowDashFraction = 0.18;
@@ -242,9 +270,8 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
 - (void)layout {
   [super layout];
   if (_fullyRounded) {
-    CGFloat r = NSHeight(self.bounds) / 2;
-    self.layer.cornerRadius = r;
-    _glowCornerRadius = r;
+    DCApplyPillShape(self);
+    _glowCornerRadius = NSHeight(self.bounds) / 2;
   }
   if (_orbit) [self rebuildOrbit];
 }
