@@ -716,14 +716,13 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   });
 }
 
-- (void)refreshClean {
-  std::vector<std::string> paths;
-  [self collectSelected:_roots into:paths];
-  uint64_t bytes = 0;
-  [self sumSelected:_roots bytes:&bytes];
-  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), bytes));
-  _clean.hidden = paths.empty();
-  _actions.hidden = ![self applicationTabSelected];
+- (DCDevRow*)findRow:(NSString*)path in:(NSArray<DCDevRow*>*)rows {
+  for (DCDevRow* r in rows) {
+    if (r.path.length && [r.path isEqualToString:path]) return r;
+    DCDevRow* hit = [self findRow:path in:r.children];
+    if (hit) return hit;
+  }
+  return nil;
 }
 
 - (void)collectSelected:(NSArray<DCDevRow*>*)rows into:(std::vector<std::string>&)out {
@@ -734,17 +733,39 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   }
 }
 
-- (void)cleanSelected {
+- (std::vector<std::string>)selectedCleanPaths {
   std::vector<std::string> paths;
   [self collectSelected:_roots into:paths];
+  ui::pruneNestedSpaceLensPaths(paths);
+  return paths;
+}
+
+- (uint64_t)bytesForPaths:(const std::vector<std::string>&)paths {
+  uint64_t n = 0;
+  for (const auto& p : paths) {
+    DCDevRow* row = [self findRow:DCNS(p) in:_roots];
+    if (row) n += row.bytes;
+  }
+  return n;
+}
+
+- (void)refreshClean {
+  std::vector<std::string> paths = [self selectedCleanPaths];
+  uint64_t bytes = [self bytesForPaths:paths];
+  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), bytes));
+  _clean.hidden = paths.empty();
+  _actions.hidden = ![self applicationTabSelected];
+}
+
+- (void)cleanSelected {
+  std::vector<std::string> paths = [self selectedCleanPaths];
   if (paths.empty()) {
     DCInformNothingToClean(@"Check the items you want to remove.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray array];
-  uint64_t bytes = 0;
   for (const auto& p : paths) [list addObject:DCNS(p)];
-  [self sumSelected:_roots bytes:&bytes];
+  uint64_t bytes = [self bytesForPaths:paths];
   if (!DCConfirmSpaceLensClean(list, bytes)) return;
   const auto mode = DCCleanPref();
   _clean.enabled = NO;
@@ -766,13 +787,6 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
       DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
     [s reload];
   });
-}
-
-- (void)sumSelected:(NSArray<DCDevRow*>*)rows bytes:(uint64_t*)n {
-  for (DCDevRow* r in rows) {
-    if (r.selected && r.kind != DCDevKindApp) *n += r.bytes;
-    [self sumSelected:r.children bytes:n];
-  }
 }
 
 - (void)setUninstallEnabled:(BOOL)on {
