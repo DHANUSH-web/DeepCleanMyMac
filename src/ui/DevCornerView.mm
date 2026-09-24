@@ -337,7 +337,7 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
 
       _extScroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
       _extScroll.drawsBackground = NO;
-      _extScroll.hasHorizontalScroller = YES;
+      _extScroll.hasHorizontalScroller = NO;
       _extScroll.hasVerticalScroller = NO;
       _extScroll.autohidesScrollers = YES;
       _extScroll.borderType = NSNoBorder;
@@ -478,6 +478,7 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
     _roots = [NSMutableArray array];
     _cards = [NSMutableArray array];
     NSStackView* page = DCPageStack(self);
+    page.edgeInsets = NSEdgeInsetsMake(24, 0, 24, 0);
     _scanApps = [DCGlowButton defaultButtonWithTitle:@"Scan Applications"
                                               target:self
                                               action:@selector(reload)
@@ -495,6 +496,7 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
     _clean.hasDestructiveAction = YES;
     _clean.hidden = YES;
     _actions = DCTrailingButtons(@[ _scanApps, _clean ]);
+    _actions.edgeInsets = NSEdgeInsetsMake(0, 28, 0, 28);
 
     _appsScroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
     _appsScroll.drawsBackground = NO;
