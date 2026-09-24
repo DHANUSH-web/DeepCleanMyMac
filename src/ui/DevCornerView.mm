@@ -14,6 +14,11 @@ static char kDCDevUninstallRowKey;
 static char kDCDevCheckRowKey;
 
 typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKindExtension };
+typedef NS_ENUM(NSInteger, DCDevFamily) {
+  DCDevFamilyVsCode,
+  DCDevFamilyCursor,
+  DCDevFamilyAntigravity
+};
 
 @interface DCDevRow : NSObject
 @property(nonatomic) DCDevKind kind;
@@ -23,7 +28,7 @@ typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKind
 @property(nonatomic, copy) NSString* iconPath;
 @property(nonatomic) uint64_t bytes;
 @property(nonatomic) dcmm::VsCodeEdition edition;
-@property(nonatomic) BOOL cursorApp;
+@property(nonatomic) DCDevFamily family;
 @property(nonatomic) BOOL extensions;
 @property(nonatomic) BOOL selected;
 @property(nonatomic) BOOL loaded;
@@ -606,7 +611,7 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   DCDevRow* row = [card extensionsFolder];
   if (!row || row.loaded || row.loading) return;
   row.loading = YES;
-  const BOOL cursor = card.appRow.cursorApp;
+  const DCDevFamily family = card.appRow.family;
   dcmm::VsCodeEdition edition = card.appRow.edition;
   __weak DCDevCornerView* weakSelf = self;
   __weak DCDevRow* weakRow = row;
@@ -616,8 +621,11 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCDevCornerView* strong = weakSelf;
     if (!strong) return;
-    if (cursor) {
+    if (family == DCDevFamilyCursor) {
       for (auto& e : strong->_engine.listCursorExtensions())
+        exts.emplace_back(e.name, e.path, e.iconPath, e.bytes);
+    } else if (family == DCDevFamilyAntigravity) {
+      for (auto& e : strong->_engine.listAntigravityExtensions())
         exts.emplace_back(e.name, e.path, e.iconPath, e.bytes);
     } else {
       for (auto& e : strong->_engine.listVsCodeExtensions(edition))
@@ -655,11 +663,13 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   __weak DCDevCornerView* weakSelf = self;
   __block std::vector<dcmm::VsCodeInstall> vscode;
   __block std::vector<dcmm::CursorInstall> cursor;
+  __block std::vector<dcmm::AntigravityInstall> antigravity;
   DCRunBackground(&_job, ^{
     DCDevCornerView* strong = weakSelf;
     if (!strong) return;
     vscode = strong->_engine.listVsCode();
     cursor = strong->_engine.listCursor();
+    antigravity = strong->_engine.listAntigravity();
   }, ^{
     DCDevCornerView* s = weakSelf;
     if (!s) return;
@@ -671,7 +681,7 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
       app.appPath = DCNS(inst.appPath);
       app.bytes = inst.bytes;
       app.edition = inst.edition;
-      app.cursorApp = NO;
+      app.family = DCDevFamilyVsCode;
       for (auto& it : inst.items) {
         DCDevRow* child = [[DCDevRow alloc] init];
         child.kind = DCDevKindFolder;
@@ -679,7 +689,7 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
         child.path = DCNS(it.path);
         child.bytes = it.bytes;
         child.edition = inst.edition;
-        child.cursorApp = NO;
+        child.family = DCDevFamilyVsCode;
         child.extensions = it.extensions;
         child.loaded = !it.extensions;
         child.parent = app;
@@ -693,14 +703,35 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
       app.title = DCNS(inst.displayName);
       app.appPath = DCNS(inst.appPath);
       app.bytes = inst.bytes;
-      app.cursorApp = YES;
+      app.family = DCDevFamilyCursor;
       for (auto& it : inst.items) {
         DCDevRow* child = [[DCDevRow alloc] init];
         child.kind = DCDevKindFolder;
         child.title = DCNS(it.label);
         child.path = DCNS(it.path);
         child.bytes = it.bytes;
-        child.cursorApp = YES;
+        child.family = DCDevFamilyCursor;
+        child.extensions = it.extensions;
+        child.loaded = !it.extensions;
+        child.parent = app;
+        [app.children addObject:child];
+      }
+      [s->_roots addObject:app];
+    }
+    for (auto& inst : antigravity) {
+      DCDevRow* app = [[DCDevRow alloc] init];
+      app.kind = DCDevKindApp;
+      app.title = DCNS(inst.displayName);
+      app.appPath = DCNS(inst.appPath);
+      app.bytes = inst.bytes;
+      app.family = DCDevFamilyAntigravity;
+      for (auto& it : inst.items) {
+        DCDevRow* child = [[DCDevRow alloc] init];
+        child.kind = DCDevKindFolder;
+        child.title = DCNS(it.label);
+        child.path = DCNS(it.path);
+        child.bytes = it.bytes;
+        child.family = DCDevFamilyAntigravity;
         child.extensions = it.extensions;
         child.loaded = !it.extensions;
         child.parent = app;
@@ -797,8 +828,13 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   if (_uninstalling) return;
   DCDevRow* row = objc_getAssociatedObject(sender, &kDCDevUninstallRowKey);
   if (!row || row.kind != DCDevKindApp) return;
-  std::vector<std::string> paths =
-      row.cursorApp ? dcmm::cursorNukePaths() : dcmm::vsCodeNukePaths(row.edition);
+  std::vector<std::string> paths;
+  if (row.family == DCDevFamilyCursor)
+    paths = dcmm::cursorNukePaths();
+  else if (row.family == DCDevFamilyAntigravity)
+    paths = dcmm::antigravityNukePaths();
+  else
+    paths = dcmm::vsCodeNukePaths(row.edition);
   if (paths.empty()) {
     DCInformNothingToClean(@"Nothing to remove.");
     return;
