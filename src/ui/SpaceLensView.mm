@@ -254,6 +254,59 @@
   return paths;
 }
 
+- (DCLensRow*)findRow:(const std::string&)path in:(NSArray<DCLensRow*>*)rows {
+  for (DCLensRow* r in rows) {
+    if (r.node.path == path) return r;
+    DCLensRow* f = [self findRow:path in:r.children];
+    if (f) return f;
+  }
+  return nil;
+}
+
+- (void)sortRows:(NSMutableArray<DCLensRow*>*)rows {
+  [rows sortUsingComparator:^NSComparisonResult(DCLensRow* a, DCLensRow* b) {
+    if (a.node.bytes != b.node.bytes)
+      return a.node.bytes > b.node.bytes ? NSOrderedAscending : NSOrderedDescending;
+    return [@(a.node.name.c_str()) compare:@(b.node.name.c_str())];
+  }];
+}
+
+- (void)subtractAndRemove:(DCLensRow*)row {
+  uint64_t bytes = row.node.bytes;
+  DCLensRow* parent = row.parent;
+  if (parent) {
+    [parent.children removeObject:row];
+    DCLensRow* p = parent;
+    while (p) {
+      dcmm::SpaceNode n = p.node;
+      n.bytes = n.bytes > bytes ? n.bytes - bytes : 0;
+      p.node = n;
+      if (p.children.count) [self sortRows:p.children];
+      p = p.parent;
+    }
+  } else {
+    [_roots removeObject:row];
+  }
+}
+
+- (void)expandLoaded:(DCLensRow*)row {
+  if (row.loaded && row.children.count > 0) [_outline expandItem:row];
+  for (DCLensRow* c in row.children) [self expandLoaded:c];
+}
+
+- (void)applyDeletes:(const std::vector<std::string>&)paths {
+  for (const auto& path : paths) {
+    if (dcmm::pathExists(path)) continue;
+    DCLensRow* row = [self findRow:path in:_roots];
+    if (row) [self subtractAndRemove:row];
+  }
+  [self sortRows:_roots];
+  [_outline reloadData];
+  for (DCLensRow* r in _roots) [self expandLoaded:r];
+  [self fitOutlineColumns];
+  [self refreshClean];
+}
+
 - (uint64_t)selectedBytes {
   std::vector<std::pair<std::string, uint64_t>> picked;
   for (DCLensRow* r in _roots) [r collectSelected:picked];
@@ -297,8 +350,8 @@
       NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
       s->_status.stringValue = msg;
       DCInformCleaned(@"Clean finished", msg);
+      [s applyDeletes:paths];
     }
-    [s startScan];
   });
 }
 
@@ -504,7 +557,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
       return;
     }
     DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
-    [s startScan];
+    [s applyDeletes:{path}];
   });
 }
 
