@@ -263,46 +263,60 @@
   return nil;
 }
 
-- (void)sortRows:(NSMutableArray<DCLensRow*>*)rows {
-  [rows sortUsingComparator:^NSComparisonResult(DCLensRow* a, DCLensRow* b) {
+- (void)reorderSiblings:(NSMutableArray<DCLensRow*>*)siblings parent:(DCLensRow*)parent {
+  if (siblings.count < 2) return;
+  NSArray<DCLensRow*>* desired = [siblings sortedArrayUsingComparator:^NSComparisonResult(DCLensRow* a, DCLensRow* b) {
     if (a.node.bytes != b.node.bytes)
       return a.node.bytes > b.node.bytes ? NSOrderedAscending : NSOrderedDescending;
     return [@(a.node.name.c_str()) compare:@(b.node.name.c_str())];
   }];
+  NSMutableArray<DCLensRow*>* current = [siblings mutableCopy];
+  for (NSInteger to = 0; to < (NSInteger)desired.count; ++to) {
+    DCLensRow* item = desired[(NSUInteger)to];
+    NSInteger from = [current indexOfObject:item];
+    if (from == NSNotFound || from == to) continue;
+    [_outline moveItemAtIndex:from inParent:parent toIndex:to inParent:parent];
+    DCLensRow* obj = current[(NSUInteger)from];
+    [current removeObjectAtIndex:(NSUInteger)from];
+    [current insertObject:obj atIndex:(NSUInteger)to];
+  }
+  [siblings setArray:desired];
 }
 
-- (void)subtractAndRemove:(DCLensRow*)row {
-  uint64_t bytes = row.node.bytes;
-  DCLensRow* parent = row.parent;
-  if (parent) {
-    [parent.children removeObject:row];
+- (void)reorderTree:(NSMutableArray<DCLensRow*>*)siblings parent:(DCLensRow*)parent {
+  [self reorderSiblings:siblings parent:parent];
+  for (DCLensRow* r in siblings)
+    if (r.loaded && r.children.count > 1) [self reorderTree:r.children parent:r];
+}
+
+- (void)applyDeletes:(const std::vector<std::string>&)paths {
+  NSMutableSet<DCLensRow*>* dirty = [NSMutableSet set];
+  [_outline beginUpdates];
+  for (const auto& path : paths) {
+    if (dcmm::pathExists(path)) continue;
+    DCLensRow* row = [self findRow:path in:_roots];
+    if (!row) continue;
+    DCLensRow* parent = row.parent;
+    NSMutableArray<DCLensRow*>* siblings = parent ? parent.children : _roots;
+    NSInteger idx = [siblings indexOfObject:row];
+    if (idx == NSNotFound) continue;
+    const uint64_t bytes = row.node.bytes;
+    [siblings removeObjectAtIndex:(NSUInteger)idx];
+    [_outline removeItemsAtIndexes:[NSIndexSet indexSetWithIndex:(NSUInteger)idx]
+                          inParent:parent
+                     withAnimation:NSTableViewAnimationSlideUp];
     DCLensRow* p = parent;
     while (p) {
       dcmm::SpaceNode n = p.node;
       n.bytes = n.bytes > bytes ? n.bytes - bytes : 0;
       p.node = n;
-      if (p.children.count) [self sortRows:p.children];
+      [dirty addObject:p];
       p = p.parent;
     }
-  } else {
-    [_roots removeObject:row];
   }
-}
-
-- (void)expandLoaded:(DCLensRow*)row {
-  if (row.loaded && row.children.count > 0) [_outline expandItem:row];
-  for (DCLensRow* c in row.children) [self expandLoaded:c];
-}
-
-- (void)applyDeletes:(const std::vector<std::string>&)paths {
-  for (const auto& path : paths) {
-    if (dcmm::pathExists(path)) continue;
-    DCLensRow* row = [self findRow:path in:_roots];
-    if (row) [self subtractAndRemove:row];
-  }
-  [self sortRows:_roots];
-  [_outline reloadData];
-  for (DCLensRow* r in _roots) [self expandLoaded:r];
+  [self reorderTree:_roots parent:nil];
+  [_outline endUpdates];
+  for (DCLensRow* p in dirty) [_outline reloadItem:p];
   [self fitOutlineColumns];
   [self refreshClean];
 }
