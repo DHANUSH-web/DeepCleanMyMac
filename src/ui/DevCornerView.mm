@@ -7,8 +7,27 @@
 #include "AppSettings.hpp"
 #include "dcmm/dcmm.hpp"
 
-#include <tuple>
 #include <vector>
+
+namespace {
+struct DCDevExtCopy {
+  std::string name, path, iconPath, version, publisher, repositoryUrl;
+  uint64_t bytes = 0;
+};
+
+template <typename Ext>
+DCDevExtCopy DCDevCopyExt(const Ext& e) {
+  DCDevExtCopy x;
+  x.name = e.name;
+  x.path = e.path;
+  x.iconPath = e.iconPath;
+  x.version = e.version;
+  x.publisher = e.publisher;
+  x.repositoryUrl = e.repositoryUrl;
+  x.bytes = e.bytes;
+  return x;
+}
+}  // namespace
 
 static char kDCDevUninstallRowKey;
 static char kDCDevCheckRowKey;
@@ -26,6 +45,9 @@ typedef NS_ENUM(NSInteger, DCDevFamily) {
 @property(nonatomic, copy) NSString* path;
 @property(nonatomic, copy) NSString* appPath;
 @property(nonatomic, copy) NSString* iconPath;
+@property(nonatomic, copy) NSString* version;
+@property(nonatomic, copy) NSString* publisher;
+@property(nonatomic, copy) NSString* repositoryUrl;
 @property(nonatomic) uint64_t bytes;
 @property(nonatomic) dcmm::VsCodeEdition edition;
 @property(nonatomic) DCDevFamily family;
@@ -186,11 +208,24 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
 
 @end
 
+static NSURL* DCDevRepoURL(NSString* s) {
+  if (!s.length) return nil;
+  NSString* t = s;
+  if ([t hasPrefix:@"git+"]) t = [t substringFromIndex:4];
+  if ([t hasPrefix:@"git://"]) t = [@"https://" stringByAppendingString:[t substringFromIndex:6]];
+  NSURL* u = [NSURL URLWithString:t];
+  if (u.scheme.length) return u;
+  return [NSURL URLWithString:[@"https://" stringByAppendingString:t]];
+}
+
 @interface DCDevExtensionCard : NSView
 - (instancetype)initWithRow:(DCDevRow*)row;
 @end
 
-@implementation DCDevExtensionCard
+@implementation DCDevExtensionCard {
+  NSString* _repo;
+  NSPoint _down;
+}
 
 - (BOOL)wantsUpdateLayer {
   return YES;
@@ -254,9 +289,37 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
     [self.widthAnchor constraintEqualToConstant:128].active = YES;
     [self.heightAnchor constraintEqualToConstant:100].active = YES;
     NSString* title = row.title.length ? row.title : row.path.lastPathComponent;
-    if (title.length) [DCHoverPopover attachToView:self rows:@[ @[ @"Name", title ] ]];
+    NSMutableArray<NSArray<NSString*>*>* hover = [NSMutableArray array];
+    if (title.length) [hover addObject:@[ @"Name", title ]];
+    if (row.publisher.length) [hover addObject:@[ @"Publisher", row.publisher ]];
+    if (row.version.length) [hover addObject:@[ @"Version", row.version ]];
+    if (hover.count) [DCHoverPopover attachToView:self rows:hover];
+    _repo = [row.repositoryUrl copy];
   }
   return self;
+}
+
+- (NSView*)hitTest:(NSPoint)point {
+  NSView* hit = [super hitTest:point];
+  return hit ? self : nil;
+}
+
+- (void)resetCursorRects {
+  [super resetCursorRects];
+  if (DCDevRepoURL(_repo)) [self addCursorRect:self.bounds cursor:NSCursor.pointingHandCursor];
+}
+
+- (void)mouseDown:(NSEvent*)event {
+  _down = [self convertPoint:event.locationInWindow fromView:nil];
+}
+
+- (void)mouseUp:(NSEvent*)event {
+  NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+  if (!NSPointInRect(p, self.bounds)) return;
+  const CGFloat dx = p.x - _down.x, dy = p.y - _down.y;
+  if (dx * dx + dy * dy > 16) return;
+  NSURL* url = DCDevRepoURL(_repo);
+  if (url) [NSWorkspace.sharedWorkspace openURL:url];
 }
 
 @end
@@ -617,19 +680,16 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   __weak DCDevRow* weakRow = row;
   __weak DCDevVsCodeCard* weakCard = card;
   const uint64_t gen = _extGen;
-  __block std::vector<std::tuple<std::string, std::string, std::string, uint64_t>> exts;
+  __block std::vector<DCDevExtCopy> exts;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCDevCornerView* strong = weakSelf;
     if (!strong) return;
     if (family == DCDevFamilyCursor) {
-      for (auto& e : strong->_engine.listCursorExtensions())
-        exts.emplace_back(e.name, e.path, e.iconPath, e.bytes);
+      for (auto& e : strong->_engine.listCursorExtensions()) exts.push_back(DCDevCopyExt(e));
     } else if (family == DCDevFamilyAntigravity) {
-      for (auto& e : strong->_engine.listAntigravityExtensions())
-        exts.emplace_back(e.name, e.path, e.iconPath, e.bytes);
+      for (auto& e : strong->_engine.listAntigravityExtensions()) exts.push_back(DCDevCopyExt(e));
     } else {
-      for (auto& e : strong->_engine.listVsCodeExtensions(edition))
-        exts.emplace_back(e.name, e.path, e.iconPath, e.bytes);
+      for (auto& e : strong->_engine.listVsCodeExtensions(edition)) exts.push_back(DCDevCopyExt(e));
     }
     dispatch_async(dispatch_get_main_queue(), ^{
       DCDevCornerView* s = weakSelf;
@@ -640,10 +700,13 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
       for (auto& e : exts) {
         DCDevRow* child = [[DCDevRow alloc] init];
         child.kind = DCDevKindExtension;
-        child.title = DCNS(std::get<0>(e));
-        child.path = DCNS(std::get<1>(e));
-        child.iconPath = DCNS(std::get<2>(e));
-        child.bytes = std::get<3>(e);
+        child.title = DCNS(e.name);
+        child.path = DCNS(e.path);
+        child.iconPath = DCNS(e.iconPath);
+        child.version = DCNS(e.version);
+        child.publisher = DCNS(e.publisher);
+        child.repositoryUrl = DCNS(e.repositoryUrl);
+        child.bytes = e.bytes;
         child.parent = parent;
         [parent.children addObject:child];
       }
