@@ -94,7 +94,7 @@ static NSImage* DCDevExtensionImage(NSString* iconPath) {
   if (iconPath.length) img = [[NSImage alloc] initWithContentsOfFile:iconPath];
   if (img) return img;
   NSImage* symbol =
-      [NSImage imageWithSystemSymbolName:@"puzzlepiece.extension" accessibilityDescription:nil];
+      [NSImage imageWithSystemSymbolName:@"puzzlepiece.extension.fill" accessibilityDescription:nil];
   if (symbol) {
     return [symbol imageWithSymbolConfiguration:[NSImageSymbolConfiguration
                                                     configurationWithPointSize:28
@@ -109,15 +109,77 @@ static NSImage* DCDevExtensionImage(NSString* iconPath) {
   return img;
 }
 
-static NSTextField* DCDevSizeLabel(uint64_t bytes) {
-  NSTextField* t = DCSecondaryLabel(DCNS(dcmm::formatBytes(bytes)));
-  t.alignment = NSTextAlignmentRight;
-  t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.smallSystemFontSize
-                                            weight:NSFontWeightRegular];
-  [t setContentHuggingPriority:NSLayoutPriorityRequired
-                forOrientation:NSLayoutConstraintOrientationHorizontal];
-  return t;
+static NSColor* DCDevSizeTint(uint64_t bytes) {
+  if (bytes >= ui::kSpaceTooBigBytes) return NSColor.systemRedColor;
+  if (bytes >= ui::kSpaceBigBytes) return NSColor.systemOrangeColor;
+  return nil;
 }
+
+@interface DCDevSizeBadge : NSView
+- (instancetype)initWithBytes:(uint64_t)bytes;
+- (void)setBytes:(uint64_t)bytes;
+@end
+
+@implementation DCDevSizeBadge {
+  NSTextField* _label;
+  uint64_t _bytes;
+}
+
+- (BOOL)wantsUpdateLayer {
+  return YES;
+}
+
+- (void)updateLayer {
+  NSAppearanceName match =
+      [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
+  const BOOL dark = [match isEqualToString:NSAppearanceNameDarkAqua];
+  NSColor* tint = DCDevSizeTint(_bytes);
+  if (tint) {
+    self.layer.backgroundColor = [tint colorWithAlphaComponent:dark ? 0.22 : 0.12].CGColor;
+    _label.textColor = tint;
+  } else {
+    self.layer.backgroundColor =
+        [[NSColor labelColor] colorWithAlphaComponent:dark ? 0.10 : 0.06].CGColor;
+    _label.textColor = NSColor.secondaryLabelColor;
+  }
+  self.layer.cornerRadius = MAX(NSHeight(self.bounds) / 2.0, 8);
+  self.layer.masksToBounds = YES;
+}
+
+- (instancetype)initWithBytes:(uint64_t)bytes {
+  self = [super initWithFrame:NSZeroRect];
+  if (self) {
+    self.wantsLayer = YES;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+    _label = DCLabel(@"");
+    _label.font = [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightMedium];
+    _label.alignment = NSTextAlignmentCenter;
+    _label.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:_label];
+    [NSLayoutConstraint activateConstraints:@[
+      [_label.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:7],
+      [_label.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-7],
+      [_label.topAnchor constraintEqualToAnchor:self.topAnchor constant:2],
+      [_label.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-2],
+    ]];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [self setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self setBytes:bytes];
+  }
+  return self;
+}
+
+- (void)setBytes:(uint64_t)bytes {
+  _bytes = bytes;
+  _label.stringValue = DCNS(dcmm::formatBytes(bytes));
+  [self setNeedsDisplay:YES];
+}
+
+@end
 
 @interface DCDevExtensionCard : NSView
 - (instancetype)initWithRow:(DCDevRow*)row;
@@ -163,9 +225,7 @@ static NSTextField* DCDevSizeLabel(uint64_t bytes) {
     [name setContentCompressionResistancePriority:1
                                    forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-    NSTextField* size = DCDevSizeLabel(row.bytes);
-    size.font = [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightRegular];
-    size.alignment = NSTextAlignmentLeft;
+    DCDevSizeBadge* size = [[DCDevSizeBadge alloc] initWithBytes:row.bytes];
 
     NSStackView* line = [NSStackView stackViewWithViews:@[ name, size ]];
     line.orientation = NSUserInterfaceLayoutOrientationHorizontal;
@@ -207,7 +267,7 @@ static NSTextField* DCDevSizeLabel(uint64_t bytes) {
 @implementation DCDevVsCodeCard {
   DCDevRow* _app;
   NSButton* _uninstall;
-  NSTextField* _extSize;
+  DCDevSizeBadge* _extSize;
   NSStackView* _extStrip;
   NSScrollView* _extScroll;
   NSView* _extBlock;
@@ -266,7 +326,7 @@ static NSTextField* DCDevSizeLabel(uint64_t bytes) {
       objc_setAssociatedObject(check, &kDCDevCheckRowKey, ext, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
       [check setContentHuggingPriority:NSLayoutPriorityRequired
                         forOrientation:NSLayoutConstraintOrientationHorizontal];
-      _extSize = DCDevSizeLabel(ext.bytes);
+      _extSize = [[DCDevSizeBadge alloc] initWithBytes:ext.bytes];
       NSView* extSpacer = [[NSView alloc] initWithFrame:NSZeroRect];
       [extSpacer setContentHuggingPriority:1
                             forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -315,7 +375,7 @@ static NSTextField* DCDevSizeLabel(uint64_t bytes) {
                           forOrientation:NSLayoutConstraintOrientationHorizontal];
         [check setContentCompressionResistancePriority:1
                                         forOrientation:NSLayoutConstraintOrientationHorizontal];
-        NSTextField* size = DCDevSizeLabel(folder.bytes);
+        DCDevSizeBadge* size = [[DCDevSizeBadge alloc] initWithBytes:folder.bytes];
         NSView* rowSpacer = [[NSView alloc] initWithFrame:NSZeroRect];
         [rowSpacer setContentHuggingPriority:1
                               forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -378,7 +438,12 @@ static NSTextField* DCDevSizeLabel(uint64_t bytes) {
   DCDevClearStack(_extStrip);
   DCDevRow* ext = [self extensionsFolder];
   if (!ext) return;
-  _extSize.stringValue = DCNS(dcmm::formatBytes(ext.bytes));
+  [_extSize setBytes:ext.bytes];
+  [ext.children sortUsingComparator:^NSComparisonResult(DCDevRow* a, DCDevRow* b) {
+    if (a.bytes != b.bytes)
+      return a.bytes > b.bytes ? NSOrderedAscending : NSOrderedDescending;
+    return [a.title compare:b.title options:NSCaseInsensitiveSearch];
+  }];
   for (DCDevRow* e in ext.children) {
     if (e.kind != DCDevKindExtension) continue;
     [_extStrip addArrangedSubview:[[DCDevExtensionCard alloc] initWithRow:e]];
