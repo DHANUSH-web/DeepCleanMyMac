@@ -22,7 +22,7 @@ BUILD_DIR = build/$(PRESET)
 APP = $(BUILD_DIR)/DeepCleanMyMac.app
 TESTS = $(BUILD_DIR)/dcmm-desktop-tests
 
-.PHONY: all build debug release test run open relaunch clean help init icon
+.PHONY: all build debug release test run open relaunch clean help init icon dmg
 
 .DEFAULT_GOAL := build
 
@@ -65,6 +65,11 @@ install: build
 	@rm -rf /Applications/DeepCleanMyMac.app
 	@mv $(APP) /Applications && echo "Successfully installed $(APP) to /Applications"
 
+dmg:
+	$(MAKE) build PRESET=release
+	cd build/release && cpack -G DragNDrop
+	@ls -lh build/release/DeepCleanMyMac-*.dmg
+
 relaunch: build
 	-pkill -x DeepCleanMyMac
 	open "$(APP)"
@@ -95,6 +100,7 @@ help:
 	@echo "  make relaunch        pkill + open (after UI changes)"
 	@echo "  make install         Install DeepCleanMyMac to /Applications (debug)"
 	@echo "  make install release Install DeepCleanMyMac to /Applications (release)"
+	@echo "  make dmg             Release build + DragNDrop DMG in build/release/"
 	@echo "  make clean           remove build/"
 	@echo "  make clean debug     remove build/debug"
 	@echo "  make clean release   remove build/release"

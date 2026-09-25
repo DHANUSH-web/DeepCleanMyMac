@@ -78,6 +78,8 @@ set_target_properties(DeepCleanMyMac PROPERTIES
   OUTPUT_NAME "DeepCleanMyMac"
 )
 
+install(TARGETS DeepCleanMyMac BUNDLE DESTINATION . COMPONENT Runtime)
+
 option(DCMM_DESKTOP_BUILD_TESTS "Build GoogleTest suite for the desktop app" ON)
 if(DCMM_DESKTOP_BUILD_TESTS)
   include(FetchContent)
@@ -87,6 +89,7 @@ if(DCMM_DESKTOP_BUILD_TESTS)
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(googletest)
   enable_testing()
   add_executable(dcmm-desktop-tests
@@ -117,3 +120,17 @@ if(DCMM_DESKTOP_BUILD_TESTS)
   include(GoogleTest)
   gtest_discover_tests(dcmm-desktop-tests)
 endif()
+
+set(CPACK_GENERATOR "DragNDrop")
+set(CPACK_PACKAGE_NAME "DeepCleanMyMac")
+set(CPACK_PACKAGE_VENDOR "DeepCleanMyMac")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME "DeepCleanMyMac-${PROJECT_VERSION}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Clean junk from your Mac")
+set(CPACK_DMG_VOLUME_NAME "DeepCleanMyMac")
+set(CPACK_DMG_FORMAT "UDZO")
+set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/AppIcon.icns")
+set(CPACK_COMPONENTS_ALL Runtime)
+set(CPACK_COMPONENT_RUNTIME_REQUIRED TRUE)
+set(CPACK_INSTALL_CMAKE_PROJECTS "${CMAKE_BINARY_DIR};${PROJECT_NAME};Runtime;/")
+include(CPack)
