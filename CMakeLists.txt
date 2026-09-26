@@ -7,7 +7,7 @@ set(CMAKE_OBJCXX_STANDARD 17)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
@@ -118,7 +118,7 @@ if(DCMM_DESKTOP_BUILD_TESTS)
     "-framework CoreFoundation"
   )
   include(GoogleTest)
-  gtest_discover_tests(dcmm-desktop-tests)
+  gtest_discover_tests(dcmm-desktop-tests DISCOVERY_MODE PRE_TEST)
 endif()
 
 set(CPACK_GENERATOR "DragNDrop")

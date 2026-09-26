@@ -36,6 +36,10 @@ make clean
 
 `make help` lists presets (`debug` / `release` / `all`), `relaunch`, and `test release`.
 
+## Xcode
+
+Open `DeepCleanMyMac.xcodeproj` (double-click, or File → Open in Xcode). Scheme **DeepCleanMyMac**, then ⌘B / ⌘R. Run `make init` first so `extras/dcmmlib` is present. CLI builds with Ninja are unchanged (`make` / `make build release`).
+
 Equivalent with CMake presets:
 
 ```bash
