@@ -114,6 +114,8 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 
 - (void)beginProgress;
 - (void)endProgress;
+/// Empty-scan copy: "Everything is clean" + "Scan Again" and a checkmark icon. Title stays the module name.
+- (void)applyNothingFound;
 
 - (instancetype)initWithTitle:(nullable NSString*)title
                      subtitle:(nullable NSString*)subtitle

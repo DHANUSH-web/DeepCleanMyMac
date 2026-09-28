@@ -908,6 +908,13 @@ static char kDCHoverPopoverKey;
   _progressing = NO;
 }
 
+- (void)applyNothingFound {
+  self.subtitle = @"Everything is clean";
+  self.buttonTitle = @"Scan Again";
+  self.icon = nil;
+  self.symbolName = @"checkmark.seal";
+}
+
 - (void)refreshIcon {
   const BOOL sized = _iconPointSize > 0;
   _iconW.active = sized;

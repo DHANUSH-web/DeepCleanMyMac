@@ -178,6 +178,12 @@ struct FlatRow {
   _content.hidden = NO;
 }
 
+- (void)showNothingFound {
+  [_startScreen applyNothingFound];
+  _startScreen.hidden = NO;
+  _content.hidden = YES;
+}
+
 - (void)startScan {
   if (_state == 1) {
     _engine.cancel();
@@ -232,9 +238,16 @@ struct FlatRow {
   [self rebuildRows];
   _state = 2;
   [_spin stopAnimation:nil];
+  [_startScreen endProgress];
+  DCGlowButtonSetActive(_startScreen.actionButton, NO);
+  if (_mode == DCResultsModeSmart && _rows.empty()) {
+    [self showNothingFound];
+    return;
+  }
   _scanBtn.title = @"Scan Again";
   _scanBtn.keyEquivalent = @"\r";
   _scanBtn.keyEquivalentModifierMask = 0;
+  DCGlowButtonSetActive(_scanBtn, NO);
   _selAll.hidden = NO;
   NSString* verb = _mode == DCResultsModeSmart ? @"Recommended" : @"Found";
   _status.stringValue =
@@ -244,9 +257,6 @@ struct FlatRow {
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
-  [_startScreen endProgress];
-  DCGlowButtonSetActive(_scanBtn, NO);
-  DCGlowButtonSetActive(_startScreen.actionButton, NO);
   [self showContent];
 }
 
