@@ -311,6 +311,11 @@
       n.bytes = n.bytes > bytes ? n.bytes - bytes : 0;
       p.node = n;
       [dirty addObject:p];
+      NSInteger i = [_outline rowForItem:p];
+      if (i >= 0) {
+        NSTableRowView* rv = [_outline rowViewAtRow:i makeIfNecessary:NO];
+        if (rv) rv.backgroundColor = DCSpaceSizeBandFill(ui::spaceSizeBand(n.bytes));
+      }
       p = p.parent;
     }
   }
