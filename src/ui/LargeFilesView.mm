@@ -137,6 +137,12 @@ struct FlatRow {
   _scan.keyEquivalent = @"\r";
 }
 
+- (void)showNothingFound {
+  [_startScreen applyNothingFound];
+  _startScreen.hidden = NO;
+  _content.hidden = YES;
+}
+
 - (void)setScanEnabled:(BOOL)on {
   _scan.enabled = on;
   _startScreen.actionButton.enabled = on;
@@ -162,17 +168,21 @@ struct FlatRow {
     if (!s) return;
     s->_groups = ui::groupLargeFiles(files);
     [s rebuildRows];
-    [s->_table reloadData];
     [s setScanEnabled:YES];
-    DCGlowButtonSetActive(s->_scan, NO);
     DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+    [s->_startScreen endProgress];
+    if (s->_rows.empty()) {
+      [s showNothingFound];
+      return;
+    }
+    [s->_table reloadData];
+    DCGlowButtonSetActive(s->_scan, NO);
     std::size_t n = 0;
     for (const auto& g : s->_groups) n += g.files.size();
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu %@ in %lu folders", (unsigned long)n, [s thresholdPhrase],
                                    (unsigned long)s->_groups.size()];
     [s refreshClean];
-    [s->_startScreen endProgress];
     [s showContent];
   });
 }
