@@ -176,6 +176,12 @@
   _scan.keyEquivalent = @"\r";
 }
 
+- (void)showNothingFound {
+  [_startScreen applyNothingFound];
+  _startScreen.hidden = NO;
+  _content.hidden = YES;
+}
+
 - (void)setScanEnabled:(BOOL)on {
   _scan.enabled = on;
   _startScreen.actionButton.enabled = on;
@@ -206,15 +212,19 @@
       [s->_roots addObject:row];
     }
     s->_volumeBytes = volume;
+    [s setScanEnabled:YES];
+    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+    [s->_startScreen endProgress];
+    if (s->_roots.count == 0) {
+      [s showNothingFound];
+      return;
+    }
     [s->_outline reloadData];
     [s fitOutlineColumns];
-    [s setScanEnabled:YES];
     DCGlowButtonSetActive(s->_scan, NO);
-    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
     [s refreshClean];
-    [s->_startScreen endProgress];
     [s showContent];
   });
 }
