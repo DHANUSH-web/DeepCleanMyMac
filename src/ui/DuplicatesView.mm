@@ -130,6 +130,12 @@
   _scan.keyEquivalent = @"\r";
 }
 
+- (void)showNothingFound {
+  [_startScreen applyNothingFound];
+  _startScreen.hidden = NO;
+  _content.hidden = YES;
+}
+
 - (void)setScanEnabled:(BOOL)on {
   _scan.enabled = on;
   _startScreen.actionButton.enabled = on;
@@ -155,14 +161,18 @@
     if (!s) return;
     s->_groups = std::move(g);
     [s rebuild];
-    [s->_table reloadData];
     [s setScanEnabled:YES];
-    DCGlowButtonSetActive(s->_scan, NO);
     DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+    [s->_startScreen endProgress];
+    if (s->_rows.empty()) {
+      [s showNothingFound];
+      return;
+    }
+    [s->_table reloadData];
+    DCGlowButtonSetActive(s->_scan, NO);
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
     [s refreshCleanTitle];
-    [s->_startScreen endProgress];
     [s showContent];
   });
 }
