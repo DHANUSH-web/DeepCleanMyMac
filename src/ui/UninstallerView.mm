@@ -21,6 +21,8 @@
   NSButton* _remove;
   NSTextField* _status;
   NSTableView* _appsTable;
+  NSStackView* _content;
+  DCStartScreen* _startScreen;
   BOOL _listed;
   uint64_t _job;
 }
@@ -29,6 +31,7 @@
   self = [super initWithFrame:frame];
   if (self) {
     NSStackView* page = DCPageStack(self);
+    _content = page;
     NSStackView* header = DCHeaderStack(
         @"Uninstaller", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Uninstaller)]);
     [page addArrangedSubview:header];
@@ -71,6 +74,26 @@
     [_appsTable addTableColumn:s];
 
     DCStackExpand(page, DCWrapTable(_appsTable));
+    __weak DCUninstallerView* weakSelf = self;
+    _startScreen = [[DCStartScreen alloc]
+        initWithTitle:@"Uninstaller"
+             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::Uninstaller)]
+               symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::Uninstaller)]
+        iconPointSize:250
+              colored:NO
+          buttonTitle:@"Refresh"
+             onAction:^{
+               [weakSelf reloadApps];
+             }];
+    _startScreen.subtitleMaxWidth = 360;
+    _startScreen.buttonControlSize = NSControlSizeLarge;
+    _startScreen.buttonMinWidth = 100;
+    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.defaultButton = YES;
+    _startScreen.hidden = YES;
+    [self addSubview:_startScreen];
+    DCPinEdges(_startScreen, self);
+    _reload.keyEquivalent = @"";
     [self refreshUninstall];
   }
   return self;
@@ -83,10 +106,25 @@
   [self reloadApps];
 }
 
+- (void)showContent {
+  _startScreen.hidden = YES;
+  _content.hidden = NO;
+  _reload.keyEquivalent = @"\r";
+}
+
+- (void)showNothingFound {
+  [_startScreen applyNothingFound];
+  _startScreen.hidden = NO;
+  _content.hidden = YES;
+}
+
 - (void)reloadApps {
   _status.stringValue = @"Listing applications…";
   _reload.enabled = NO;
+  _startScreen.actionButton.enabled = NO;
+  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
   [_reload beginGlow];
+  DCGlowButtonSetActive(_startScreen.actionButton, YES);
   _remove.hidden = YES;
   __weak DCUninstallerView* weakSelf = self;
   __block std::vector<dcmm::InstalledApp> apps;
@@ -100,11 +138,19 @@
     s->_apps.clear();
     s->_apps.reserve(apps.size());
     for (auto& a : apps) s->_apps.push_back({std::move(a), false});
+    [s->_reload endGlow];
+    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+    [s->_startScreen endProgress];
+    s->_reload.enabled = YES;
+    s->_startScreen.actionButton.enabled = YES;
+    if (s->_apps.empty()) {
+      [s showNothingFound];
+      return;
+    }
     [s->_appsTable reloadData];
     s->_status.stringValue = [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
-    [s->_reload endGlow];
-    s->_reload.enabled = YES;
     [s refreshUninstall];
+    [s showContent];
   });
 }
 
