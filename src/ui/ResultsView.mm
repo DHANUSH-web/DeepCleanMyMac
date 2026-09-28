@@ -240,7 +240,7 @@ struct FlatRow {
   [_spin stopAnimation:nil];
   [_startScreen endProgress];
   DCGlowButtonSetActive(_startScreen.actionButton, NO);
-  if (_mode == DCResultsModeSmart && _rows.empty()) {
+  if ((_mode == DCResultsModeSmart || _mode == DCResultsModePrivacy) && _rows.empty()) {
     [self showNothingFound];
     return;
   }
