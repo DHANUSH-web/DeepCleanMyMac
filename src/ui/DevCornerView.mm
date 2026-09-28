@@ -536,6 +536,8 @@ static NSURL* DCDevRepoURL(NSString* s) {
   NSSegmentedControl* _tabs;
   NSView* _appsWrap;
   NSView* _placeholder;
+  DCStartScreen* _startScreen;
+  BOOL _hasListed;
   uint64_t _job;
   uint64_t _extGen;
 }
@@ -605,10 +607,31 @@ static NSURL* DCDevRepoURL(NSString* s) {
     NSView* body = [[NSView alloc] initWithFrame:NSZeroRect];
     _appsWrap.translatesAutoresizingMaskIntoConstraints = NO;
     _placeholder.translatesAutoresizingMaskIntoConstraints = NO;
+    __weak DCDevCornerView* weakSelf = self;
+    _startScreen = [[DCStartScreen alloc]
+        initWithTitle:@"Dev Corner"
+             subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::DevCorner)]
+               symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::DevCorner)]
+        iconPointSize:250
+              colored:NO
+          buttonTitle:@"Scan Applications"
+             onAction:^{
+               [weakSelf reload];
+             }];
+    _startScreen.subtitleMaxWidth = 360;
+    _startScreen.buttonControlSize = NSControlSizeLarge;
+    _startScreen.buttonMinWidth = 100;
+    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.defaultButton = YES;
+    _startScreen.hidden = YES;
+    _startScreen.translatesAutoresizingMaskIntoConstraints = NO;
     [body addSubview:_appsWrap];
     [body addSubview:_placeholder];
+    [body addSubview:_startScreen];
     DCPinEdges(_appsWrap, body);
     DCPinEdges(_placeholder, body);
+    DCPinEdges(_startScreen, body);
+    _scanApps.keyEquivalent = @"";
 
     _tabs = [NSSegmentedControl segmentedControlWithLabels:@[ @"Applications", @"Toolchains", @"Others" ]
                                               trackingMode:NSSegmentSwitchTrackingSelectOne
@@ -646,10 +669,38 @@ static NSURL* DCDevRepoURL(NSString* s) {
 }
 
 - (void)tabChanged:(NSSegmentedControl*)sender {
-  const BOOL apps = sender.selectedSegment == 0;
-  _appsWrap.hidden = !apps;
-  _placeholder.hidden = apps;
-  [self refreshClean];
+  (void)sender;
+  [self syncApplicationsBody];
+}
+
+- (void)showNothingFound {
+  [_startScreen applyNothingFound];
+  _startScreen.hidden = NO;
+  _appsWrap.hidden = YES;
+  _placeholder.hidden = YES;
+  _actions.hidden = YES;
+}
+
+- (void)showContent {
+  _startScreen.hidden = YES;
+  _appsWrap.hidden = NO;
+  _placeholder.hidden = YES;
+  _actions.hidden = NO;
+  _scanApps.keyEquivalent = @"\r";
+}
+
+- (void)syncApplicationsBody {
+  if (![self applicationTabSelected]) {
+    _startScreen.hidden = YES;
+    _appsWrap.hidden = YES;
+    _placeholder.hidden = NO;
+    _actions.hidden = YES;
+    return;
+  }
+  if (_hasListed && _roots.count == 0)
+    [self showNothingFound];
+  else
+    [self showContent];
 }
 
 - (void)rebuildCards {
@@ -722,7 +773,10 @@ static NSURL* DCDevRepoURL(NSString* s) {
   if (_scanning) return;
   _scanning = YES;
   _scanApps.enabled = NO;
+  _startScreen.actionButton.enabled = NO;
+  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
   [_scanApps beginGlow];
+  DCGlowButtonSetActive(_startScreen.actionButton, YES);
   __weak DCDevCornerView* weakSelf = self;
   __block std::vector<dcmm::VsCodeInstall> vscode;
   __block std::vector<dcmm::CursorInstall> cursor;
@@ -802,10 +856,19 @@ static NSURL* DCDevRepoURL(NSString* s) {
       }
       [s->_roots addObject:app];
     }
-    [s rebuildCards];
     [s->_scanApps endGlow];
+    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+    [s->_startScreen endProgress];
     s->_scanApps.enabled = YES;
+    s->_startScreen.actionButton.enabled = YES;
     s->_scanning = NO;
+    s->_hasListed = YES;
+    if (s->_roots.count == 0) {
+      [s showNothingFound];
+      return;
+    }
+    [s rebuildCards];
+    [s showContent];
     [s refreshClean];
   });
 }
@@ -848,7 +911,10 @@ static NSURL* DCDevRepoURL(NSString* s) {
   uint64_t bytes = [self bytesForPaths:paths];
   _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), bytes));
   _clean.hidden = paths.empty();
-  _actions.hidden = ![self applicationTabSelected];
+  if ([self applicationTabSelected] && _hasListed && _roots.count == 0)
+    _actions.hidden = YES;
+  else
+    _actions.hidden = ![self applicationTabSelected];
 }
 
 - (void)cleanSelected {
