@@ -674,6 +674,7 @@ static NSURL* DCDevRepoURL(NSString* s) {
 }
 
 - (void)showNothingFound {
+  _scanApps.keyEquivalent = @"";
   [_startScreen applyNothingFound];
   _startScreen.hidden = NO;
   _appsWrap.hidden = YES;

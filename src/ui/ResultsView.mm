@@ -179,6 +179,7 @@ struct FlatRow {
 }
 
 - (void)showNothingFound {
+  _scanBtn.keyEquivalent = @"";
   [_startScreen applyNothingFound];
   _startScreen.hidden = NO;
   _content.hidden = YES;

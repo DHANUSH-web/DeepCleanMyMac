@@ -113,6 +113,7 @@
 }
 
 - (void)showNothingFound {
+  _reload.keyEquivalent = @"";
   [_startScreen applyNothingFound];
   _startScreen.hidden = NO;
   _content.hidden = YES;

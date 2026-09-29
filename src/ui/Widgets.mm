@@ -912,7 +912,22 @@ static char kDCHoverPopoverKey;
   self.subtitle = @"Everything is clean";
   self.buttonTitle = @"Scan Again";
   self.icon = nil;
-  self.symbolName = @"checkmark.seal";
+  self.colored = NO;
+  self.iconTintColor = NSColor.controlAccentColor;
+  self.symbolName = @"checkmark.seal.fill";
+  self.defaultButton = YES;
+  if (@available(macOS 14.0, *)) {
+    [_iconView removeAllSymbolEffects];
+    [_iconView addSymbolEffect:[NSSymbolAppearEffect appearUpEffect]
+                       options:[NSSymbolEffectOptions optionsWithNonRepeating]
+                      animated:YES];
+    __weak NSImageView* icon = _iconView;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      [icon addSymbolEffect:[NSSymbolBounceEffect bounceUpEffect]
+                    options:[NSSymbolEffectOptions optionsWithNonRepeating]
+                   animated:YES];
+    });
+  }
 }
 
 - (void)refreshIcon {

@@ -116,6 +116,8 @@
 		E929A5D01792893AB8090A52 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E047036020F504121853F0BA /* CoreFoundation.framework */; };
 		445EBD21C8964D6A48128D74 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
 		D57E88C0E18FDA001D84C11C /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 445EBD21C8964D6A48128D74 /* LocalAuthentication.framework */; };
+		A1B2C3D4E5F60718293A4B5C /* Symbols.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Symbols.framework; path = System/Library/Frameworks/Symbols.framework; sourceTree = SDKROOT; };
+		B2C3D4E5F60718293A4B5C6D /* Symbols.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* Symbols.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		5CF96ED7151F0012AE343308 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E047036020F504121853F0BA /* CoreFoundation.framework */; };
 		5F1D7F417FA0C644A6F6E833 /* ui */ = {
 			isa = PBXGroup;
@@ -235,6 +237,7 @@
 				544F8C1734E616D448FC23EF /* SystemConfiguration.framework */,
 				E047036020F504121853F0BA /* CoreFoundation.framework */,
 				445EBD21C8964D6A48128D74 /* LocalAuthentication.framework */,
+				A1B2C3D4E5F60718293A4B5C /* Symbols.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -323,6 +326,7 @@
 				D799F0C410871F2276D2B316 /* SystemConfiguration.framework in Frameworks */,
 				E929A5D01792893AB8090A52 /* CoreFoundation.framework in Frameworks */,
 				D57E88C0E18FDA001D84C11C /* LocalAuthentication.framework in Frameworks */,
+				B2C3D4E5F60718293A4B5C6D /* Symbols.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
