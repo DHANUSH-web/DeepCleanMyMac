@@ -6,23 +6,29 @@
 #include "Modules.h"
 #include <vector>
 
-@interface DCDuplicatesView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
+@interface DCDupFlippedDoc : NSView
+@end
+@implementation DCDupFlippedDoc
+- (BOOL)isFlipped {
+  return YES;
+}
+@end
+
+@interface DCDuplicatesView ()
+- (void)trashPaths:(std::vector<std::string>)paths bytes:(uint64_t)bytes;
 @end
 
 @implementation DCDuplicatesView {
   dcmm::Engine _engine;
   std::vector<dcmm::DuplicateGroup> _groups;
-  struct Row {
-    int g;
-    int f;
-  };
-  std::vector<Row> _rows;
   NSButton* _scan;
   NSButton* _clean;
   NSTextField* _status;
-  NSTableView* _table;
   NSStackView* _content;
   DCStartScreen* _startScreen;
+  NSScrollView* _groupsScroll;
+  DCDupFlippedDoc* _groupsDoc;
+  NSStackView* _groupsList;
   uint64_t _job;
 }
 
@@ -50,23 +56,34 @@
     _status.stringValue = [self idleStatus];
     [page addArrangedSubview:_status];
 
-    _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
-    DCStyleTable(_table);
-    _table.dataSource = self;
-    _table.delegate = self;
-    DCAttachTableMenu(_table, self);
-    NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"keep"];
-    c0.width = 48;
-    c0.title = @"Keep";
-    [_table addTableColumn:c0];
-    NSTableColumn* c1 = [[NSTableColumn alloc] initWithIdentifier:@"name"];
-    c1.title = @"File";
-    [_table addTableColumn:c1];
-    NSTableColumn* c2 = [[NSTableColumn alloc] initWithIdentifier:@"size"];
-    c2.title = @"Size";
-    c2.width = 90;
-    [_table addTableColumn:c2];
-    DCStackExpand(page, DCWrapTable(_table));
+    _groupsScroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+    _groupsScroll.drawsBackground = NO;
+    _groupsScroll.hasVerticalScroller = YES;
+    _groupsScroll.hasHorizontalScroller = NO;
+    _groupsScroll.autohidesScrollers = YES;
+    _groupsScroll.borderType = NSNoBorder;
+    _groupsScroll.automaticallyAdjustsContentInsets = NO;
+    _groupsScroll.contentInsets = NSEdgeInsetsZero;
+    _groupsScroll.usesPredominantAxisScrolling = YES;
+    _groupsScroll.horizontalScrollElasticity = NSScrollElasticityNone;
+
+    _groupsDoc = [[DCDupFlippedDoc alloc] initWithFrame:NSZeroRect];
+    _groupsList = [NSStackView stackViewWithViews:@[]];
+    _groupsList.orientation = NSUserInterfaceLayoutOrientationVertical;
+    _groupsList.alignment = NSLayoutAttributeLeading;
+    _groupsList.distribution = NSStackViewDistributionFill;
+    _groupsList.spacing = 12;
+    _groupsList.translatesAutoresizingMaskIntoConstraints = NO;
+    [_groupsDoc addSubview:_groupsList];
+    [NSLayoutConstraint activateConstraints:@[
+      [_groupsList.topAnchor constraintEqualToAnchor:_groupsDoc.topAnchor],
+      [_groupsList.leadingAnchor constraintEqualToAnchor:_groupsDoc.leadingAnchor],
+      [_groupsList.trailingAnchor constraintEqualToAnchor:_groupsDoc.trailingAnchor],
+      [_groupsList.bottomAnchor constraintEqualToAnchor:_groupsDoc.bottomAnchor],
+    ]];
+    _groupsScroll.documentView = _groupsDoc;
+    DCStackExpand(page, _groupsScroll);
+
     __weak DCDuplicatesView* weakSelf = self;
     _startScreen = [[DCStartScreen alloc]
         initWithTitle:@"Duplicates"
@@ -100,6 +117,18 @@
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
+- (void)layout {
+  [super layout];
+  CGFloat w = NSWidth(_groupsScroll.contentView.bounds);
+  if (w < 1) return;
+  CGFloat h = MAX(_groupsList.fittingSize.height, 1);
+  NSRect doc = NSMakeRect(0, 0, w, h);
+  if (NSEqualRects(_groupsDoc.frame, doc)) return;
+  NSPoint saved = _groupsScroll.contentView.bounds.origin;
+  _groupsDoc.frame = doc;
+  [_groupsScroll.contentView setBoundsOrigin:saved];
+}
+
 - (NSString*)idleStatus {
   if (DCDuplicatesScanHome())
     return @"Matches identical files in your home folder (256 KB or larger).";
@@ -117,10 +146,51 @@
   _clean.hidden = ui::duplicatePathsToTrash(_groups).empty();
 }
 
-- (void)rebuild {
-  _rows.clear();
-  for (int g = 0; g < (int)_groups.size(); ++g)
-    for (int f = 0; f < (int)_groups[g].files.size(); ++f) _rows.push_back({g, f});
+- (void)clearGroups {
+  NSArray<NSView*>* old = [_groupsList.arrangedSubviews copy];
+  for (NSView* v in old) {
+    [_groupsList removeArrangedSubview:v];
+    [v removeFromSuperview];
+  }
+}
+
+- (void)rebuildGroups {
+  [self clearGroups];
+  for (int g = 0; g < (int)_groups.size(); ++g) {
+    auto& group = _groups[(size_t)g];
+    if (group.files.empty()) continue;
+    NSString* title = DCNS(group.files[0].path).lastPathComponent;
+    NSMutableArray<DCDuplicateItemCard*>* cards = [NSMutableArray array];
+    for (int f = 0; f < (int)group.files.size(); ++f) {
+      auto& file = group.files[(size_t)f];
+      DCDuplicateItemCard* card = [[DCDuplicateItemCard alloc] initWithPath:DCNS(file.path)
+                                                                      bytes:file.bytes
+                                                                   selected:!file.keep];
+      __weak DCDuplicatesView* weakSelf = self;
+      __weak DCDuplicateItemCard* weakCard = card;
+      const int gi = g;
+      const int fi = f;
+      card.onToggle = ^(DCDuplicateItemCard*) {
+        DCDuplicatesView* s = weakSelf;
+        DCDuplicateItemCard* c = weakCard;
+        if (!s || !c) return;
+        if (gi < 0 || gi >= (int)s->_groups.size()) return;
+        if (fi < 0 || fi >= (int)s->_groups[(size_t)gi].files.size()) return;
+        s->_groups[(size_t)gi].files[(size_t)fi].keep = !c.selected;
+        [s refreshCleanTitle];
+      };
+      card.onTrash = ^(DCDuplicateItemCard* c) {
+        DCDuplicatesView* s = weakSelf;
+        if (!s || !c.path.length) return;
+        [s trashPaths:std::vector<std::string>{c.path.UTF8String ?: ""} bytes:c.bytes];
+      };
+      [cards addObject:card];
+    }
+    DCDuplicateGroupView* row = [[DCDuplicateGroupView alloc] initWithTitle:title cards:cards];
+    [_groupsList addArrangedSubview:row];
+    DCStackFullWidth(_groupsList, row);
+  }
+  [self setNeedsLayout:YES];
 }
 
 - (void)showContent {
@@ -166,15 +236,15 @@
     DCDuplicatesView* s = weakSelf;
     if (!s) return;
     s->_groups = std::move(g);
-    [s rebuild];
     [s setScanEnabled:YES];
     DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
     [s->_startScreen endProgress];
-    if (s->_rows.empty()) {
+    if (s->_groups.empty()) {
+      [s clearGroups];
       [s showNothingFound];
       return;
     }
-    [s->_table reloadData];
+    [s rebuildGroups];
     DCGlowButtonSetActive(s->_scan, NO);
     s->_status.stringValue =
         [NSString stringWithFormat:@"%lu duplicate groups", (unsigned long)s->_groups.size()];
@@ -183,20 +253,10 @@
   });
 }
 
-- (void)cleanSelected {
-  auto paths = ui::duplicatePathsToTrash(_groups);
-  if (paths.empty()) {
-    DCInformNothingToClean(@"Every copy is marked Keep. Nothing was deleted.");
-    return;
-  }
+- (void)trashPaths:(std::vector<std::string>)paths bytes:(uint64_t)bytes {
+  if (paths.empty()) return;
   NSMutableArray<NSString*>* list = [NSMutableArray array];
-  uint64_t bytes = 0;
-  for (auto& g : _groups)
-    for (auto& f : g.files)
-      if (!f.keep) {
-        [list addObject:DCNS(f.path)];
-        bytes += f.bytes;
-      }
+  for (const auto& p : paths) [list addObject:DCNS(p)];
   if (!DCConfirmClean(list, bytes)) return;
   const auto mode = DCCleanPref();
   [self setScanEnabled:NO];
@@ -222,96 +282,17 @@
   });
 }
 
-- (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
-  return (NSInteger)_rows.size();
-}
-
-- (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row {
-  auto rr = _rows[(size_t)row];
-  auto& f = _groups[rr.g].files[rr.f];
-  if ([col.identifier isEqualToString:@"keep"]) {
-    NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(keep:)];
-    b.state = f.keep ? NSControlStateValueOn : NSControlStateValueOff;
-    b.tag = row;
-    return DCCenteredCheckCell(b);
+- (void)cleanSelected {
+  auto paths = ui::duplicatePathsToTrash(_groups);
+  if (paths.empty()) {
+    DCInformNothingToClean(@"Every copy is marked Keep. Nothing was deleted.");
+    return;
   }
-  NSTextField* t = DCLabel(@"");
-  t.lineBreakMode = NSLineBreakByTruncatingMiddle;
-  if ([col.identifier isEqualToString:@"name"])
-    t.stringValue = DCNS(f.path);
-  else {
-    t.stringValue = DCNS(dcmm::formatBytes(f.bytes));
-    t.alignment = NSTextAlignmentRight;
-    t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
-  }
-  return DCCenteredTextCell(t);
-}
-
-- (void)keep:(NSButton*)s {
-  if (s.tag < 0 || s.tag >= (NSInteger)_rows.size()) return;
-  auto rr = _rows[(size_t)s.tag];
-  _groups[rr.g].files[rr.f].keep = s.state == NSControlStateValueOn;
-  [self refreshCleanTitle];
-}
-
-- (void)menuNeedsUpdate:(NSMenu*)menu {
-  [menu removeAllItems];
-  NSInteger row = _table.clickedRow;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
-  auto rr = _rows[(size_t)row];
-  auto& f = _groups[rr.g].files[rr.f];
-  DCAddPathMenuItems(menu, DCNS(f.path));
-  [menu addItem:[NSMenuItem separatorItem]];
-  NSMenuItem* keep = [[NSMenuItem alloc] initWithTitle:f.keep ? @"Don't Keep This Copy" : @"Keep This Copy"
-                                                action:@selector(ctxToggleKeep:)
-                                         keyEquivalent:@""];
-  keep.target = self;
-  keep.tag = row;
-  [menu addItem:keep];
-  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
-                                                 action:@selector(ctxTrashRow:)
-                                          keyEquivalent:@""];
-  trash.target = self;
-  trash.tag = row;
-  [menu addItem:trash];
-}
-
-- (void)ctxToggleKeep:(NSMenuItem*)sender {
-  NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
-  auto rr = _rows[(size_t)row];
-  auto& f = _groups[rr.g].files[rr.f];
-  f.keep = !f.keep;
-  [_table reloadData];
-  [self refreshCleanTitle];
-}
-
-- (void)ctxTrashRow:(NSMenuItem*)sender {
-  NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
-  auto rr = _rows[(size_t)row];
-  auto& f = _groups[rr.g].files[rr.f];
-  if (!DCConfirmClean(@[ DCNS(f.path) ], f.bytes)) return;
-  const auto mode = DCCleanPref();
-  std::string path = f.path;
-  [self setScanEnabled:NO];
-  __weak DCDuplicatesView* weakSelf = self;
-  __block dcmm::CleanResult r;
-  DCRunBackground(&_job, ^{
-    DCDuplicatesView* strong = weakSelf;
-    if (!strong) return;
-    r = ui::applyClean(strong->_engine, {path}, mode);
-  }, ^{
-    DCDuplicatesView* s = weakSelf;
-    if (!s) return;
-    [s setScanEnabled:YES];
-    if (r.trashedItems == 0) {
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-      return;
-    }
-    DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
-    [s startScan];
-  });
+  uint64_t bytes = 0;
+  for (auto& group : _groups)
+    for (auto& f : group.files)
+      if (!f.keep) bytes += f.bytes;
+  [self trashPaths:std::move(paths) bytes:bytes];
 }
 
 @end

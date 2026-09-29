@@ -1,5 +1,6 @@
 #import "ui/Theme.h"
 
+#include "AppFeatures.hpp"
 #include "dcmm/path.hpp"
 
 #include <cstdlib>
@@ -587,6 +588,467 @@ static char kDCHoverPopoverKey;
   (void)event;
   [_pop performClose:nil];
   _pop = nil;
+}
+
+@end
+
+static NSColor* DCSizeBadgeTint(uint64_t bytes) {
+  if (bytes >= ui::kSpaceTooBigBytes) return NSColor.systemRedColor;
+  if (bytes >= ui::kSpaceBigBytes) return NSColor.systemOrangeColor;
+  return nil;
+}
+
+@implementation DCSizeBadge {
+  NSTextField* _label;
+}
+
+- (BOOL)wantsUpdateLayer {
+  return YES;
+}
+
+- (void)updateLayer {
+  NSAppearanceName match =
+      [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
+  const BOOL dark = [match isEqualToString:NSAppearanceNameDarkAqua];
+  NSColor* tint = DCSizeBadgeTint(_bytes);
+  if (tint) {
+    self.layer.backgroundColor = [tint colorWithAlphaComponent:dark ? 0.22 : 0.12].CGColor;
+    _label.textColor = tint;
+  } else {
+    self.layer.backgroundColor =
+        [[NSColor labelColor] colorWithAlphaComponent:dark ? 0.10 : 0.06].CGColor;
+    _label.textColor = NSColor.secondaryLabelColor;
+  }
+  self.layer.cornerRadius = MAX(NSHeight(self.bounds) / 2.0, 8);
+  self.layer.masksToBounds = YES;
+}
+
+- (instancetype)initWithBytes:(uint64_t)bytes {
+  self = [super initWithFrame:NSZeroRect];
+  if (self) {
+    self.wantsLayer = YES;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+    _label = DCLabel(@"");
+    _label.font = [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightMedium];
+    _label.alignment = NSTextAlignmentCenter;
+    _label.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:_label];
+    [NSLayoutConstraint activateConstraints:@[
+      [_label.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:7],
+      [_label.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-7],
+      [_label.topAnchor constraintEqualToAnchor:self.topAnchor constant:2],
+      [_label.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-2],
+    ]];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [self setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+    self.bytes = bytes;
+  }
+  return self;
+}
+
+- (void)setBytes:(uint64_t)bytes {
+  _bytes = bytes;
+  _label.stringValue = DCNS(dcmm::formatBytes(bytes));
+  [self setNeedsDisplay:YES];
+}
+
+@end
+
+static BOOL DCDuplicatePathIsImage(NSString* path) {
+  static NSSet<NSString*>* exts;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    exts = [NSSet setWithArray:@[
+      @"png", @"jpg", @"jpeg", @"gif", @"heic", @"heif", @"webp", @"tif", @"tiff", @"bmp", @"raw",
+      @"dng", @"ico", @"icns"
+    ]];
+  });
+  return [exts containsObject:path.pathExtension.lowercaseString];
+}
+
+static NSString* DCDuplicateSymbolName(NSString* path) {
+  NSString* ext = path.pathExtension.lowercaseString;
+  static NSSet<NSString*>* video;
+  static NSSet<NSString*>* audio;
+  static NSSet<NSString*>* archive;
+  static NSSet<NSString*>* code;
+  static NSSet<NSString*>* text;
+  static NSSet<NSString*>* sheet;
+  static NSSet<NSString*>* slides;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    video = [NSSet setWithArray:@[ @"mp4", @"mov", @"m4v", @"avi", @"mkv", @"webm", @"mpeg", @"mpg" ]];
+    audio = [NSSet setWithArray:@[ @"mp3", @"wav", @"aac", @"m4a", @"aiff", @"aif", @"flac", @"caf" ]];
+    archive = [NSSet setWithArray:@[ @"zip", @"rar", @"7z", @"tar", @"gz", @"tgz", @"bz2", @"dmg", @"iso" ]];
+    code = [NSSet setWithArray:@[
+      @"c", @"cc", @"cpp", @"h", @"hpp", @"m", @"mm", @"swift", @"js", @"ts", @"jsx", @"tsx", @"py",
+      @"rb", @"go", @"rs", @"java", @"kt", @"cs", @"sh", @"json", @"xml", @"yml", @"yaml", @"html",
+      @"css", @"scss"
+    ]];
+    text = [NSSet setWithArray:@[ @"txt", @"rtf", @"md", @"markdown" ]];
+    sheet = [NSSet setWithArray:@[ @"xls", @"xlsx", @"csv", @"numbers" ]];
+    slides = [NSSet setWithArray:@[ @"ppt", @"pptx", @"key" ]];
+  });
+  if ([ext isEqualToString:@"pdf"]) return @"doc.richtext.fill";
+  if ([video containsObject:ext]) return @"film.fill";
+  if ([audio containsObject:ext]) return @"speaker.wave.2.fill";
+  if ([archive containsObject:ext]) return @"archivebox.fill";
+  if ([code containsObject:ext]) return @"chevron.left.forwardslash.chevron.right";
+  if ([text containsObject:ext]) return @"doc.plaintext.fill";
+  if ([sheet containsObject:ext]) return @"tablecells.fill";
+  if ([slides containsObject:ext]) return @"rectangle.on.rectangle.fill";
+  return @"doc.fill";
+}
+
+static NSImage* DCDuplicateSymbolImage(NSString* path, CGFloat pointSize) {
+  NSImage* img = [NSImage imageWithSystemSymbolName:DCDuplicateSymbolName(path)
+                           accessibilityDescription:path.lastPathComponent];
+  if (!img) return nil;
+  NSImageSymbolConfiguration* cfg =
+      [NSImageSymbolConfiguration configurationWithPointSize:pointSize weight:NSFontWeightRegular];
+  return [img imageWithSymbolConfiguration:cfg] ?: img;
+}
+
+static NSCache* DCDuplicateThumbCache(void) {
+  static NSCache* cache;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    cache = [[NSCache alloc] init];
+    cache.countLimit = 256;
+  });
+  return cache;
+}
+
+static NSImage* DCDuplicateThumbnail(NSString* path, CGFloat max) {
+  NSImage* cached = [DCDuplicateThumbCache() objectForKey:path];
+  if (cached) return cached;
+  NSImage* src = [[NSImage alloc] initWithContentsOfFile:path];
+  if (!src) return nil;
+  NSSize s = src.size;
+  if (s.width <= 0 || s.height <= 0) return nil;
+  CGFloat factor = MIN(max / s.width, max / s.height);
+  if (factor > 1) factor = 1;
+  NSSize out = NSMakeSize(MAX(1, floor(s.width * factor)), MAX(1, floor(s.height * factor)));
+  NSImage* dst = [NSImage imageWithSize:out
+                                flipped:NO
+                         drawingHandler:^BOOL(NSRect dstRect) {
+                           [src drawInRect:dstRect
+                                  fromRect:NSZeroRect
+                                 operation:NSCompositingOperationCopy
+                                  fraction:1.0
+                            respectFlipped:YES
+                                     hints:@{NSImageHintInterpolation : @(NSImageInterpolationHigh)}];
+                           return YES;
+                         }];
+  if (dst) [DCDuplicateThumbCache() setObject:dst forKey:path];
+  return dst;
+}
+
+static const CGFloat kDCDupCardW = 128;
+static const CGFloat kDCDupCardH = 148;
+static const CGFloat kDCDupIcon = 72;
+
+@interface DCDuplicateItemCard () <NSMenuDelegate>
+@end
+
+@implementation DCDuplicateItemCard {
+  NSImageView* _icon;
+  DCSizeBadge* _badge;
+  uint64_t _gen;
+  BOOL _photo;
+}
+
+- (instancetype)initWithPath:(NSString*)path bytes:(uint64_t)bytes selected:(BOOL)selected {
+  self = [super initWithFrame:NSZeroRect];
+  if (self) {
+    _path = [path copy] ?: @"";
+    _bytes = bytes;
+    _selected = selected;
+    self.wantsLayer = YES;
+    self.layer.cornerRadius = 12;
+    self.layer.masksToBounds = YES;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+
+    _icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    _icon.imageScaling = NSImageScaleProportionallyUpOrDown;
+    _icon.wantsLayer = YES;
+    _icon.layer.cornerRadius = 8;
+    _icon.layer.masksToBounds = YES;
+    _icon.translatesAutoresizingMaskIntoConstraints = NO;
+    [_icon.widthAnchor constraintEqualToConstant:kDCDupIcon].active = YES;
+    [_icon.heightAnchor constraintEqualToConstant:kDCDupIcon].active = YES;
+
+    _badge = [[DCSizeBadge alloc] initWithBytes:bytes];
+
+    NSStackView* body = [NSStackView stackViewWithViews:@[ _icon, _badge ]];
+    body.orientation = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment = NSLayoutAttributeCenterX;
+    body.spacing = 10;
+    body.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:body];
+    [NSLayoutConstraint activateConstraints:@[
+      [body.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
+      [body.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
+      [body.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.leadingAnchor constant:10],
+      [body.trailingAnchor constraintLessThanOrEqualToAnchor:self.trailingAnchor constant:-10],
+    ]];
+    [self.widthAnchor constraintEqualToConstant:kDCDupCardW].active = YES;
+    [self.heightAnchor constraintEqualToConstant:kDCDupCardH].active = YES;
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [self setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                   forOrientation:NSLayoutConstraintOrientationVertical];
+
+    self.accessibilityElement = YES;
+    self.accessibilityRole = NSAccessibilityButtonRole;
+    NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
+    menu.delegate = self;
+    menu.autoenablesItems = YES;
+    self.menu = menu;
+    [self applyChrome];
+    [self reloadPreview];
+  }
+  return self;
+}
+
+- (void)menuNeedsUpdate:(NSMenu*)menu {
+  [menu removeAllItems];
+  if (!self.path.length) return;
+  DCAddPathMenuItems(menu, self.path);
+  [menu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:self.selected ? @"Unselect" : @"Select"
+                                               action:@selector(ctxToggle:)
+                                        keyEquivalent:@""];
+  sel.target = self;
+  [menu addItem:sel];
+  if (!self.onTrash) return;
+  [menu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
+                                                 action:@selector(ctxTrash:)
+                                          keyEquivalent:@""];
+  trash.target = self;
+  [menu addItem:trash];
+}
+
+- (void)ctxToggle:(id)sender {
+  (void)sender;
+  self.selected = !_selected;
+  if (self.onToggle) self.onToggle(self);
+}
+
+- (void)ctxTrash:(id)sender {
+  (void)sender;
+  if (self.onTrash) self.onTrash(self);
+}
+
+- (void)applyChrome {
+  NSColor* accent = NSColor.controlAccentColor;
+  NSColor* fill = _selected ? [accent colorWithAlphaComponent:0.22] : NSColor.controlBackgroundColor;
+  NSColor* border = _selected ? accent : NSColor.separatorColor;
+  __weak DCDuplicateItemCard* weakSelf = self;
+  [self.effectiveAppearance performAsCurrentDrawingAppearance:^{
+    DCDuplicateItemCard* s = weakSelf;
+    if (!s) return;
+    s.layer.backgroundColor = fill.CGColor;
+    s.layer.borderColor = border.CGColor;
+  }];
+  self.layer.borderWidth = _selected ? 2 : 1;
+  if (!_photo) _icon.contentTintColor = _selected ? accent : NSColor.secondaryLabelColor;
+  self.accessibilityLabel = self.path.lastPathComponent ?: @"Duplicate";
+  self.accessibilityValue = _selected ? @"Selected" : @"Not selected";
+  self.accessibilityHelp = self.path;
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+  [super viewDidChangeEffectiveAppearance];
+  [self applyChrome];
+}
+
+- (void)setPath:(NSString*)path {
+  _path = [path copy] ?: @"";
+  [self reloadPreview];
+  [self applyChrome];
+}
+
+- (void)setBytes:(uint64_t)bytes {
+  _bytes = bytes;
+  _badge.bytes = bytes;
+}
+
+- (void)setSelected:(BOOL)selected {
+  if (_selected == selected) return;
+  _selected = selected;
+  [self applyChrome];
+}
+
+- (void)reloadPreview {
+  _gen++;
+  uint64_t gen = _gen;
+  NSString* path = self.path;
+  _photo = DCDuplicatePathIsImage(path);
+  if (!_photo) {
+    _icon.image = DCDuplicateSymbolImage(path, 36);
+    _icon.contentTintColor = _selected ? NSColor.controlAccentColor : NSColor.secondaryLabelColor;
+    return;
+  }
+  NSImage* cached = [DCDuplicateThumbCache() objectForKey:path];
+  if (cached) {
+    _icon.image = cached;
+    _icon.contentTintColor = nil;
+    return;
+  }
+  _icon.image = DCDuplicateSymbolImage(path, 36);
+  _icon.contentTintColor = NSColor.secondaryLabelColor;
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    NSImage* thumb = DCDuplicateThumbnail(path, kDCDupIcon * 2);
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (gen != self->_gen) return;
+      if (!thumb) return;
+      self->_icon.image = thumb;
+      self->_icon.contentTintColor = nil;
+    });
+  });
+}
+
+- (void)mouseUp:(NSEvent*)event {
+  NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
+  if (!NSPointInRect(p, self.bounds)) return;
+  self.selected = !_selected;
+  if (self.onToggle) self.onToggle(self);
+}
+
+- (BOOL)accessibilityPerformPress {
+  self.selected = !_selected;
+  if (self.onToggle) self.onToggle(self);
+  return YES;
+}
+
+@end
+
+@interface DCDupCarousel : NSView
+- (instancetype)initWithStrip:(NSStackView*)strip;
+@end
+
+@implementation DCDupCarousel {
+  NSStackView* _strip;
+  CGFloat _offset;
+}
+
+- (instancetype)initWithStrip:(NSStackView*)strip {
+  self = [super initWithFrame:NSZeroRect];
+  if (self) {
+    _strip = strip;
+    self.clipsToBounds = YES;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:_strip];
+  }
+  return self;
+}
+
+- (CGFloat)maxOffset {
+  return MAX(0, _strip.fittingSize.width - NSWidth(self.bounds));
+}
+
+- (void)layout {
+  [super layout];
+  NSSize fit = _strip.fittingSize;
+  CGFloat w = MAX(fit.width, 1);
+  CGFloat h = MAX(fit.height, 1);
+  CGFloat y = NSHeight(self.bounds) > h ? (NSHeight(self.bounds) - h) / 2.0 : 0;
+  CGFloat max = [self maxOffset];
+  if (_offset > max) _offset = max;
+  if (_offset < 0) _offset = 0;
+  _strip.frame = NSMakeRect(-_offset, y, w, h);
+}
+
+- (void)scrollWheel:(NSEvent*)event {
+  const CGFloat dx = event.scrollingDeltaX;
+  const CGFloat dy = event.scrollingDeltaY;
+  if (fabs(dx) > fabs(dy) && [self maxOffset] > 0.5) {
+    _offset -= dx;
+    [self setNeedsLayout:YES];
+    return;
+  }
+  [self.nextResponder scrollWheel:event];
+}
+
+@end
+
+@implementation DCDuplicateGroupView {
+  NSTextField* _titleLabel;
+  DCDupCarousel* _carousel;
+  NSStackView* _strip;
+  NSArray<DCDuplicateItemCard*>* _cards;
+}
+
+- (instancetype)initWithTitle:(NSString*)title cards:(NSArray<DCDuplicateItemCard*>*)cards {
+  self = [super initWithFrame:NSZeroRect];
+  if (self) {
+    _cards = [cards copy] ?: @[];
+    self.wantsLayer = YES;
+    self.layer.cornerRadius = 12;
+    self.layer.masksToBounds = YES;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+
+    _titleLabel = DCLabel(title.length ? title : @"Duplicate");
+    _titleLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    _titleLabel.lineBreakMode = NSLineBreakByTruncatingMiddle;
+    _title = [_titleLabel.stringValue copy];
+
+    _strip = [NSStackView stackViewWithViews:_cards];
+    _strip.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    _strip.alignment = NSLayoutAttributeCenterY;
+    _strip.spacing = 10;
+
+    _carousel = [[DCDupCarousel alloc] initWithStrip:_strip];
+    [_carousel.heightAnchor constraintEqualToConstant:kDCDupCardH].active = YES;
+
+    NSStackView* body = [NSStackView stackViewWithViews:@[ _titleLabel, _carousel ]];
+    body.orientation = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment = NSLayoutAttributeLeading;
+    body.spacing = 10;
+    body.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
+    [self addSubview:body];
+    DCPinEdges(body, self);
+    DCStackFullWidth(body, _titleLabel);
+    DCStackFullWidth(body, _carousel);
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [self applyChrome];
+  }
+  return self;
+}
+
+- (NSArray<DCDuplicateItemCard*>*)cards {
+  return _cards;
+}
+
+- (void)setTitle:(NSString*)title {
+  _title = [title copy] ?: @"";
+  _titleLabel.stringValue = _title.length ? _title : @"Duplicate";
+}
+
+- (void)applyChrome {
+  __weak DCDuplicateGroupView* weakSelf = self;
+  [self.effectiveAppearance performAsCurrentDrawingAppearance:^{
+    DCDuplicateGroupView* s = weakSelf;
+    if (!s) return;
+    s.layer.backgroundColor = NSColor.controlBackgroundColor.CGColor;
+  }];
+  self.layer.borderWidth = 0;
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+  [super viewDidChangeEffectiveAppearance];
+  [self applyChrome];
 }
 
 @end

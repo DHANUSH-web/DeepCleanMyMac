@@ -154,6 +154,34 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 + (void)attachToView:(NSView*)view rows:(NSArray<NSArray<NSString*>*>*)rows;
 @end
 
+/// Capsule size label. Orange at 500 MB+, red at 1 GB+.
+@interface DCSizeBadge : NSView
+@property(nonatomic) uint64_t bytes;
+- (instancetype)initWithBytes:(uint64_t)bytes;
+@end
+
+/// One copy in a duplicate set. Click toggles selected (marked for delete).
+@interface DCDuplicateItemCard : NSView
+@property(nonatomic, copy) NSString* path;
+@property(nonatomic) uint64_t bytes;
+@property(nonatomic, getter=isSelected) BOOL selected;
+@property(nonatomic, copy, nullable) void (^onToggle)(DCDuplicateItemCard* card);
+@property(nonatomic, copy, nullable) void (^onTrash)(DCDuplicateItemCard* card);
+
+- (instancetype)initWithPath:(NSString*)path
+                       bytes:(uint64_t)bytes
+                    selected:(BOOL)selected;
+@end
+
+/// Filename header plus a horizontal carousel of duplicate item cards.
+@interface DCDuplicateGroupView : NSView
+@property(nonatomic, copy) NSString* title;
+@property(nonatomic, readonly) NSArray<DCDuplicateItemCard*>* cards;
+
+- (instancetype)initWithTitle:(NSString*)title
+                        cards:(NSArray<DCDuplicateItemCard*>*)cards;
+@end
+
 void DCPinEdges(NSView* child, NSView* parent);
 NSStackView* DCPageStack(NSView* host);
 NSStackView* DCHeaderStack(NSString* title, NSString* subtitle);
