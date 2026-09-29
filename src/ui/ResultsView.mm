@@ -15,6 +15,12 @@ struct FlatRow {
   int g = -1;
   int i = -1;
 };
+NSString* DCResultsSymbol(DCResultsMode mode) {
+  ui::Module mod = ui::Module::DeepScan;
+  if (mode == DCResultsModeSmart) mod = ui::Module::SmartScan;
+  else if (mode == DCResultsModePrivacy) mod = ui::Module::Privacy;
+  return [NSString stringWithUTF8String:ui::sidebarSymbol(mod)];
+}
 }  // namespace
 
 @interface DCResultsView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
@@ -37,25 +43,37 @@ struct FlatRow {
   NSTableView* _table;
   NSStackView* _content;
   DCStartScreen* _startScreen;
+  NSString* _emptySymbol;
 }
 
 - (instancetype)initWithMode:(DCResultsMode)mode {
   NSString* title = @"Smart Scan";
   NSString* sub = @"Recommended caches and logs. Clean whole groups, not individual files.";
+  NSString* emptySymbol = @"apple.intelligence";
   if (mode == DCResultsModePrivacy) {
     title = @"Privacy";
     sub = @"Browser caches and tracking leftovers. Cookies stay off unless you opt in.";
+    emptySymbol = @"checkmark.shield.fill";
   } else if (mode == DCResultsModeJunk) {
     title = @"Deep Scan";
     sub = @"Item-by-item scan — review before cleaning. Not everything here is safe to remove";
+    emptySymbol = @"eyes";
   }
-  return [self initWithMode:mode title:title subtitle:sub];
+  return [self initWithMode:mode title:title subtitle:sub emptySymbol:emptySymbol];
 }
 
 - (instancetype)initWithMode:(DCResultsMode)mode title:(NSString*)title subtitle:(NSString*)subtitle {
+  return [self initWithMode:mode title:title subtitle:subtitle emptySymbol:@"checkmark.seal.fill"];
+}
+
+- (instancetype)initWithMode:(DCResultsMode)mode
+                       title:(NSString*)title
+                    subtitle:(NSString*)subtitle
+                 emptySymbol:(NSString*)emptySymbol {
   self = [super initWithFrame:NSZeroRect];
   if (self) {
     _mode = mode;
+    _emptySymbol = emptySymbol ?: @"checkmark.seal.fill";
     _state = 0;
 
     NSStackView* page = DCPageStack(self);
@@ -124,13 +142,10 @@ struct FlatRow {
 
     DCStackExpand(page, DCWrapTable(_table));
     {
-      ui::Module mod = ui::Module::DeepScan;
-      if (mode == DCResultsModeSmart) mod = ui::Module::SmartScan;
-      else if (mode == DCResultsModePrivacy) mod = ui::Module::Privacy;
       __weak DCResultsView* weakSelf = self;
       _startScreen = [[DCStartScreen alloc] initWithTitle:title
                                                  subtitle:subtitle
-                                                   symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(mod)]
+                                                   symbol:DCResultsSymbol(mode)
                                             iconPointSize:250
                                                   colored:NO
                                               buttonTitle:@"Scan"
@@ -180,7 +195,7 @@ struct FlatRow {
 
 - (void)showNothingFound {
   _scanBtn.keyEquivalent = @"";
-  [_startScreen configureSymbol:@"checkmark.seal.fill"
+  [_startScreen configureSymbol:_emptySymbol
                        subtitle:@"Everything is clean"
                     buttonTitle:@"Scan Again"
                       tintColor:NSColor.controlAccentColor

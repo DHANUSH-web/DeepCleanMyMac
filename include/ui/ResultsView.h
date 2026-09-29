@@ -11,5 +11,9 @@ typedef NS_ENUM(NSInteger, DCResultsMode) {
 @interface DCResultsView : NSView
 - (instancetype)initWithMode:(DCResultsMode)mode;
 - (instancetype)initWithMode:(DCResultsMode)mode title:(NSString*)title subtitle:(NSString*)subtitle;
+- (instancetype)initWithMode:(DCResultsMode)mode
+                       title:(NSString*)title
+                    subtitle:(NSString*)subtitle
+                 emptySymbol:(NSString*)emptySymbol;
 - (void)startScan;
 @end
