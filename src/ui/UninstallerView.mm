@@ -114,7 +114,12 @@
 
 - (void)showNothingFound {
   _reload.keyEquivalent = @"";
-  [_startScreen applyNothingFound];
+  [_startScreen configureSymbol:@"checkmark.seal.fill"
+                       subtitle:@"Everything is clean"
+                    buttonTitle:@"Scan Again"
+                      tintColor:NSColor.controlAccentColor
+                  defaultButton:YES
+                   appearBounce:YES];
   _startScreen.hidden = NO;
   _content.hidden = YES;
 }

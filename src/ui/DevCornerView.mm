@@ -675,7 +675,12 @@ static NSURL* DCDevRepoURL(NSString* s) {
 
 - (void)showNothingFound {
   _scanApps.keyEquivalent = @"";
-  [_startScreen applyNothingFound];
+  [_startScreen configureSymbol:@"checkmark.seal.fill"
+                       subtitle:@"Everything is clean"
+                    buttonTitle:@"Scan Again"
+                      tintColor:NSColor.controlAccentColor
+                  defaultButton:YES
+                   appearBounce:YES];
   _startScreen.hidden = NO;
   _appsWrap.hidden = YES;
   _placeholder.hidden = YES;

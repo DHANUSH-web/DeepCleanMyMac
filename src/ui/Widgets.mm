@@ -908,14 +908,20 @@ static char kDCHoverPopoverKey;
   _progressing = NO;
 }
 
-- (void)applyNothingFound {
-  self.subtitle = @"Everything is clean";
-  self.buttonTitle = @"Scan Again";
+- (void)configureSymbol:(NSString*)symbolName
+               subtitle:(NSString*)subtitle
+            buttonTitle:(NSString*)buttonTitle
+              tintColor:(NSColor*)tintColor
+          defaultButton:(BOOL)defaultButton
+           appearBounce:(BOOL)appearBounce {
+  self.subtitle = subtitle;
+  self.buttonTitle = buttonTitle;
   self.icon = nil;
   self.colored = NO;
-  self.iconTintColor = NSColor.controlAccentColor;
-  self.symbolName = @"checkmark.seal.fill";
-  self.defaultButton = YES;
+  self.iconTintColor = tintColor;
+  self.symbolName = symbolName;
+  self.defaultButton = defaultButton;
+  if (!appearBounce) return;
   if (@available(macOS 14.0, *)) {
     [_iconView removeAllSymbolEffects];
     [_iconView addSymbolEffect:[NSSymbolAppearEffect appearUpEffect]
