@@ -1,13 +1,15 @@
 #import "AppDelegate.h"
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[])
+{
   (void)argc;
   (void)argv;
-  @autoreleasepool {
+  @autoreleasepool
+  {
     [NSApplication sharedApplication];
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     AppDelegate* delegate = [AppDelegate new];
-    NSApp.delegate = delegate;
+    NSApp.delegate        = delegate;
     [NSApp run];
   }
   return 0;

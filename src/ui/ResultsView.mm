@@ -9,24 +9,34 @@
 #include <atomic>
 #include <vector>
 
-namespace {
-struct FlatRow {
+namespace
+{
+struct FlatRow
+{
   bool group = false;
-  int g = -1;
-  int i = -1;
+  int g      = -1;
+  int i      = -1;
 };
-NSString* DCResultsSymbol(DCResultsMode mode) {
+NSString* DCResultsSymbol(DCResultsMode mode)
+{
   ui::Module mod = ui::Module::DeepScan;
-  if (mode == DCResultsModeSmart) mod = ui::Module::SmartScan;
-  else if (mode == DCResultsModePrivacy) mod = ui::Module::Privacy;
+  if (mode == DCResultsModeSmart)
+  {
+    mod = ui::Module::SmartScan;
+  }
+  else if (mode == DCResultsModePrivacy)
+  {
+    mod = ui::Module::Privacy;
+  }
   return [NSString stringWithUTF8String:ui::sidebarSymbol(mod)];
 }
-}  // namespace
+} // namespace
 
 @interface DCResultsView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
-@implementation DCResultsView {
+@implementation DCResultsView
+{
   DCResultsMode _mode;
   dcmm::Engine _engine;
   dcmm::ScanReport _report;
@@ -46,120 +56,128 @@ NSString* DCResultsSymbol(DCResultsMode mode) {
   NSString* _emptySymbol;
 }
 
-- (instancetype)initWithMode:(DCResultsMode)mode {
-  NSString* title = @"Smart Scan";
-  NSString* sub = @"Recommended caches and logs. Clean whole groups, not individual files.";
+- (instancetype)initWithMode:(DCResultsMode)mode
+{
+  NSString* title       = @"Smart Scan";
+  NSString* sub         = @"Recommended caches and logs. Clean whole groups, not individual files.";
   NSString* emptySymbol = @"apple.intelligence";
-  if (mode == DCResultsModePrivacy) {
-    title = @"Privacy";
-    sub = @"Browser caches and tracking leftovers. Cookies stay off unless you opt in.";
+  if (mode == DCResultsModePrivacy)
+  {
+    title       = @"Privacy";
+    sub         = @"Browser caches and tracking leftovers. Cookies stay off unless you opt in.";
     emptySymbol = @"checkmark.shield.fill";
-  } else if (mode == DCResultsModeJunk) {
+  }
+  else if (mode == DCResultsModeJunk)
+  {
     title = @"Deep Scan";
-    sub = @"Item-by-item scan — review before cleaning. Not everything here is safe to remove";
+    sub   = @"Item-by-item scan — review before cleaning. Not everything here is safe to remove";
     emptySymbol = @"eyes";
   }
   return [self initWithMode:mode title:title subtitle:sub emptySymbol:emptySymbol];
 }
 
-- (instancetype)initWithMode:(DCResultsMode)mode title:(NSString*)title subtitle:(NSString*)subtitle {
+- (instancetype)initWithMode:(DCResultsMode)mode title:(NSString*)title subtitle:(NSString*)subtitle
+{
   return [self initWithMode:mode title:title subtitle:subtitle emptySymbol:@"checkmark.seal.fill"];
 }
 
 - (instancetype)initWithMode:(DCResultsMode)mode
                        title:(NSString*)title
                     subtitle:(NSString*)subtitle
-                 emptySymbol:(NSString*)emptySymbol {
+                 emptySymbol:(NSString*)emptySymbol
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    _mode = mode;
+  if (self)
+  {
+    _mode        = mode;
     _emptySymbol = emptySymbol ?: @"checkmark.seal.fill";
-    _state = 0;
+    _state       = 0;
 
-    NSStackView* page = DCPageStack(self);
-    _content = page;
+    NSStackView* page   = DCPageStack(self);
+    _content            = page;
     NSStackView* header = DCHeaderStack(title, subtitle);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
 
-    _scanBtn = [DCGlowButton defaultButtonWithTitle:@"Scan"
-                                             target:self
-                                             action:@selector(startScan)
-                                          glowColor:NSColor.controlAccentColor
-                                      glowLineWidth:2.5
-                                         clockwise:YES];
-    _cleanBtn = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
-    _cleanBtn.hidden = YES;
-    _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
-    _selAll.hidden = YES;
+    _scanBtn             = [DCGlowButton defaultButtonWithTitle:@"Scan"
+                                                         target:self
+                                                         action:@selector(startScan)
+                                                      glowColor:NSColor.controlAccentColor
+                                                  glowLineWidth:2.5
+                                                      clockwise:YES];
+    _cleanBtn            = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
+    _cleanBtn.hidden     = YES;
+    _selAll              = DCPushButton(@"Select All", self, @selector(toggleAll));
+    _selAll.hidden       = YES;
     NSStackView* actions = DCTrailingButtons(@[ _selAll, _cleanBtn, _scanBtn ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
 
-    if (mode == DCResultsModeJunk) {
-      NSView* legend = [DCLegendView dangerLegendWithMessage:
-                            @"Items with warning icons are not recommended to delete."];
+    if (mode == DCResultsModeJunk)
+    {
+      NSView* legend    = [DCLegendView
+          dangerLegendWithMessage:@"Items with warning icons are not recommended to delete."];
       NSView* legendRow = DCStackCentered(page, legend);
       [page setCustomSpacing:20 afterView:actions];
       [page setCustomSpacing:20 afterView:legendRow];
     }
 
-    _spin = [[NSProgressIndicator alloc] initWithFrame:NSZeroRect];
-    _spin.style = NSProgressIndicatorStyleSpinning;
+    _spin                      = [[NSProgressIndicator alloc] initWithFrame:NSZeroRect];
+    _spin.style                = NSProgressIndicatorStyleSpinning;
     _spin.displayedWhenStopped = NO;
-    _spin.controlSize = NSControlSizeSmall;
-    _status = DCCaptionLabel(@"Ready when you are.");
-    NSStackView* statusRow = [NSStackView stackViewWithViews:@[ _spin, _status ]];
-    statusRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    statusRow.alignment = NSLayoutAttributeCenterY;
-    statusRow.spacing = 8;
+    _spin.controlSize          = NSControlSizeSmall;
+    _status                    = DCCaptionLabel(@"Ready when you are.");
+    NSStackView* statusRow     = [NSStackView stackViewWithViews:@[ _spin, _status ]];
+    statusRow.orientation      = NSUserInterfaceLayoutOrientationHorizontal;
+    statusRow.alignment        = NSLayoutAttributeCenterY;
+    statusRow.spacing          = 8;
     [page addArrangedSubview:statusRow];
 
     _table = [[NSTableView alloc] initWithFrame:NSZeroRect];
     DCStyleTable(_table);
     _table.dataSource = self;
-    _table.delegate = self;
+    _table.delegate   = self;
     DCAttachTableMenu(_table, self);
 
     NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"check"];
-    c0.width = 24;
-    c0.minWidth = 24;
-    c0.maxWidth = 32;
-    c0.title = @"";
+    c0.width          = 24;
+    c0.minWidth       = 24;
+    c0.maxWidth       = 32;
+    c0.title          = @"";
     [_table addTableColumn:c0];
     NSTableColumn* c1 = [[NSTableColumn alloc] initWithIdentifier:@"name"];
-    c1.title = @"Item";
-    c1.minWidth = 160;
+    c1.title          = @"Item";
+    c1.minWidth       = 160;
     [_table addTableColumn:c1];
     NSTableColumn* c2 = [[NSTableColumn alloc] initWithIdentifier:@"files"];
-    c2.title = @"Files";
-    c2.width = 72;
+    c2.title          = @"Files";
+    c2.width          = 72;
     [_table addTableColumn:c2];
     NSTableColumn* c3 = [[NSTableColumn alloc] initWithIdentifier:@"size"];
-    c3.title = @"Size";
-    c3.width = 90;
+    c3.title          = @"Size";
+    c3.width          = 90;
     [_table addTableColumn:c3];
 
     DCStackExpand(page, DCWrapTable(_table));
     {
       __weak DCResultsView* weakSelf = self;
-      _startScreen = [[DCStartScreen alloc] initWithTitle:title
-                                                 subtitle:subtitle
-                                                   symbol:DCResultsSymbol(mode)
-                                            iconPointSize:250
-                                                  colored:NO
-                                              buttonTitle:@"Scan"
-                                                 onAction:^{
+      _startScreen                   = [[DCStartScreen alloc] initWithTitle:title
+                                                                   subtitle:subtitle
+                                                                     symbol:DCResultsSymbol(mode)
+                                                              iconPointSize:250
+                                                                    colored:NO
+                                                                buttonTitle:@"Scan"
+                                                                   onAction:^{
                                                    [weakSelf startScan];
-                                                 }];
-      _startScreen.subtitleMaxWidth = 360;
+                                                                   }];
+      _startScreen.subtitleMaxWidth  = 360;
       _startScreen.buttonControlSize = NSControlSizeLarge;
-      _startScreen.buttonMinWidth = 100;
-      _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
-      _startScreen.defaultButton = YES;
+      _startScreen.buttonMinWidth    = 100;
+      _startScreen.buttonFont        = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+      _startScreen.defaultButton     = YES;
       [self addSubview:_startScreen];
       DCPinEdges(_startScreen, self);
-      _content.hidden = YES;
+      _content.hidden        = YES;
       _scanBtn.keyEquivalent = @"";
     }
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -170,30 +188,48 @@ NSString* DCResultsSymbol(DCResultsMode mode) {
   return self;
 }
 
-- (void)dealloc {
+- (void)dealloc
+{
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (void)rebuildRows {
+- (void)rebuildRows
+{
   _rows.clear();
-  for (int g = 0; g < (int)_report.groups.size(); ++g) {
-    if (_mode != DCResultsModeSmart) _rows.push_back({true, g, -1});
-    for (int i = 0; i < (int)_report.groups[g].items.size(); ++i) _rows.push_back({false, g, i});
+  for (int g = 0; g < (int)_report.groups.size(); ++g)
+  {
+    if (_mode != DCResultsModeSmart)
+    {
+      _rows.push_back({true, g, -1});
+    }
+    for (int i = 0; i < (int)_report.groups[g].items.size(); ++i)
+    {
+      _rows.push_back({false, g, i});
+    }
   }
 }
 
-- (NSButton*)activeScanButton {
-  if (_startScreen && !_startScreen.hidden) return _startScreen.actionButton;
+- (NSButton*)activeScanButton
+{
+  if (_startScreen && !_startScreen.hidden)
+  {
+    return _startScreen.actionButton;
+  }
   return _scanBtn;
 }
 
-- (void)showContent {
-  if (!_startScreen || _startScreen.hidden) return;
+- (void)showContent
+{
+  if (!_startScreen || _startScreen.hidden)
+  {
+    return;
+  }
   _startScreen.hidden = YES;
-  _content.hidden = NO;
+  _content.hidden     = NO;
 }
 
-- (void)showNothingFound {
+- (void)showNothingFound
+{
   _scanBtn.keyEquivalent = @"";
   [_startScreen configureSymbol:_emptySymbol
                        subtitle:@"Everything is clean"
@@ -202,158 +238,221 @@ NSString* DCResultsSymbol(DCResultsMode mode) {
                   defaultButton:YES
                    appearBounce:YES];
   _startScreen.hidden = NO;
-  _content.hidden = YES;
+  _content.hidden     = YES;
 }
 
-- (void)startScan {
-  if (_state == 1) {
+- (void)startScan
+{
+  if (_state == 1)
+  {
     _engine.cancel();
     return;
   }
   _state = 1;
-  if (_startScreen && !_startScreen.hidden) {
+  if (_startScreen && !_startScreen.hidden)
+  {
     [_startScreen beginProgress];
     DCGlowButtonSetActive(_startScreen.actionButton, YES);
-  } else {
-    NSButton* scan = [self activeScanButton];
-    scan.title = @"Cancel";
-    scan.keyEquivalent = @".";
+  }
+  else
+  {
+    NSButton* scan                 = [self activeScanButton];
+    scan.title                     = @"Cancel";
+    scan.keyEquivalent             = @".";
     scan.keyEquivalentModifierMask = NSEventModifierFlagCommand;
     DCGlowButtonSetActive(scan, YES);
   }
   _cleanBtn.hidden = YES;
-  _selAll.hidden = YES;
+  _selAll.hidden   = YES;
   [_spin startAnimation:nil];
   _status.stringValue = @"Scanning…";
   _progressMs.store(0);
   __weak DCResultsView* weakSelf = self;
   __block dcmm::ScanReport report;
-  DCRunBackground(&_job, ^{
-    DCResultsView* strong = weakSelf;
-    if (!strong) return;
-    dcmm::ProgressFn cb = [weakSelf](const std::string& p, uint64_t vis, uint64_t) {
-      DCResultsView* s = weakSelf;
-      if (!s) return;
-      DCDispatchMainThrottled(&s->_progressMs, 120, ^{
-        DCResultsView* ui = weakSelf;
-        if (!ui || ui->_state != 1) return;
-        ui->_status.stringValue =
-            [NSString stringWithFormat:@"Scanning %@ — %llu items", DCNS(dcmm::displayName(p)),
-                                       (unsigned long long)vis];
+  DCRunBackground(
+      &_job,
+      ^{
+        DCResultsView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        dcmm::ProgressFn cb = [weakSelf](const std::string& p, uint64_t vis, uint64_t)
+        {
+          DCResultsView* s = weakSelf;
+          if (!s)
+          {
+            return;
+          }
+          DCDispatchMainThrottled(&s->_progressMs, 120, ^{
+            DCResultsView* ui = weakSelf;
+            if (!ui || ui->_state != 1)
+            {
+              return;
+            }
+            ui->_status.stringValue = [NSString stringWithFormat:@"Scanning %@ — %llu items",
+                                                                 DCNS(dcmm::displayName(p)),
+                                                                 (unsigned long long)vis];
+          });
+        };
+        ui::Module page = ui::Module::DeepScan;
+        if (strong->_mode == DCResultsModePrivacy)
+        {
+          page = ui::Module::Privacy;
+        }
+        else if (strong->_mode == DCResultsModeSmart)
+        {
+          page = ui::Module::SmartScan;
+        }
+        report = ui::runScan(strong->_engine, page, cb);
+      },
+      ^{
+        DCResultsView* s = weakSelf;
+        if (s)
+        {
+          [s finishWithReport:report];
+        }
       });
-    };
-    ui::Module page = ui::Module::DeepScan;
-    if (strong->_mode == DCResultsModePrivacy)
-      page = ui::Module::Privacy;
-    else if (strong->_mode == DCResultsModeSmart)
-      page = ui::Module::SmartScan;
-    report = ui::runScan(strong->_engine, page, cb);
-  }, ^{
-    DCResultsView* s = weakSelf;
-    if (s) [s finishWithReport:report];
-  });
 }
 
-- (void)finishWithReport:(const dcmm::ScanReport&)r {
+- (void)finishWithReport:(const dcmm::ScanReport&)r
+{
   _report = r;
   [self rebuildRows];
   _state = 2;
   [_spin stopAnimation:nil];
   [_startScreen endProgress];
   DCGlowButtonSetActive(_startScreen.actionButton, NO);
-  if (_rows.empty()) {
+  if (_rows.empty())
+  {
     [self showNothingFound];
     return;
   }
-  _scanBtn.title = @"Scan Again";
-  _scanBtn.keyEquivalent = @"\r";
+  _scanBtn.title                     = @"Scan Again";
+  _scanBtn.keyEquivalent             = @"\r";
   _scanBtn.keyEquivalentModifierMask = 0;
   DCGlowButtonSetActive(_scanBtn, NO);
-  _selAll.hidden = NO;
-  NSString* verb = _mode == DCResultsModeSmart ? @"Recommended" : @"Found";
-  _status.stringValue =
-      [NSString stringWithFormat:@"%@ %@ in %lu groups (%.1f s)", verb,
-                                 DCNS(dcmm::formatBytes(_report.totalBytes())),
-                                 (unsigned long)_report.groups.size(), _report.elapsedMs / 1000.0];
+  _selAll.hidden      = NO;
+  NSString* verb      = _mode == DCResultsModeSmart ? @"Recommended" : @"Found";
+  _status.stringValue = [NSString stringWithFormat:@"%@ %@ in %lu groups (%.1f s)",
+                                                   verb,
+                                                   DCNS(dcmm::formatBytes(_report.totalBytes())),
+                                                   (unsigned long)_report.groups.size(),
+                                                   _report.elapsedMs / 1000.0];
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
   [self showContent];
 }
 
-- (BOOL)allItemsSelected {
+- (BOOL)allItemsSelected
+{
   return ui::allScanItemsSelected(_report) ? YES : NO;
 }
 
-- (void)refreshSelectAllTitle {
+- (void)refreshSelectAllTitle
+{
   _selAll.title = [self allItemsSelected] ? @"Unselect All" : @"Select All";
 }
 
-- (void)refreshCleanTitle {
-  uint64_t b = _report.selectedBytes();
-  _cleanBtn.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), b));
+- (void)refreshCleanTitle
+{
+  uint64_t b       = _report.selectedBytes();
+  _cleanBtn.title  = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), b));
   _cleanBtn.hidden = _state != 2 || b == 0;
 }
 
-- (void)toggleAll {
+- (void)toggleAll
+{
   ui::setAllScanItemsSelected(_report, ![self allItemsSelected]);
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
 }
 
-- (void)cleanSelected {
+- (void)cleanSelected
+{
   auto paths = _report.selectedPaths();
-  if (paths.empty()) {
+  if (paths.empty())
+  {
     DCInformNothingToClean(@"Select items in the list first. Nothing was deleted.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray arrayWithCapacity:paths.size()];
-  for (const auto& p : paths) [list addObject:DCNS(p)];
-  if (!DCConfirmClean(list, _report.selectedBytes())) return;
-  _cleanBtn.hidden = YES;
-  _scanBtn.enabled = NO;
-  const auto mode = DCCleanPref();
+  for (const auto& p : paths)
+  {
+    [list addObject:DCNS(p)];
+  }
+  if (!DCConfirmClean(list, _report.selectedBytes()))
+  {
+    return;
+  }
+  _cleanBtn.hidden               = YES;
+  _scanBtn.enabled               = NO;
+  const auto mode                = DCCleanPref();
   __weak DCResultsView* weakSelf = self;
   __block dcmm::CleanResult result;
-  DCRunBackground(&_job, ^{
-    DCResultsView* strong = weakSelf;
-    if (!strong) return;
-    result = ui::applyClean(strong->_engine, paths, mode);
-  }, ^{
-    DCResultsView* s = weakSelf;
-    if (!s) return;
-    s->_scanBtn.enabled = YES;
-    if (result.trashedItems == 0 && result.trashedBytes == 0) {
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    } else {
-      DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
-    }
-    [s startScan];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCResultsView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        result = ui::applyClean(strong->_engine, paths, mode);
+      },
+      ^{
+        DCResultsView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        s->_scanBtn.enabled = YES;
+        if (result.trashedItems == 0 && result.trashedBytes == 0)
+        {
+          DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+        }
+        else
+        {
+          DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
+        }
+        [s startScan];
+      });
 }
 
-- (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
+- (NSInteger)numberOfRowsInTableView:(NSTableView*)tv
+{
   return (NSInteger)_rows.size();
 }
 
-- (BOOL)tableView:(NSTableView*)tableView isGroupRow:(NSInteger)row {
-  if (row < 0 || row >= (NSInteger)_rows.size()) return NO;
+- (BOOL)tableView:(NSTableView*)tableView isGroupRow:(NSInteger)row
+{
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return NO;
+  }
   return _rows[(size_t)row].group;
 }
 
 - (NSView*)tableView:(NSTableView*)tableView
     viewForTableColumn:(NSTableColumn*)column
-                   row:(NSInteger)row {
-  if (row < 0 || row >= (NSInteger)_rows.size()) return nil;
-  FlatRow fr = _rows[(size_t)row];
+                   row:(NSInteger)row
+{
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return nil;
+  }
+  FlatRow fr      = _rows[(size_t)row];
   NSString* ident = column.identifier;
-  if (fr.group) {
-    const auto& g = _report.groups[fr.g];
+  if (fr.group)
+  {
+    const auto& g   = _report.groups[fr.g];
     auto groupCheck = ^{
       NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(checkToggled:)];
       b.allowsMixedState = YES;
-      switch (ui::scanGroupCheck(g)) {
+      switch (ui::scanGroupCheck(g))
+      {
         case ui::GroupCheck::On:
           b.state = NSControlStateValueOn;
           break;
@@ -364,70 +463,99 @@ NSString* DCResultsSymbol(DCResultsMode mode) {
           b.state = NSControlStateValueOff;
           break;
       }
-      b.tag = row;
+      b.tag     = row;
       b.toolTip = @"Select or unselect every item in this group";
       return b;
     };
-    NSTextField* t = DCLabel(@"");
-    t.font = [NSFont preferredFontForTextStyle:NSFontTextStyleHeadline options:@{}];
-    t.stringValue = [NSString stringWithFormat:@"%@ — %@", DCNS(g.title),
-                                               DCNS(dcmm::formatBytes(g.totalBytes()))];
-    t.toolTip = DCNS(g.subtitle);
+    NSTextField* t    = DCLabel(@"");
+    t.font            = [NSFont preferredFontForTextStyle:NSFontTextStyleHeadline options:@{}];
+    t.stringValue     = [NSString
+        stringWithFormat:@"%@ — %@", DCNS(g.title), DCNS(dcmm::formatBytes(g.totalBytes()))];
+    t.toolTip         = DCNS(g.subtitle);
     const bool native = g.id == "native_system";
-    if (!column) {
+    if (!column)
+    {
       NSMutableArray<NSView*>* parts = [NSMutableArray arrayWithObject:groupCheck()];
-      if (native) [parts addObject:DCDangerIcon(12)];
+      if (native)
+      {
+        [parts addObject:DCDangerIcon(12)];
+      }
       [parts addObject:t];
       NSStackView* rowView = [NSStackView stackViewWithViews:parts];
-      rowView.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-      rowView.alignment = NSLayoutAttributeCenterY;
-      rowView.spacing = 6;
+      rowView.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+      rowView.alignment    = NSLayoutAttributeCenterY;
+      rowView.spacing      = 6;
       return DCCenteredFillCell(rowView);
     }
-    if ([ident isEqualToString:@"check"]) return DCCenteredCheckCell(groupCheck());
-    if ([ident isEqualToString:@"name"]) {
-      if (native) return DCCenteredDangerTextCell(t);
+    if ([ident isEqualToString:@"check"])
+    {
+      return DCCenteredCheckCell(groupCheck());
+    }
+    if ([ident isEqualToString:@"name"])
+    {
+      if (native)
+      {
+        return DCCenteredDangerTextCell(t);
+      }
       return DCCenteredTextCell(t);
     }
     t.stringValue = @"";
     return DCCenteredTextCell(t);
   }
-  auto& it = _report.groups[fr.g].items[fr.i];
+  auto& it          = _report.groups[fr.g].items[fr.i];
   const bool native = _report.groups[fr.g].id == "native_system";
-  if ([ident isEqualToString:@"check"]) {
+  if ([ident isEqualToString:@"check"])
+  {
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(checkToggled:)];
-    b.state = it.selected ? NSControlStateValueOn : NSControlStateValueOff;
-    b.tag = row;
+    b.state     = it.selected ? NSControlStateValueOn : NSControlStateValueOff;
+    b.tag       = row;
     return DCCenteredCheckCell(b);
   }
-  NSTextField* t = DCLabel(@"");
+  NSTextField* t  = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
-  if ([ident isEqualToString:@"name"]) {
-    if (_mode == DCResultsModeSmart) {
+  if ([ident isEqualToString:@"name"])
+  {
+    if (_mode == DCResultsModeSmart)
+    {
       const auto& g = _report.groups[fr.g];
       t.stringValue = g.id == "installers" ? DCNS(it.displayName) : DCNS(g.title);
-      t.toolTip = [NSString stringWithFormat:@"%s\n%s", g.subtitle.c_str(), it.path.c_str()];
-    } else {
-      t.stringValue = DCNS(it.displayName);
-      t.toolTip = DCNS(it.path);
-      if (native) return DCCenteredDangerTextCell(t);
+      t.toolTip     = [NSString stringWithFormat:@"%s\n%s", g.subtitle.c_str(), it.path.c_str()];
     }
-  } else if ([ident isEqualToString:@"files"]) {
+    else
+    {
+      t.stringValue = DCNS(it.displayName);
+      t.toolTip     = DCNS(it.path);
+      if (native)
+      {
+        return DCCenteredDangerTextCell(t);
+      }
+    }
+  }
+  else if ([ident isEqualToString:@"files"])
+  {
     t.stringValue = [NSString stringWithFormat:@"%llu", (unsigned long long)it.fileCount];
-    t.alignment = NSTextAlignmentRight;
-  } else if ([ident isEqualToString:@"size"]) {
+    t.alignment   = NSTextAlignmentRight;
+  }
+  else if ([ident isEqualToString:@"size"])
+  {
     t.stringValue = DCNS(dcmm::formatBytes(it.bytes));
-    t.alignment = NSTextAlignmentRight;
-    t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
+    t.alignment   = NSTextAlignmentRight;
+    t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
+                                                     weight:NSFontWeightRegular];
   }
   return DCCenteredTextCell(t);
 }
 
-- (void)checkToggled:(NSButton*)sender {
+- (void)checkToggled:(NSButton*)sender
+{
   NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return;
+  }
   FlatRow fr = _rows[(size_t)row];
-  if (fr.group) {
+  if (fr.group)
+  {
     ui::setScanGroupSelected(_report.groups[fr.g],
                              ui::scanGroupCheck(_report.groups[fr.g]) != ui::GroupCheck::On);
     [_table reloadData];
@@ -441,23 +569,28 @@ NSString* DCResultsSymbol(DCResultsMode mode) {
   [self refreshSelectAllTitle];
 }
 
-- (void)menuNeedsUpdate:(NSMenu*)menu {
+- (void)menuNeedsUpdate:(NSMenu*)menu
+{
   [menu removeAllItems];
   NSInteger row = _table.clickedRow;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return;
+  }
   FlatRow fr = _rows[(size_t)row];
-  if (fr.group) {
+  if (fr.group)
+  {
     NSMenuItem* all = [[NSMenuItem alloc] initWithTitle:@"Select Group"
                                                  action:@selector(ctxSelectGroup:)
                                           keyEquivalent:@""];
-    all.target = self;
-    all.tag = row;
+    all.target      = self;
+    all.tag         = row;
     [menu addItem:all];
     NSMenuItem* none = [[NSMenuItem alloc] initWithTitle:@"Unselect Group"
                                                   action:@selector(ctxUnselectGroup:)
                                            keyEquivalent:@""];
-    none.target = self;
-    none.tag = row;
+    none.target      = self;
+    none.tag         = row;
     [menu addItem:none];
     return;
   }
@@ -467,77 +600,118 @@ NSString* DCResultsSymbol(DCResultsMode mode) {
   NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:it.selected ? @"Unselect" : @"Select"
                                                action:@selector(ctxToggleSelect:)
                                         keyEquivalent:@""];
-  sel.target = self;
-  sel.tag = row;
+  sel.target      = self;
+  sel.tag         = row;
   [menu addItem:sel];
   NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrashRow:)
                                           keyEquivalent:@""];
-  trash.target = self;
-  trash.tag = row;
+  trash.target      = self;
+  trash.tag         = row;
   [menu addItem:trash];
 }
 
-- (void)ctxSelectGroup:(NSMenuItem*)sender {
+- (void)ctxSelectGroup:(NSMenuItem*)sender
+{
   NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return;
+  }
   int g = _rows[(size_t)row].g;
-  for (auto& it : _report.groups[g].items) it.selected = true;
+  for (auto& it : _report.groups[g].items)
+  {
+    it.selected = true;
+  }
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
 }
 
-- (void)ctxUnselectGroup:(NSMenuItem*)sender {
+- (void)ctxUnselectGroup:(NSMenuItem*)sender
+{
   NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return;
+  }
   int g = _rows[(size_t)row].g;
-  for (auto& it : _report.groups[g].items) it.selected = false;
+  for (auto& it : _report.groups[g].items)
+  {
+    it.selected = false;
+  }
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
 }
 
-- (void)ctxToggleSelect:(NSMenuItem*)sender {
+- (void)ctxToggleSelect:(NSMenuItem*)sender
+{
   NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return;
+  }
   FlatRow fr = _rows[(size_t)row];
-  if (fr.group) return;
-  auto& it = _report.groups[fr.g].items[fr.i];
+  if (fr.group)
+  {
+    return;
+  }
+  auto& it    = _report.groups[fr.g].items[fr.i];
   it.selected = !it.selected;
   [_table reloadData];
   [self refreshCleanTitle];
   [self refreshSelectAllTitle];
 }
 
-- (void)ctxTrashRow:(NSMenuItem*)sender {
+- (void)ctxTrashRow:(NSMenuItem*)sender
+{
   NSInteger row = sender.tag;
-  if (row < 0 || row >= (NSInteger)_rows.size()) return;
+  if (row < 0 || row >= (NSInteger)_rows.size())
+  {
+    return;
+  }
   FlatRow fr = _rows[(size_t)row];
-  if (fr.group) return;
-  auto& it = _report.groups[fr.g].items[fr.i];
+  if (fr.group)
+  {
+    return;
+  }
+  auto& it                 = _report.groups[fr.g].items[fr.i];
   NSArray<NSString*>* list = @[ DCNS(it.path) ];
-  if (!DCConfirmClean(list, it.bytes)) return;
-  const auto mode = DCCleanPref();
-  std::string path = it.path;
-  _scanBtn.enabled = NO;
+  if (!DCConfirmClean(list, it.bytes))
+  {
+    return;
+  }
+  const auto mode                = DCCleanPref();
+  std::string path               = it.path;
+  _scanBtn.enabled               = NO;
   __weak DCResultsView* weakSelf = self;
   __block dcmm::CleanResult result;
-  DCRunBackground(&_job, ^{
-    DCResultsView* strong = weakSelf;
-    if (!strong) return;
-    result = ui::applyClean(strong->_engine, {path}, mode);
-  }, ^{
-    DCResultsView* s = weakSelf;
-    if (!s) return;
-    s->_scanBtn.enabled = YES;
-    if (result.trashedItems == 0) {
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-      return;
-    }
-    DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
-    [s startScan];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCResultsView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        result = ui::applyClean(strong->_engine, {path}, mode);
+      },
+      ^{
+        DCResultsView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        s->_scanBtn.enabled = YES;
+        if (result.trashedItems == 0)
+        {
+          DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+          return;
+        }
+        DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, result)));
+        [s startScan];
+      });
 }
 
 @end

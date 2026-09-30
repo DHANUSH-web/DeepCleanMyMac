@@ -11,18 +11,21 @@
 
 NSNotificationName const DCSettingsDidChangeNotification = @"DCSettingsDidChangeNotification";
 
-static NSString* const kDCAppearanceKey = @"DCAppearance";
-static NSString* const kDCCleanPrefKey = @"DCCleanPref";
-static NSString* const kDCLargeFileMinMBKey = @"DCLargeFileMinMB";
+static NSString* const kDCAppearanceKey         = @"DCAppearance";
+static NSString* const kDCCleanPrefKey          = @"DCCleanPref";
+static NSString* const kDCLargeFileMinMBKey     = @"DCLargeFileMinMB";
 static NSString* const kDCDuplicatesScanHomeKey = @"DCDuplicatesScanHome";
 
-ui::AppearancePref DCAppearancePref(void) {
+ui::AppearancePref DCAppearancePref(void)
+{
   NSString* id = [[NSUserDefaults standardUserDefaults] stringForKey:kDCAppearanceKey];
   return ui::appearancePrefFromId(id ? id.UTF8String : "");
 }
 
-void DCApplyStoredAppearance(void) {
-  switch (DCAppearancePref()) {
+void DCApplyStoredAppearance(void)
+{
+  switch (DCAppearancePref())
+  {
     case ui::AppearancePref::Light:
       NSApp.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
       break;
@@ -36,7 +39,8 @@ void DCApplyStoredAppearance(void) {
   }
 }
 
-void DCSetAppearancePref(ui::AppearancePref pref) {
+void DCSetAppearancePref(ui::AppearancePref pref)
+{
   [[NSUserDefaults standardUserDefaults]
       setObject:[NSString stringWithUTF8String:ui::appearancePrefId(pref)]
          forKey:kDCAppearanceKey];
@@ -45,12 +49,14 @@ void DCSetAppearancePref(ui::AppearancePref pref) {
                                                       object:nil];
 }
 
-ui::CleanPref DCCleanPref(void) {
+ui::CleanPref DCCleanPref(void)
+{
   NSString* id = [[NSUserDefaults standardUserDefaults] stringForKey:kDCCleanPrefKey];
   return ui::cleanPrefFromId(id ? id.UTF8String : "");
 }
 
-void DCSetCleanPref(ui::CleanPref pref) {
+void DCSetCleanPref(ui::CleanPref pref)
+{
   [[NSUserDefaults standardUserDefaults]
       setObject:[NSString stringWithUTF8String:ui::cleanPrefId(pref)]
          forKey:kDCCleanPrefKey];
@@ -58,92 +64,134 @@ void DCSetCleanPref(ui::CleanPref pref) {
                                                       object:nil];
 }
 
-static NSInteger DCDefaultLargeFileMinMB(void) {
+static NSInteger DCDefaultLargeFileMinMB(void)
+{
   return (NSInteger)(ui::kDefaultLargeFileMinBytes / ui::kMebibyte);
 }
 
-NSInteger DCLargeFileMinMB(void) {
+NSInteger DCLargeFileMinMB(void)
+{
   NSUserDefaults* d = [NSUserDefaults standardUserDefaults];
-  if (![d objectForKey:kDCLargeFileMinMBKey]) return DCDefaultLargeFileMinMB();
+
+  if (![d objectForKey:kDCLargeFileMinMBKey])
+  {
+    return DCDefaultLargeFileMinMB();
+  }
+
   NSInteger mb = std::abs([d integerForKey:kDCLargeFileMinMBKey]);
-  if (mb > 1048576) return 1048576;
+
+  if (mb > 1048576)
+  {
+    return 1048576;
+  }
+
   return mb;
 }
 
-void DCSetLargeFileMinMB(NSInteger mb) {
+void DCSetLargeFileMinMB(NSInteger mb)
+{
   mb = std::abs(mb);
-  if (mb > 1048576) mb = 1048576;
+
+  if (mb > 1048576)
+  {
+    mb = 1048576;
+  }
+
   [[NSUserDefaults standardUserDefaults] setInteger:mb forKey:kDCLargeFileMinMBKey];
   [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
                                                       object:nil];
 }
 
-uint64_t DCLargeFileMinBytes(void) {
+uint64_t DCLargeFileMinBytes(void)
+{
   return (uint64_t)DCLargeFileMinMB() * ui::kMebibyte;
 }
 
-BOOL DCDuplicatesScanHome(void) {
+BOOL DCDuplicatesScanHome(void)
+{
   return [[NSUserDefaults standardUserDefaults] boolForKey:kDCDuplicatesScanHomeKey];
 }
 
-void DCSetDuplicatesScanHome(BOOL on) {
+void DCSetDuplicatesScanHome(BOOL on)
+{
   [[NSUserDefaults standardUserDefaults] setBool:on forKey:kDCDuplicatesScanHomeKey];
   [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
                                                       object:nil];
 }
 
-NSTextField* DCLabel(NSString* text) {
-  NSTextField* t = [NSTextField labelWithString:text ?: @""];
-  t.lineBreakMode = NSLineBreakByTruncatingTail;
+NSTextField* DCLabel(NSString* text)
+{
+  NSTextField* t         = [NSTextField labelWithString:text ?: @""];
+  t.lineBreakMode        = NSLineBreakByTruncatingTail;
   t.maximumNumberOfLines = 1;
+
   return t;
 }
 
-NSTextField* DCSecondaryLabel(NSString* text) {
+NSTextField* DCSecondaryLabel(NSString* text)
+{
   NSTextField* t = [NSTextField wrappingLabelWithString:text ?: @""];
-  t.font = [NSFont preferredFontForTextStyle:NSFontTextStyleBody options:@{}];
-  t.textColor = [NSColor secondaryLabelColor];
-  t.selectable = NO;
+  t.font         = [NSFont preferredFontForTextStyle:NSFontTextStyleBody options:@{}];
+  t.textColor    = [NSColor secondaryLabelColor];
+  t.selectable   = NO;
+
   return t;
 }
 
-NSTextField* DCCaptionLabel(NSString* text) {
+NSTextField* DCCaptionLabel(NSString* text)
+{
   NSTextField* t = [NSTextField wrappingLabelWithString:text ?: @""];
-  t.font = [NSFont preferredFontForTextStyle:NSFontTextStyleCaption1 options:@{}];
-  t.textColor = [NSColor secondaryLabelColor];
-  t.selectable = NO;
+  t.font         = [NSFont preferredFontForTextStyle:NSFontTextStyleCaption1 options:@{}];
+  t.textColor    = [NSColor secondaryLabelColor];
+  t.selectable   = NO;
+
   return t;
 }
 
-NSTextField* DCTitleLabel(NSString* text) {
+NSTextField* DCTitleLabel(NSString* text)
+{
   NSTextField* t = [NSTextField labelWithString:text ?: @""];
   NSFont* title1 = [NSFont preferredFontForTextStyle:NSFontTextStyleTitle1 options:@{}];
-  t.font = [NSFont systemFontOfSize:title1.pointSize weight:NSFontWeightBold];
+  t.font         = [NSFont systemFontOfSize:title1.pointSize weight:NSFontWeightBold];
+
   return t;
 }
 
-static void DCApplySystemPushBezel(NSButton* b) {
-  if (@available(macOS 26.0, *)) {
+static void DCApplySystemPushBezel(NSButton* b)
+{
+  if (@available(macOS 26.0, *))
+  {
     b.bezelStyle = NSBezelStyleGlass;
-  } else if (@available(macOS 14.0, *)) {
+  }
+  else if (@available(macOS 14.0, *))
+  {
     b.bezelStyle = NSBezelStyleAutomatic;
-  } else {
+  }
+  else
+  {
     b.bezelStyle = NSBezelStylePush;
   }
 }
 
-static BOOL DCNativePillBezel(void) {
-  if (@available(macOS 26.0, *)) return YES;
+static BOOL DCNativePillBezel(void)
+{
+  if (@available(macOS 26.0, *))
+  {
+    return YES;
+  }
+
   return NO;
 }
 
 // AppKit Glass on 26+ is not a capsule. Clip the native bezel to a pill on 26+ only.
-static void DCClipToCapsuleOn26(NSButton* b) {
-  if (@available(macOS 26.0, *)) {
-    b.wantsLayer = YES;
-    CGFloat r = NSHeight(b.bounds) / 2;
-    b.layer.cornerRadius = r;
-    b.layer.cornerCurve = kCACornerCurveContinuous;
+static void DCClipToCapsuleOn26(NSButton* b)
+{
+  if (@available(macOS 26.0, *))
+  {
+    b.wantsLayer          = YES;
+    CGFloat r             = NSHeight(b.bounds) / 2;
+    b.layer.cornerRadius  = r;
+    b.layer.cornerCurve   = kCACornerCurveContinuous;
     b.layer.masksToBounds = YES;
   }
 }
@@ -151,39 +199,47 @@ static void DCClipToCapsuleOn26(NSButton* b) {
 @interface DCSystemPushButton : NSButton
 @end
 @implementation DCSystemPushButton
-- (void)layout {
+- (void)layout
+{
   [super layout];
   DCClipToCapsuleOn26(self);
 }
 @end
 
-static NSButton* MakePush(NSString* title, id target, SEL action) {
+static NSButton* MakePush(NSString* title, id target, SEL action)
+{
   NSButton* b = [DCSystemPushButton buttonWithTitle:title ?: @"" target:target action:action];
   DCApplySystemPushBezel(b);
   b.controlSize = NSControlSizeRegular;
+
   return b;
 }
 
-NSButton* DCPushButton(NSString* title, id target, SEL action) {
+NSButton* DCPushButton(NSString* title, id target, SEL action)
+{
   return MakePush(title, target, action);
 }
 
-NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
-  NSButton* b = MakePush(title, target, action);
+NSButton* DCDefaultButton(NSString* title, id target, SEL action)
+{
+  NSButton* b     = MakePush(title, target, action);
   b.keyEquivalent = @"\r";
+
   return b;
 }
 
 @interface DCGlowOrbitHost : NSView
 @end
 @implementation DCGlowOrbitHost
-- (NSView*)hitTest:(NSPoint)point {
+- (NSView*)hitTest:(NSPoint)point
+{
   (void)point;
   return nil;
 }
 @end
 
-@implementation DCGlowButton {
+@implementation DCGlowButton
+{
   DCGlowOrbitHost* _orbitHost;
   CAShapeLayer* _orbit;
 }
@@ -193,77 +249,117 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
                          action:(SEL)action
                       glowColor:(NSColor*)glowColor
                   glowLineWidth:(CGFloat)glowLineWidth
-                     clockwise:(BOOL)clockwise {
+                      clockwise:(BOOL)clockwise
+{
   DCGlowButton* b = [DCGlowButton buttonWithTitle:title ?: @"" target:target action:action];
   DCApplySystemPushBezel(b);
-  b.controlSize = NSControlSizeRegular;
-  b.glowColor = glowColor;
-  b.glowLineWidth = glowLineWidth;
-  b.clockwise = clockwise;
+  b.controlSize      = NSControlSizeRegular;
+  b.glowColor        = glowColor;
+  b.glowLineWidth    = glowLineWidth;
+  b.clockwise        = clockwise;
   b.glowCornerRadius = 6;
-  b.fullyRounded = DCNativePillBezel();
-  b.glowInset = 1.5;
-  b.orbitPeriod = 1.1;
+  b.fullyRounded     = DCNativePillBezel();
+  b.glowInset        = 1.5;
+  b.orbitPeriod      = 1.1;
   b.glowDashFraction = 0.18;
   b.glowShadowRadius = 6;
-  b.borderWidth = 0;
+  b.borderWidth      = 0;
+
   return b;
 }
 
-- (void)applyTitleColor {
-  if (!_titleColor) return;
-  NSString* text = self.title ?: @"";
+- (void)applyTitleColor
+{
+  if (!_titleColor)
+  {
+    return;
+  }
+
+  NSString* text               = self.title ?: @"";
   NSMutableAttributedString* s = [[NSMutableAttributedString alloc] initWithString:text];
-  NSRange r = NSMakeRange(0, s.length);
-  if (r.length == 0) return;
+  NSRange r                    = NSMakeRange(0, s.length);
+
+  if (r.length == 0)
+  {
+    return;
+  }
   [s addAttribute:NSForegroundColorAttributeName value:_titleColor range:r];
-  if (self.font) [s addAttribute:NSFontAttributeName value:self.font range:r];
+
+  if (self.font)
+  {
+    [s addAttribute:NSFontAttributeName value:self.font range:r];
+  }
+
   self.attributedTitle = s;
 }
 
-- (void)setTitle:(NSString*)title {
+- (void)setTitle:(NSString*)title
+{
   [super setTitle:title];
   [self applyTitleColor];
 }
 
-- (void)setFont:(NSFont*)font {
+- (void)setFont:(NSFont*)font
+{
   [super setFont:font];
   [self applyTitleColor];
 }
 
-- (void)setTitleColor:(NSColor*)titleColor {
+- (void)setTitleColor:(NSColor*)titleColor
+{
   _titleColor = titleColor;
   [self applyTitleColor];
 }
 
-- (void)setButtonColor:(NSColor*)buttonColor {
-  _buttonColor = buttonColor;
+- (void)setButtonColor:(NSColor*)buttonColor
+{
+  _buttonColor    = buttonColor;
   self.bezelColor = buttonColor;
 }
 
-- (void)setBorderColor:(NSColor*)borderColor {
+- (void)setBorderColor:(NSColor*)borderColor
+{
   _borderColor = borderColor;
-  if (self.wantsLayer) self.layer.borderColor = borderColor.CGColor;
+
+  if (self.wantsLayer)
+  {
+    self.layer.borderColor = borderColor.CGColor;
+  }
 }
 
-- (void)setBorderWidth:(CGFloat)borderWidth {
+- (void)setBorderWidth:(CGFloat)borderWidth
+{
   _borderWidth = borderWidth;
-  if (borderWidth > 0) self.wantsLayer = YES;
-  if (self.wantsLayer) self.layer.borderWidth = borderWidth;
+
+  if (borderWidth > 0)
+  {
+    self.wantsLayer = YES;
+  }
+
+  if (self.wantsLayer)
+  {
+    self.layer.borderWidth = borderWidth;
+  }
 }
 
-- (void)setGlowColor:(NSColor*)glowColor {
+- (void)setGlowColor:(NSColor*)glowColor
+{
   _glowColor = glowColor;
-  if (_orbit) {
-    CGColorRef c = (glowColor ?: NSColor.controlAccentColor).CGColor;
+
+  if (_orbit)
+  {
+    CGColorRef c       = (glowColor ?: NSColor.controlAccentColor).CGColor;
     _orbit.strokeColor = c;
     _orbit.shadowColor = c;
   }
 }
 
-- (void)setGlowLineWidth:(CGFloat)glowLineWidth {
+- (void)setGlowLineWidth:(CGFloat)glowLineWidth
+{
   _glowLineWidth = glowLineWidth;
-  if (_orbit) {
+
+  if (_orbit)
+  {
     _orbit.lineWidth = glowLineWidth > 0 ? glowLineWidth : 2.5;
     [self rebuildOrbit];
   }
@@ -274,121 +370,183 @@ NSButton* DCDefaultButton(NSString* title, id target, SEL action) {
                                 action:(SEL)action
                              glowColor:(NSColor*)glowColor
                          glowLineWidth:(CGFloat)glowLineWidth
-                            clockwise:(BOOL)clockwise {
+                             clockwise:(BOOL)clockwise
+{
   DCGlowButton* b = [self buttonWithTitle:title
                                    target:target
                                    action:action
                                 glowColor:glowColor
                             glowLineWidth:glowLineWidth
-                               clockwise:clockwise];
+                                clockwise:clockwise];
   b.keyEquivalent = @"\r";
+
   return b;
 }
 
-- (void)layout {
+- (void)layout
+{
   [super layout];
   DCClipToCapsuleOn26(self);
-  if (_fullyRounded) _glowCornerRadius = NSHeight(self.bounds) / 2;
+
+  if (_fullyRounded)
+  {
+    _glowCornerRadius = NSHeight(self.bounds) / 2;
+  }
+
   _orbitHost.frame = self.bounds;
-  if (_orbit) [self rebuildOrbit];
+
+  if (_orbit)
+  {
+    [self rebuildOrbit];
+  }
 }
 
-- (void)setFullyRounded:(BOOL)fullyRounded {
+- (void)setFullyRounded:(BOOL)fullyRounded
+{
   _fullyRounded = fullyRounded;
   [self setNeedsLayout:YES];
 }
 
-- (void)rebuildOrbit {
-  if (!_orbit) return;
-  NSRect b = NSInsetRect(self.bounds, _glowInset, _glowInset);
-  CGFloat r = _glowCornerRadius;
+- (void)rebuildOrbit
+{
+  if (!_orbit)
+  {
+    return;
+  }
+
+  NSRect b    = NSInsetRect(self.bounds, _glowInset, _glowInset);
+  CGFloat r   = _glowCornerRadius;
   CGFloat cap = MIN(NSWidth(b), NSHeight(b)) / 2;
-  if (r > cap) r = cap;
+
+  if (r > cap)
+  {
+    r = cap;
+  }
+
   CGPathRef path = CGPathCreateWithRoundedRect(NSRectToCGRect(b), r, r, nil);
-  _orbit.path = path;
+  _orbit.path    = path;
   CGPathRelease(path);
+
   const CGFloat peri = 2 * (NSWidth(b) + NSHeight(b));
-  CGFloat frac = _glowDashFraction;
-  if (frac < 0.02) frac = 0.02;
-  if (frac > 0.9) frac = 0.9;
-  const CGFloat dash = MAX(_glowLineWidth * 4, peri * frac);
+  CGFloat frac       = _glowDashFraction;
+
+  if (frac < 0.02)
+  {
+    frac = 0.02;
+  }
+
+  if (frac > 0.9)
+  {
+    frac = 0.9;
+  }
+
+  const CGFloat dash     = MAX(_glowLineWidth * 4, peri * frac);
   _orbit.lineDashPattern = @[ @(dash), @(MAX(1, peri - dash)) ];
 }
 
-- (void)beginGlow {
-  if (_orbit) return;
+- (void)beginGlow
+{
+  if (_orbit)
+  {
+    return;
+  }
+
   [self layoutSubtreeIfNeeded];
-  if (!_orbitHost) {
-    _orbitHost = [[DCGlowOrbitHost alloc] initWithFrame:self.bounds];
-    _orbitHost.wantsLayer = YES;
+
+  if (!_orbitHost)
+  {
+    _orbitHost                     = [[DCGlowOrbitHost alloc] initWithFrame:self.bounds];
+    _orbitHost.wantsLayer          = YES;
     _orbitHost.layer.masksToBounds = NO;
-    _orbitHost.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    _orbitHost.autoresizingMask    = NSViewWidthSizable | NSViewHeightSizable;
     [self addSubview:_orbitHost];
   }
+
   _orbitHost.frame = self.bounds;
-  NSColor* color = _glowColor ?: NSColor.controlAccentColor;
+
+  NSColor* color  = _glowColor ?: NSColor.controlAccentColor;
   CGColorRef glow = color.CGColor;
-  _orbit = [CAShapeLayer layer];
-  _orbit.fillColor = nil;
-  _orbit.strokeColor = glow;
-  _orbit.lineWidth = _glowLineWidth > 0 ? _glowLineWidth : 2.5;
-  _orbit.lineCap = kCALineCapRound;
-  _orbit.shadowColor = glow;
-  _orbit.shadowRadius = _glowShadowRadius;
+
+  _orbit               = [CAShapeLayer layer];
+  _orbit.fillColor     = nil;
+  _orbit.strokeColor   = glow;
+  _orbit.lineWidth     = _glowLineWidth > 0 ? _glowLineWidth : 2.5;
+  _orbit.lineCap       = kCALineCapRound;
+  _orbit.shadowColor   = glow;
+  _orbit.shadowRadius  = _glowShadowRadius;
   _orbit.shadowOpacity = 1;
-  _orbit.shadowOffset = CGSizeZero;
+  _orbit.shadowOffset  = CGSizeZero;
   [self rebuildOrbit];
   [_orbitHost.layer addSublayer:_orbit];
-  const CGFloat peri = 2 * (NSWidth(self.bounds) + NSHeight(self.bounds));
+
+  const CGFloat peri      = 2 * (NSWidth(self.bounds) + NSHeight(self.bounds));
   CABasicAnimation* march = [CABasicAnimation animationWithKeyPath:@"lineDashPhase"];
-  const BOOL cw = _clockwise;
-  march.fromValue = cw ? @0 : @(peri);
-  march.toValue = cw ? @(peri) : @0;
-  march.duration = _orbitPeriod > 0 ? _orbitPeriod : 1.1;
-  march.repeatCount = HUGE_VALF;
+  const BOOL cw           = _clockwise;
+
+  march.fromValue           = cw ? @0 : @(peri);
+  march.toValue             = cw ? @(peri) : @0;
+  march.duration            = _orbitPeriod > 0 ? _orbitPeriod : 1.1;
+  march.repeatCount         = HUGE_VALF;
   march.removedOnCompletion = NO;
   [_orbit addAnimation:march forKey:@"orbit"];
 }
 
-- (void)endGlow {
+- (void)endGlow
+{
   [_orbit removeFromSuperlayer];
   _orbit = nil;
+
   [_orbitHost removeFromSuperview];
   _orbitHost = nil;
 }
 
-- (BOOL)isGlowing {
+- (BOOL)isGlowing
+{
   return _orbit != nil;
 }
 
 @end
 
-void DCGlowButtonSetActive(NSButton* button, BOOL on) {
-  if (![button isKindOfClass:[DCGlowButton class]]) return;
+void DCGlowButtonSetActive(NSButton* button, BOOL on)
+{
+  if (![button isKindOfClass:[DCGlowButton class]])
+  {
+    return;
+  }
+
   DCGlowButton* g = (DCGlowButton*)button;
+
   if (on)
+  {
     [g beginGlow];
+  }
   else
+  {
     [g endGlow];
+  }
 }
 
-NSButton* DCDestructiveButton(NSString* title, id target, SEL action) {
-  NSButton* b = MakePush(title, target, action);
+NSButton* DCDestructiveButton(NSString* title, id target, SEL action)
+{
+  NSButton* b            = MakePush(title, target, action);
   b.hasDestructiveAction = YES;
-  b.bezelColor = NSColor.systemRedColor;
+  b.bezelColor           = NSColor.systemRedColor;
+
   return b;
 }
 
-void DCStyleTable(NSTableView* table) {
-  table.style = NSTableViewStyleInset;
-  table.rowSizeStyle = NSTableViewRowSizeStyleDefault;
+void DCStyleTable(NSTableView* table)
+{
+  table.style                   = NSTableViewStyleInset;
+  table.rowSizeStyle            = NSTableViewRowSizeStyleDefault;
   table.columnAutoresizingStyle = NSTableViewUniformColumnAutoresizingStyle;
-  table.allowsColumnReordering = YES;
-  table.allowsEmptySelection = YES;
+  table.allowsColumnReordering  = YES;
+  table.allowsEmptySelection    = YES;
   table.usesAutomaticRowHeights = NO;
 }
 
-NSTableCellView* DCCenteredFillCell(NSView* content) {
+NSTableCellView* DCCenteredFillCell(NSView* content)
+{
   NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
   content.translatesAutoresizingMaskIntoConstraints = NO;
   [cell addSubview:content];
@@ -399,16 +557,20 @@ NSTableCellView* DCCenteredFillCell(NSView* content) {
     [content.trailingAnchor constraintEqualToAnchor:cell.trailingAnchor],
     [content.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
   ]];
+
   return cell;
 }
 
-NSTableCellView* DCCenteredTextCell(NSTextField* field) {
+NSTableCellView* DCCenteredTextCell(NSTextField* field)
+{
   NSTableCellView* cell = DCCenteredFillCell(field);
-  cell.textField = field;
+  cell.textField        = field;
+
   return cell;
 }
 
-NSTableCellView* DCCenteredIconTextCell(NSImageView* icon, NSTextField* field) {
+NSTableCellView* DCCenteredIconTextCell(NSImageView* icon, NSTextField* field)
+{
   [icon setContentHuggingPriority:NSLayoutPriorityRequired
                    forOrientation:NSLayoutConstraintOrientationHorizontal];
   [icon setContentHuggingPriority:NSLayoutPriorityRequired
@@ -419,11 +581,13 @@ NSTableCellView* DCCenteredIconTextCell(NSImageView* icon, NSTextField* field) {
                     forOrientation:NSLayoutConstraintOrientationHorizontal];
   [field setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
-  NSStackView* row = [NSStackView stackViewWithViews:@[ icon, field ]];
-  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-  row.alignment = NSLayoutAttributeCenterY;
-  row.spacing = 6;
+
+  NSStackView* row                              = [NSStackView stackViewWithViews:@[ icon, field ]];
+  row.orientation                               = NSUserInterfaceLayoutOrientationHorizontal;
+  row.alignment                                 = NSLayoutAttributeCenterY;
+  row.spacing                                   = 6;
   row.translatesAutoresizingMaskIntoConstraints = NO;
+
   NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
   [cell addSubview:row];
   [NSLayoutConstraint activateConstraints:@[
@@ -435,22 +599,27 @@ NSTableCellView* DCCenteredIconTextCell(NSImageView* icon, NSTextField* field) {
   ]];
   cell.textField = field;
   cell.imageView = icon;
+
   return cell;
 }
 
-NSImageView* DCDangerIcon(CGFloat pointSize) {
+NSImageView* DCDangerIcon(CGFloat pointSize)
+{
   NSImageView* warn = [[NSImageView alloc] initWithFrame:NSZeroRect];
-  NSImage* img = [NSImage imageWithSystemSymbolName:@"exclamationmark.triangle.fill"
-                           accessibilityDescription:@"Not safe to delete"];
-  img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration configurationWithPointSize:pointSize
-                                                                                         weight:NSFontWeightRegular]];
-  warn.image = img;
+  NSImage* img      = [NSImage imageWithSystemSymbolName:@"exclamationmark.triangle.fill"
+                                accessibilityDescription:@"Not safe to delete"];
+  img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration
+                                              configurationWithPointSize:pointSize
+                                                                  weight:NSFontWeightRegular]];
+  warn.image            = img;
   warn.contentTintColor = NSColor.systemOrangeColor;
-  warn.toolTip = @"Not safe to delete. Please clean this item at your own risk.";
+  warn.toolTip          = @"Not safe to delete. Please clean this item at your own risk.";
+
   return warn;
 }
 
-NSTableCellView* DCCenteredDangerTextCell(NSTextField* field) {
+NSTableCellView* DCCenteredDangerTextCell(NSTextField* field)
+{
   NSImageView* warn = DCDangerIcon(12);
   [warn setContentHuggingPriority:NSLayoutPriorityRequired
                    forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -458,133 +627,202 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field) {
                     forOrientation:NSLayoutConstraintOrientationHorizontal];
   [field setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+
   NSStackView* row = [NSStackView stackViewWithViews:@[ warn, field ]];
-  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-  row.alignment = NSLayoutAttributeCenterY;
-  row.spacing = 6;
+  row.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+  row.alignment    = NSLayoutAttributeCenterY;
+  row.spacing      = 6;
+
   NSTableCellView* cell = DCCenteredFillCell(row);
-  cell.textField = field;
+  cell.textField        = field;
+
   return cell;
 }
 
 static char kDCHoverPopoverKey;
 
-@implementation DCHoverPopover {
+@implementation DCHoverPopover
+{
   __weak NSView* _anchor;
   NSTrackingArea* _area;
   NSPopover* _pop;
 }
 
-+ (instancetype)popoverWithRows:(NSArray<NSArray<NSString*>*>*)rows {
++ (instancetype)popoverWithRows:(NSArray<NSArray<NSString*>*>*)rows
+{
   return [[self alloc] initWithRows:rows];
 }
 
-+ (void)attachToView:(NSView*)view rows:(NSArray<NSArray<NSString*>*>*)rows {
++ (void)attachToView:(NSView*)view rows:(NSArray<NSArray<NSString*>*>*)rows
+{
   [[self popoverWithRows:rows] attachToView:view];
 }
 
-- (instancetype)initWithRows:(NSArray<NSArray<NSString*>*>*)rows {
+- (instancetype)initWithRows:(NSArray<NSArray<NSString*>*>*)rows
+{
   self = [super init];
-  if (self) {
-    _rows = [rows copy] ?: @[];
-    _width = 0;
+
+  if (self)
+  {
+    _rows          = [rows copy] ?: @[];
+    _width         = 0;
     _columnSpacing = 16;
-    _rowSpacing = 4;
+    _rowSpacing    = 4;
     _contentInsets = NSEdgeInsetsMake(8, 12, 8, 12);
-    _labelFont = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
-    _valueFont = [NSFont systemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightSemibold];
+    _labelFont     = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+    _valueFont  = [NSFont systemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightSemibold];
     _labelColor = NSColor.secondaryLabelColor;
     _valueColor = NSColor.labelColor;
     _valueAlignment = NSTextAlignmentRight;
-    _preferredEdge = NSRectEdgeMinY;
-    _animates = YES;
+    _preferredEdge  = NSRectEdgeMinY;
+    _animates       = YES;
   }
+
   return self;
 }
 
-- (void)dealloc {
+- (void)dealloc
+{
   [_pop performClose:nil];
-  if (_anchor && _area) [_anchor removeTrackingArea:_area];
+
+  if (_anchor && _area)
+  {
+    [_anchor removeTrackingArea:_area];
+  }
 }
 
-- (void)attachToView:(NSView*)view {
+- (void)attachToView:(NSView*)view
+{
   DCHoverPopover* keep = self;
   (void)keep;
-  if (_anchor && _area) {
+
+  if (_anchor && _area)
+  {
     [_pop performClose:nil];
     _pop = nil;
     [_anchor removeTrackingArea:_area];
-    _area = nil;
+    _area       = nil;
     NSView* old = _anchor;
-    _anchor = nil;
-    if (old != view) objc_setAssociatedObject(old, &kDCHoverPopoverKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    _anchor     = nil;
+
+    if (old != view)
+    {
+      objc_setAssociatedObject(old, &kDCHoverPopoverKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
   }
+
   objc_setAssociatedObject(view, &kDCHoverPopoverKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
   NSMutableArray<NSString*>* help = [NSMutableArray array];
+
   for (NSArray<NSString*>* row in _rows)
-    if (row.count >= 2) [help addObject:[NSString stringWithFormat:@"%@ %@", row[1], row[0]]];
+  {
+    if (row.count >= 2)
+    {
+      [help addObject:[NSString stringWithFormat:@"%@ %@", row[1], row[0]]];
+    }
+  }
+
   view.accessibilityHelp = help.count ? [help componentsJoinedByString:@", "] : nil;
-  if (_rows.count == 0) return;
+
+  if (_rows.count == 0)
+  {
+    return;
+  }
+
   _anchor = view;
-  _area = [[NSTrackingArea alloc] initWithRect:NSZeroRect
-                                       options:(NSTrackingMouseEnteredAndExited |
-                                                NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect)
-                                         owner:self
-                                      userInfo:nil];
+  _area =
+      [[NSTrackingArea alloc] initWithRect:NSZeroRect
+                                   options:(NSTrackingMouseEnteredAndExited |
+                                            NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect)
+                                     owner:self
+                                  userInfo:nil];
   [view addTrackingArea:_area];
   objc_setAssociatedObject(view, &kDCHoverPopoverKey, self, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-- (void)mouseEntered:(NSEvent*)event {
+- (void)mouseEntered:(NSEvent*)event
+{
   (void)event;
-  if (_pop.shown || _rows.count == 0 || !_anchor.window) return;
-  NSFont* labelFont = _labelFont ?: [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
-  NSFont* valueFont =
-      _valueFont ?: [NSFont systemFontOfSize:NSFont.smallSystemFontSize weight:NSFontWeightSemibold];
+
+  if (_pop.shown || _rows.count == 0 || !_anchor.window)
+  {
+    return;
+  }
+
+  NSFont* labelFont   = _labelFont ?: [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
+  NSFont* valueFont   = _valueFont
+                            ?: [NSFont systemFontOfSize:NSFont.smallSystemFontSize
+                                                 weight:NSFontWeightSemibold];
   NSColor* labelColor = _labelColor ?: NSColor.secondaryLabelColor;
   NSColor* valueColor = _valueColor ?: NSColor.labelColor;
   NSMutableArray<NSView*>* lines = [NSMutableArray array];
-  for (NSArray<NSString*>* row in _rows) {
-    if (row.count < 2) continue;
-    NSTextField* k = [NSTextField labelWithString:row[0]];
-    k.font = labelFont;
-    k.textColor = labelColor;
+
+  for (NSArray<NSString*>* row in _rows)
+  {
+    if (row.count < 2)
+    {
+      continue;
+    }
+
+    NSTextField* k  = [NSTextField labelWithString:row[0]];
+    k.font          = labelFont;
+    k.textColor     = labelColor;
     k.lineBreakMode = NSLineBreakByTruncatingTail;
     [k setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+
     NSTextField* val = [NSTextField labelWithString:row[1]];
-    val.font = valueFont;
-    val.textColor = valueColor;
-    val.alignment = _valueAlignment;
+    val.font         = valueFont;
+    val.textColor    = valueColor;
+    val.alignment    = _valueAlignment;
     [val setContentHuggingPriority:NSLayoutPriorityRequired
                     forOrientation:NSLayoutConstraintOrientationHorizontal];
     [val setContentCompressionResistancePriority:NSLayoutPriorityRequired
                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+
     NSStackView* line = [NSStackView stackViewWithViews:@[ k, val ]];
-    line.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    line.alignment = NSLayoutAttributeFirstBaseline;
-    line.spacing = _columnSpacing;
+    line.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    line.alignment    = NSLayoutAttributeFirstBaseline;
+    line.spacing      = _columnSpacing;
     line.distribution = NSStackViewDistributionFill;
     [lines addObject:line];
   }
-  if (lines.count == 0) return;
+
+  if (lines.count == 0)
+  {
+    return;
+  }
+
   NSStackView* stack = [NSStackView stackViewWithViews:lines];
-  stack.orientation = NSUserInterfaceLayoutOrientationVertical;
-  stack.alignment = NSLayoutAttributeWidth;
-  stack.spacing = _rowSpacing;
-  stack.edgeInsets = _contentInsets;
-  if (_width > 0) [stack.widthAnchor constraintEqualToConstant:_width].active = YES;
+  stack.orientation  = NSUserInterfaceLayoutOrientationVertical;
+  stack.alignment    = NSLayoutAttributeWidth;
+  stack.spacing      = _rowSpacing;
+  stack.edgeInsets   = _contentInsets;
+
+  if (_width > 0)
+  {
+    [stack.widthAnchor constraintEqualToConstant:_width].active = YES;
+  }
+
   [stack layoutSubtreeIfNeeded];
+
   NSViewController* vc = [[NSViewController alloc] init];
-  vc.view = stack;
-  _pop = [[NSPopover alloc] init];
+  vc.view              = stack;
+
+  _pop                       = [[NSPopover alloc] init];
   _pop.contentViewController = vc;
-  _pop.behavior = NSPopoverBehaviorTransient;
-  _pop.animates = _animates;
-  if (_width <= 0) _pop.contentSize = stack.fittingSize;
+  _pop.behavior              = NSPopoverBehaviorTransient;
+  _pop.animates              = _animates;
+
+  if (_width <= 0)
+  {
+    _pop.contentSize = stack.fittingSize;
+  }
+
   [_pop showRelativeToRect:_anchor.bounds ofView:_anchor preferredEdge:_preferredEdge];
 }
 
-- (void)mouseExited:(NSEvent*)event {
+- (void)mouseExited:(NSEvent*)event
+{
   (void)event;
   [_pop performClose:nil];
   _pop = nil;
@@ -592,46 +830,68 @@ static char kDCHoverPopoverKey;
 
 @end
 
-static NSColor* DCSizeBadgeTint(uint64_t bytes) {
-  if (bytes >= ui::kSpaceTooBigBytes) return NSColor.systemRedColor;
-  if (bytes >= ui::kSpaceBigBytes) return NSColor.systemOrangeColor;
+static NSColor* DCSizeBadgeTint(uint64_t bytes)
+{
+  if (bytes >= ui::kSpaceTooBigBytes)
+  {
+    return NSColor.systemRedColor;
+  }
+
+  if (bytes >= ui::kSpaceBigBytes)
+  {
+    return NSColor.systemOrangeColor;
+  }
+
   return nil;
 }
 
-@implementation DCSizeBadge {
+@implementation DCSizeBadge
+{
   NSTextField* _label;
 }
 
-- (BOOL)wantsUpdateLayer {
+- (BOOL)wantsUpdateLayer
+{
   return YES;
 }
 
-- (void)updateLayer {
+- (void)updateLayer
+{
   NSAppearanceName match =
       [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
   const BOOL dark = [match isEqualToString:NSAppearanceNameDarkAqua];
-  NSColor* tint = DCSizeBadgeTint(_bytes);
-  if (tint) {
+  NSColor* tint   = DCSizeBadgeTint(_bytes);
+
+  if (tint)
+  {
     self.layer.backgroundColor = [tint colorWithAlphaComponent:dark ? 0.22 : 0.12].CGColor;
-    _label.textColor = tint;
-  } else {
+    _label.textColor           = tint;
+  }
+  else
+  {
     self.layer.backgroundColor =
         [[NSColor labelColor] colorWithAlphaComponent:dark ? 0.10 : 0.06].CGColor;
     _label.textColor = NSColor.secondaryLabelColor;
   }
-  self.layer.cornerRadius = MAX(NSHeight(self.bounds) / 2.0, 8);
+
+  self.layer.cornerRadius  = MAX(NSHeight(self.bounds) / 2.0, 8);
   self.layer.masksToBounds = YES;
 }
 
-- (instancetype)initWithBytes:(uint64_t)bytes {
+- (instancetype)initWithBytes:(uint64_t)bytes
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    self.wantsLayer = YES;
+
+  if (self)
+  {
+    self.wantsLayer                                = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
-    _label = DCLabel(@"");
-    _label.font = [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightMedium];
+
+    _label           = DCLabel(@"");
+    _label.font      = [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightMedium];
     _label.alignment = NSTextAlignmentCenter;
     _label.translatesAutoresizingMaskIntoConstraints = NO;
+
     [self addSubview:_label];
     [NSLayoutConstraint activateConstraints:@[
       [_label.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:7],
@@ -639,6 +899,7 @@ static NSColor* DCSizeBadgeTint(uint64_t bytes) {
       [_label.topAnchor constraintEqualToAnchor:self.topAnchor constant:2],
       [_label.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-2],
     ]];
+
     [self setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationHorizontal];
     [self setContentHuggingPriority:NSLayoutPriorityRequired
@@ -647,30 +908,48 @@ static NSColor* DCSizeBadgeTint(uint64_t bytes) {
                                    forOrientation:NSLayoutConstraintOrientationHorizontal];
     self.bytes = bytes;
   }
+
   return self;
 }
 
-- (void)setBytes:(uint64_t)bytes {
-  _bytes = bytes;
+- (void)setBytes:(uint64_t)bytes
+{
+  _bytes             = bytes;
   _label.stringValue = DCNS(dcmm::formatBytes(bytes));
   [self setNeedsDisplay:YES];
 }
 
 @end
 
-static BOOL DCDuplicatePathIsImage(NSString* path) {
+static BOOL DCDuplicatePathIsImage(NSString* path)
+{
   static NSSet<NSString*>* exts;
   static dispatch_once_t once;
+
   dispatch_once(&once, ^{
     exts = [NSSet setWithArray:@[
-      @"png", @"jpg", @"jpeg", @"gif", @"heic", @"heif", @"webp", @"tif", @"tiff", @"bmp", @"raw",
-      @"dng", @"ico", @"icns"
+      @"png",
+      @"jpg",
+      @"jpeg",
+      @"gif",
+      @"heic",
+      @"heif",
+      @"webp",
+      @"tif",
+      @"tiff",
+      @"bmp",
+      @"raw",
+      @"dng",
+      @"ico",
+      @"icns"
     ]];
   });
+
   return [exts containsObject:path.pathExtension.lowercaseString];
 }
 
-static NSString* DCDuplicateSymbolName(NSString* path) {
+static NSString* DCDuplicateSymbolName(NSString* path)
+{
   NSString* ext = path.pathExtension.lowercaseString;
   static NSSet<NSString*>* video;
   static NSSet<NSString*>* audio;
@@ -680,123 +959,207 @@ static NSString* DCDuplicateSymbolName(NSString* path) {
   static NSSet<NSString*>* sheet;
   static NSSet<NSString*>* slides;
   static dispatch_once_t once;
+
   dispatch_once(&once, ^{
-    video = [NSSet setWithArray:@[ @"mp4", @"mov", @"m4v", @"avi", @"mkv", @"webm", @"mpeg", @"mpg" ]];
-    audio = [NSSet setWithArray:@[ @"mp3", @"wav", @"aac", @"m4a", @"aiff", @"aif", @"flac", @"caf" ]];
-    archive = [NSSet setWithArray:@[ @"zip", @"rar", @"7z", @"tar", @"gz", @"tgz", @"bz2", @"dmg", @"iso" ]];
-    code = [NSSet setWithArray:@[
-      @"c", @"cc", @"cpp", @"h", @"hpp", @"m", @"mm", @"swift", @"js", @"ts", @"jsx", @"tsx", @"py",
-      @"rb", @"go", @"rs", @"java", @"kt", @"cs", @"sh", @"json", @"xml", @"yml", @"yaml", @"html",
-      @"css", @"scss"
+    video =
+        [NSSet setWithArray:@[ @"mp4", @"mov", @"m4v", @"avi", @"mkv", @"webm", @"mpeg", @"mpg" ]];
+    audio =
+        [NSSet setWithArray:@[ @"mp3", @"wav", @"aac", @"m4a", @"aiff", @"aif", @"flac", @"caf" ]];
+    archive = [NSSet
+        setWithArray:@[ @"zip", @"rar", @"7z", @"tar", @"gz", @"tgz", @"bz2", @"dmg", @"iso" ]];
+    code    = [NSSet setWithArray:@[
+      @"c",  @"cc",  @"cpp",  @"h",   @"hpp", @"m",    @"mm",   @"swift", @"js",
+      @"ts", @"jsx", @"tsx",  @"py",  @"rb",  @"go",   @"rs",   @"java",  @"kt",
+      @"cs", @"sh",  @"json", @"xml", @"yml", @"yaml", @"html", @"css",   @"scss"
     ]];
-    text = [NSSet setWithArray:@[ @"txt", @"rtf", @"md", @"markdown" ]];
-    sheet = [NSSet setWithArray:@[ @"xls", @"xlsx", @"csv", @"numbers" ]];
+
+    text   = [NSSet setWithArray:@[ @"txt", @"rtf", @"md", @"markdown" ]];
+    sheet  = [NSSet setWithArray:@[ @"xls", @"xlsx", @"csv", @"numbers" ]];
     slides = [NSSet setWithArray:@[ @"ppt", @"pptx", @"key" ]];
   });
-  if ([ext isEqualToString:@"pdf"]) return @"doc.richtext.fill";
-  if ([video containsObject:ext]) return @"film.fill";
-  if ([audio containsObject:ext]) return @"speaker.wave.2.fill";
-  if ([archive containsObject:ext]) return @"archivebox.fill";
-  if ([code containsObject:ext]) return @"chevron.left.forwardslash.chevron.right";
-  if ([text containsObject:ext]) return @"doc.plaintext.fill";
-  if ([sheet containsObject:ext]) return @"tablecells.fill";
-  if ([slides containsObject:ext]) return @"rectangle.on.rectangle.fill";
+
+  if ([ext isEqualToString:@"pdf"])
+  {
+    return @"doc.richtext.fill";
+  }
+
+  if ([video containsObject:ext])
+  {
+    return @"film.fill";
+  }
+
+  if ([audio containsObject:ext])
+  {
+    return @"speaker.wave.2.fill";
+  }
+
+  if ([archive containsObject:ext])
+  {
+    return @"archivebox.fill";
+  }
+
+  if ([code containsObject:ext])
+  {
+    return @"chevron.left.forwardslash.chevron.right";
+  }
+
+  if ([text containsObject:ext])
+  {
+    return @"doc.plaintext.fill";
+  }
+
+  if ([sheet containsObject:ext])
+  {
+    return @"tablecells.fill";
+  }
+
+  if ([slides containsObject:ext])
+  {
+    return @"rectangle.on.rectangle.fill";
+  }
+
   return @"doc.fill";
 }
 
-static NSImage* DCDuplicateSymbolImage(NSString* path, CGFloat pointSize) {
+static NSImage* DCDuplicateSymbolImage(NSString* path, CGFloat pointSize)
+{
   NSImage* img = [NSImage imageWithSystemSymbolName:DCDuplicateSymbolName(path)
                            accessibilityDescription:path.lastPathComponent];
-  if (!img) return nil;
+
+  if (!img)
+  {
+    return nil;
+  }
+
   NSImageSymbolConfiguration* cfg =
       [NSImageSymbolConfiguration configurationWithPointSize:pointSize weight:NSFontWeightRegular];
+
   return [img imageWithSymbolConfiguration:cfg] ?: img;
 }
 
-static NSCache* DCDuplicateThumbCache(void) {
+static NSCache* DCDuplicateThumbCache(void)
+{
   static NSCache* cache;
   static dispatch_once_t once;
+
   dispatch_once(&once, ^{
-    cache = [[NSCache alloc] init];
+    cache            = [[NSCache alloc] init];
     cache.countLimit = 256;
   });
+
   return cache;
 }
 
-static NSImage* DCDuplicateThumbnail(NSString* path, CGFloat max) {
+static NSImage* DCDuplicateThumbnail(NSString* path, CGFloat max)
+{
   NSImage* cached = [DCDuplicateThumbCache() objectForKey:path];
-  if (cached) return cached;
+
+  if (cached)
+  {
+    return cached;
+  }
+
   NSImage* src = [[NSImage alloc] initWithContentsOfFile:path];
-  if (!src) return nil;
+
+  if (!src)
+  {
+    return nil;
+  }
+
   NSSize s = src.size;
-  if (s.width <= 0 || s.height <= 0) return nil;
+
+  if (s.width <= 0 || s.height <= 0)
+  {
+    return nil;
+  }
+
   CGFloat factor = MIN(max / s.width, max / s.height);
-  if (factor > 1) factor = 1;
-  NSSize out = NSMakeSize(MAX(1, floor(s.width * factor)), MAX(1, floor(s.height * factor)));
+
+  if (factor > 1)
+  {
+    factor = 1;
+  }
+
+  NSSize out   = NSMakeSize(MAX(1, floor(s.width * factor)), MAX(1, floor(s.height * factor)));
   NSImage* dst = [NSImage imageWithSize:out
                                 flipped:NO
                          drawingHandler:^BOOL(NSRect dstRect) {
                            [src drawInRect:dstRect
-                                  fromRect:NSZeroRect
-                                 operation:NSCompositingOperationCopy
-                                  fraction:1.0
-                            respectFlipped:YES
-                                     hints:@{NSImageHintInterpolation : @(NSImageInterpolationHigh)}];
+                                     fromRect:NSZeroRect
+                                    operation:NSCompositingOperationCopy
+                                     fraction:1.0
+                               respectFlipped:YES
+                                        hints:@{
+                                          NSImageHintInterpolation : @(NSImageInterpolationHigh)
+                                        }];
                            return YES;
                          }];
-  if (dst) [DCDuplicateThumbCache() setObject:dst forKey:path];
+
+  if (dst)
+  {
+    [DCDuplicateThumbCache() setObject:dst forKey:path];
+  }
+
   return dst;
 }
 
 static const CGFloat kDCDupCardW = 128;
 static const CGFloat kDCDupCardH = 148;
-static const CGFloat kDCDupIcon = 72;
+static const CGFloat kDCDupIcon  = 72;
 
 @interface DCDuplicateItemCard () <NSMenuDelegate>
 @end
 
-@implementation DCDuplicateItemCard {
+@implementation DCDuplicateItemCard
+{
   NSImageView* _icon;
   DCSizeBadge* _badge;
   uint64_t _gen;
   BOOL _photo;
 }
 
-- (instancetype)initWithPath:(NSString*)path bytes:(uint64_t)bytes selected:(BOOL)selected {
+- (instancetype)initWithPath:(NSString*)path bytes:(uint64_t)bytes selected:(BOOL)selected
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    _path = [path copy] ?: @"";
-    _bytes = bytes;
+
+  if (self)
+  {
+    _path     = [path copy] ?: @"";
+    _bytes    = bytes;
     _selected = selected;
-    self.wantsLayer = YES;
-    self.layer.cornerRadius = 12;
-    self.layer.masksToBounds = YES;
+
+    self.wantsLayer                                = YES;
+    self.layer.cornerRadius                        = 12;
+    self.layer.masksToBounds                       = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
 
-    _icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
-    _icon.imageScaling = NSImageScaleProportionallyUpOrDown;
-    _icon.wantsLayer = YES;
-    _icon.layer.cornerRadius = 8;
+    _icon                     = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    _icon.imageScaling        = NSImageScaleProportionallyUpOrDown;
+    _icon.wantsLayer          = YES;
+    _icon.layer.cornerRadius  = 8;
     _icon.layer.masksToBounds = YES;
-    _icon.translatesAutoresizingMaskIntoConstraints = NO;
-    [_icon.widthAnchor constraintEqualToConstant:kDCDupIcon].active = YES;
+    _icon.translatesAutoresizingMaskIntoConstraints                  = NO;
+    [_icon.widthAnchor constraintEqualToConstant:kDCDupIcon].active  = YES;
     [_icon.heightAnchor constraintEqualToConstant:kDCDupIcon].active = YES;
 
     _badge = [[DCSizeBadge alloc] initWithBytes:bytes];
 
     NSStackView* body = [NSStackView stackViewWithViews:@[ _icon, _badge ]];
-    body.orientation = NSUserInterfaceLayoutOrientationVertical;
-    body.alignment = NSLayoutAttributeCenterX;
-    body.spacing = 10;
+    body.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment    = NSLayoutAttributeCenterX;
+    body.spacing      = 10;
     body.translatesAutoresizingMaskIntoConstraints = NO;
+
     [self addSubview:body];
+
     [NSLayoutConstraint activateConstraints:@[
       [body.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
       [body.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
       [body.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.leadingAnchor constant:10],
       [body.trailingAnchor constraintLessThanOrEqualToAnchor:self.trailingAnchor constant:-10],
     ]];
-    [self.widthAnchor constraintEqualToConstant:kDCDupCardW].active = YES;
+
+    [self.widthAnchor constraintEqualToConstant:kDCDupCardW].active  = YES;
     [self.heightAnchor constraintEqualToConstant:kDCDupCardH].active = YES;
     [self setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -808,126 +1171,209 @@ static const CGFloat kDCDupIcon = 72;
                                    forOrientation:NSLayoutConstraintOrientationVertical];
 
     self.accessibilityElement = YES;
-    self.accessibilityRole = NSAccessibilityButtonRole;
-    NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
-    menu.delegate = self;
+    self.accessibilityRole    = NSAccessibilityButtonRole;
+
+    NSMenu* menu          = [[NSMenu alloc] initWithTitle:@""];
+    menu.delegate         = self;
     menu.autoenablesItems = YES;
+
     self.menu = menu;
     [self applyChrome];
     [self reloadPreview];
   }
+
   return self;
 }
 
-- (void)menuNeedsUpdate:(NSMenu*)menu {
+- (void)menuNeedsUpdate:(NSMenu*)menu
+{
   [menu removeAllItems];
-  if (!self.path.length) return;
+
+  if (!self.path.length)
+  {
+    return;
+  }
+
   DCAddPathMenuItems(menu, self.path);
   [menu addItem:[NSMenuItem separatorItem]];
+
   NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:self.selected ? @"Unselect" : @"Select"
                                                action:@selector(ctxToggle:)
                                         keyEquivalent:@""];
-  sel.target = self;
+  sel.target      = self;
   [menu addItem:sel];
-  if (!self.onTrash) return;
+
+  if (!self.onTrash)
+  {
+    return;
+  }
+
   [menu addItem:[NSMenuItem separatorItem]];
+
   NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrash:)
                                           keyEquivalent:@""];
-  trash.target = self;
+  trash.target      = self;
   [menu addItem:trash];
 }
 
-- (void)ctxToggle:(id)sender {
+- (void)ctxToggle:(id)sender
+{
   (void)sender;
   self.selected = !_selected;
-  if (self.onToggle) self.onToggle(self);
+
+  if (self.onToggle)
+  {
+    self.onToggle(self);
+  }
 }
 
-- (void)ctxTrash:(id)sender {
+- (void)ctxTrash:(id)sender
+{
   (void)sender;
-  if (self.onTrash) self.onTrash(self);
+
+  if (self.onTrash)
+  {
+    self.onTrash(self);
+  }
 }
 
-- (void)applyChrome {
+- (void)applyChrome
+{
   NSColor* accent = NSColor.controlAccentColor;
-  NSColor* fill = _selected ? [accent colorWithAlphaComponent:0.22] : NSColor.controlBackgroundColor;
+  NSColor* fill =
+      _selected ? [accent colorWithAlphaComponent:0.22] : NSColor.controlBackgroundColor;
   NSColor* border = _selected ? accent : NSColor.separatorColor;
+
   __weak DCDuplicateItemCard* weakSelf = self;
+
   [self.effectiveAppearance performAsCurrentDrawingAppearance:^{
     DCDuplicateItemCard* s = weakSelf;
-    if (!s) return;
+
+    if (!s)
+    {
+      return;
+    }
+
     s.layer.backgroundColor = fill.CGColor;
-    s.layer.borderColor = border.CGColor;
+    s.layer.borderColor     = border.CGColor;
   }];
+
   self.layer.borderWidth = _selected ? 2 : 1;
-  if (!_photo) _icon.contentTintColor = _selected ? accent : NSColor.secondaryLabelColor;
+
+  if (!_photo)
+  {
+    _icon.contentTintColor = _selected ? accent : NSColor.secondaryLabelColor;
+  }
+
   self.accessibilityLabel = self.path.lastPathComponent ?: @"Duplicate";
   self.accessibilityValue = _selected ? @"Selected" : @"Not selected";
-  self.accessibilityHelp = self.path;
+  self.accessibilityHelp  = self.path;
 }
 
-- (void)viewDidChangeEffectiveAppearance {
+- (void)viewDidChangeEffectiveAppearance
+{
   [super viewDidChangeEffectiveAppearance];
   [self applyChrome];
 }
 
-- (void)setPath:(NSString*)path {
+- (void)setPath:(NSString*)path
+{
   _path = [path copy] ?: @"";
   [self reloadPreview];
   [self applyChrome];
 }
 
-- (void)setBytes:(uint64_t)bytes {
-  _bytes = bytes;
+- (void)setBytes:(uint64_t)bytes
+{
+  _bytes       = bytes;
   _badge.bytes = bytes;
 }
 
-- (void)setSelected:(BOOL)selected {
-  if (_selected == selected) return;
+- (void)setSelected:(BOOL)selected
+{
+  if (_selected == selected)
+  {
+    return;
+  }
+
   _selected = selected;
   [self applyChrome];
 }
 
-- (void)reloadPreview {
+- (void)reloadPreview
+{
   _gen++;
-  uint64_t gen = _gen;
+  uint64_t gen   = _gen;
   NSString* path = self.path;
+
   _photo = DCDuplicatePathIsImage(path);
-  if (!_photo) {
-    _icon.image = DCDuplicateSymbolImage(path, 36);
+
+  if (!_photo)
+  {
+    _icon.image            = DCDuplicateSymbolImage(path, 36);
     _icon.contentTintColor = _selected ? NSColor.controlAccentColor : NSColor.secondaryLabelColor;
     return;
   }
+
   NSImage* cached = [DCDuplicateThumbCache() objectForKey:path];
-  if (cached) {
-    _icon.image = cached;
+
+  if (cached)
+  {
+    _icon.image            = cached;
     _icon.contentTintColor = nil;
     return;
   }
-  _icon.image = DCDuplicateSymbolImage(path, 36);
+
+  _icon.image            = DCDuplicateSymbolImage(path, 36);
   _icon.contentTintColor = NSColor.secondaryLabelColor;
+
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     NSImage* thumb = DCDuplicateThumbnail(path, kDCDupIcon * 2);
+
     dispatch_async(dispatch_get_main_queue(), ^{
-      if (gen != self->_gen) return;
-      if (!thumb) return;
-      self->_icon.image = thumb;
+      if (gen != self->_gen)
+      {
+        return;
+      }
+
+      if (!thumb)
+      {
+        return;
+      }
+
+      self->_icon.image            = thumb;
       self->_icon.contentTintColor = nil;
     });
   });
 }
 
-- (void)mouseUp:(NSEvent*)event {
+- (void)mouseUp:(NSEvent*)event
+{
   NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
-  if (!NSPointInRect(p, self.bounds)) return;
+
+  if (!NSPointInRect(p, self.bounds))
+  {
+    return;
+  }
+
   self.selected = !_selected;
-  if (self.onToggle) self.onToggle(self);
+
+  if (self.onToggle)
+  {
+    self.onToggle(self);
+  }
 }
 
-- (BOOL)accessibilityPerformPress {
+- (BOOL)accessibilityPerformPress
+{
   self.selected = !_selected;
-  if (self.onToggle) self.onToggle(self);
+
+  if (self.onToggle)
+  {
+    self.onToggle(self);
+  }
+
   return YES;
 }
 
@@ -937,42 +1383,56 @@ static const CGFloat kDCDupIcon = 72;
 - (instancetype)initWithStrip:(NSStackView*)strip;
 @end
 
-@implementation DCDupCarousel {
+@implementation DCDupCarousel
+{
   NSStackView* _strip;
   CGFloat _offset;
 }
 
-- (instancetype)initWithStrip:(NSStackView*)strip {
+- (instancetype)initWithStrip:(NSStackView*)strip
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    _strip = strip;
-    self.clipsToBounds = YES;
+
+  if (self)
+  {
+    _strip                                         = strip;
+    self.clipsToBounds                             = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
     [self addSubview:_strip];
   }
   return self;
 }
 
-- (CGFloat)maxOffset {
+- (CGFloat)maxOffset
+{
   return MAX(0, _strip.fittingSize.width - NSWidth(self.bounds));
 }
 
-- (void)layout {
+- (void)layout
+{
   [super layout];
-  NSSize fit = _strip.fittingSize;
-  CGFloat w = MAX(fit.width, 1);
-  CGFloat h = MAX(fit.height, 1);
-  CGFloat y = NSHeight(self.bounds) > h ? (NSHeight(self.bounds) - h) / 2.0 : 0;
+  NSSize fit  = _strip.fittingSize;
+  CGFloat w   = MAX(fit.width, 1);
+  CGFloat h   = MAX(fit.height, 1);
+  CGFloat y   = NSHeight(self.bounds) > h ? (NSHeight(self.bounds) - h) / 2.0 : 0;
   CGFloat max = [self maxOffset];
-  if (_offset > max) _offset = max;
-  if (_offset < 0) _offset = 0;
+  if (_offset > max)
+  {
+    _offset = max;
+  }
+  if (_offset < 0)
+  {
+    _offset = 0;
+  }
   _strip.frame = NSMakeRect(-_offset, y, w, h);
 }
 
-- (void)scrollWheel:(NSEvent*)event {
+- (void)scrollWheel:(NSEvent*)event
+{
   const CGFloat dx = event.scrollingDeltaX;
   const CGFloat dy = event.scrollingDeltaY;
-  if (fabs(dx) > fabs(dy) && [self maxOffset] > 0.5) {
+  if (fabs(dx) > fabs(dy) && [self maxOffset] > 0.5)
+  {
     _offset -= dx;
     [self setNeedsLayout:YES];
     return;
@@ -982,40 +1442,43 @@ static const CGFloat kDCDupIcon = 72;
 
 @end
 
-@implementation DCDuplicateGroupView {
+@implementation DCDuplicateGroupView
+{
   NSTextField* _titleLabel;
   DCDupCarousel* _carousel;
   NSStackView* _strip;
   NSArray<DCDuplicateItemCard*>* _cards;
 }
 
-- (instancetype)initWithTitle:(NSString*)title cards:(NSArray<DCDuplicateItemCard*>*)cards {
+- (instancetype)initWithTitle:(NSString*)title cards:(NSArray<DCDuplicateItemCard*>*)cards
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    _cards = [cards copy] ?: @[];
-    self.wantsLayer = YES;
-    self.layer.cornerRadius = 12;
-    self.layer.masksToBounds = YES;
+  if (self)
+  {
+    _cards                                         = [cards copy] ?: @[];
+    self.wantsLayer                                = YES;
+    self.layer.cornerRadius                        = 12;
+    self.layer.masksToBounds                       = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
 
-    _titleLabel = DCLabel(title.length ? title : @"Duplicate");
-    _titleLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    _titleLabel               = DCLabel(title.length ? title : @"Duplicate");
+    _titleLabel.font          = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
     _titleLabel.lineBreakMode = NSLineBreakByTruncatingMiddle;
-    _title = [_titleLabel.stringValue copy];
+    _title                    = [_titleLabel.stringValue copy];
 
-    _strip = [NSStackView stackViewWithViews:_cards];
+    _strip             = [NSStackView stackViewWithViews:_cards];
     _strip.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    _strip.alignment = NSLayoutAttributeCenterY;
-    _strip.spacing = 10;
+    _strip.alignment   = NSLayoutAttributeCenterY;
+    _strip.spacing     = 10;
 
     _carousel = [[DCDupCarousel alloc] initWithStrip:_strip];
     [_carousel.heightAnchor constraintEqualToConstant:kDCDupCardH].active = YES;
 
     NSStackView* body = [NSStackView stackViewWithViews:@[ _titleLabel, _carousel ]];
-    body.orientation = NSUserInterfaceLayoutOrientationVertical;
-    body.alignment = NSLayoutAttributeLeading;
-    body.spacing = 10;
-    body.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
+    body.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment    = NSLayoutAttributeLeading;
+    body.spacing      = 10;
+    body.edgeInsets   = NSEdgeInsetsMake(14, 14, 14, 14);
     [self addSubview:body];
     DCPinEdges(body, self);
     DCStackFullWidth(body, _titleLabel);
@@ -1027,48 +1490,62 @@ static const CGFloat kDCDupIcon = 72;
   return self;
 }
 
-- (NSArray<DCDuplicateItemCard*>*)cards {
+- (NSArray<DCDuplicateItemCard*>*)cards
+{
   return _cards;
 }
 
-- (void)setTitle:(NSString*)title {
-  _title = [title copy] ?: @"";
+- (void)setTitle:(NSString*)title
+{
+  _title                  = [title copy] ?: @"";
   _titleLabel.stringValue = _title.length ? _title : @"Duplicate";
 }
 
-- (void)applyChrome {
+- (void)applyChrome
+{
   __weak DCDuplicateGroupView* weakSelf = self;
   [self.effectiveAppearance performAsCurrentDrawingAppearance:^{
     DCDuplicateGroupView* s = weakSelf;
-    if (!s) return;
+
+    if (!s)
+    {
+      return;
+    }
+
     s.layer.backgroundColor = NSColor.controlBackgroundColor.CGColor;
   }];
+
   self.layer.borderWidth = 0;
 }
 
-- (void)viewDidChangeEffectiveAppearance {
+- (void)viewDidChangeEffectiveAppearance
+{
   [super viewDidChangeEffectiveAppearance];
   [self applyChrome];
 }
 
 @end
 
-@implementation DCLegendView {
+@implementation DCLegendView
+{
   NSImageView* _iconView;
   NSTextField* _text;
   NSView* _divider;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame
+{
   self = [super initWithFrame:frame];
-  if (self) {
-    _message = @"";
-    _symbolName = @"info.circle.fill";
-    _tintColor = NSColor.systemBlueColor;
-    _cornerRadius = 14;
-    _borderWidth = 1;
-    _iconPointSize = 16;
-    self.wantsLayer = YES;
+
+  if (self)
+  {
+    _message                                       = @"";
+    _symbolName                                    = @"info.circle.fill";
+    _tintColor                                     = NSColor.systemBlueColor;
+    _cornerRadius                                  = 14;
+    _borderWidth                                   = 1;
+    _iconPointSize                                 = 16;
+    self.wantsLayer                                = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
 
     _iconView = [[NSImageView alloc] initWithFrame:NSZeroRect];
@@ -1078,17 +1555,19 @@ static const CGFloat kDCDupIcon = 72;
                           forOrientation:NSLayoutConstraintOrientationVertical];
     [_iconView setContentCompressionResistancePriority:NSLayoutPriorityRequired
                                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+
     NSStackView* iconPad = [NSStackView stackViewWithViews:@[ _iconView ]];
-    iconPad.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    iconPad.alignment = NSLayoutAttributeCenterY;
-    iconPad.edgeInsets = NSEdgeInsetsMake(10, 14, 10, 14);
+    iconPad.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    iconPad.alignment    = NSLayoutAttributeCenterY;
+    iconPad.edgeInsets   = NSEdgeInsetsMake(10, 14, 10, 14);
     [iconPad setContentHuggingPriority:NSLayoutPriorityRequired
                         forOrientation:NSLayoutConstraintOrientationHorizontal];
     [iconPad setContentCompressionResistancePriority:NSLayoutPriorityRequired
                                       forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-    _divider = [[NSView alloc] initWithFrame:NSZeroRect];
-    _divider.wantsLayer = YES;
+
+    _divider                                           = [[NSView alloc] initWithFrame:NSZeroRect];
+    _divider.wantsLayer                                = YES;
     _divider.translatesAutoresizingMaskIntoConstraints = NO;
     [_divider.widthAnchor constraintEqualToConstant:1].active = YES;
     [_divider setContentHuggingPriority:NSLayoutPriorityRequired
@@ -1096,32 +1575,34 @@ static const CGFloat kDCDupIcon = 72;
     [_divider setContentCompressionResistancePriority:NSLayoutPriorityRequired
                                        forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-    _text = [NSTextField wrappingLabelWithString:@""];
-    _text.font = [NSFont preferredFontForTextStyle:NSFontTextStyleCallout options:@{}];
-    _text.textColor = [NSColor labelColor];
+    _text            = [NSTextField wrappingLabelWithString:@""];
+    _text.font       = [NSFont preferredFontForTextStyle:NSFontTextStyleCallout options:@{}];
+    _text.textColor  = [NSColor labelColor];
     _text.selectable = NO;
     [_text setContentHuggingPriority:NSLayoutPriorityDefaultHigh
                       forOrientation:NSLayoutConstraintOrientationHorizontal];
     [_text setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                     forOrientation:NSLayoutConstraintOrientationHorizontal];
+
     NSStackView* textPad = [NSStackView stackViewWithViews:@[ _text ]];
-    textPad.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    textPad.alignment = NSLayoutAttributeCenterY;
-    textPad.edgeInsets = NSEdgeInsetsMake(10, 12, 10, 14);
+    textPad.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    textPad.alignment    = NSLayoutAttributeCenterY;
+    textPad.edgeInsets   = NSEdgeInsetsMake(10, 12, 10, 14);
     [textPad setContentHuggingPriority:NSLayoutPriorityDefaultHigh
                         forOrientation:NSLayoutConstraintOrientationHorizontal];
     [textPad setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
                                       forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-    NSStackView* row = [[NSStackView alloc] initWithFrame:NSZeroRect];
-    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    row.alignment = NSLayoutAttributeCenterY;
-    row.spacing = 0;
-    row.distribution = NSStackViewDistributionGravityAreas;
+    NSStackView* row                              = [[NSStackView alloc] initWithFrame:NSZeroRect];
+    row.orientation                               = NSUserInterfaceLayoutOrientationHorizontal;
+    row.alignment                                 = NSLayoutAttributeCenterY;
+    row.spacing                                   = 0;
+    row.distribution                              = NSStackViewDistributionGravityAreas;
     row.translatesAutoresizingMaskIntoConstraints = NO;
     [row addView:iconPad inGravity:NSStackViewGravityLeading];
     [row addView:_divider inGravity:NSStackViewGravityLeading];
     [row addView:textPad inGravity:NSStackViewGravityLeading];
+
     [self addSubview:row];
     DCPinEdges(row, self);
     [NSLayoutConstraint activateConstraints:@[
@@ -1136,133 +1617,169 @@ static const CGFloat kDCDupIcon = 72;
                                    forOrientation:NSLayoutConstraintOrientationVertical];
     [self refreshIcon];
   }
+
   return self;
 }
 
-- (instancetype)initWithMessage:(NSString*)message {
+- (instancetype)initWithMessage:(NSString*)message
+{
   self = [self initWithFrame:NSZeroRect];
-  if (self) self.message = message ?: @"";
+
+  if (self)
+  {
+    self.message = message ?: @"";
+  }
+
   return self;
 }
 
-+ (instancetype)legendWithMessage:(NSString*)message {
++ (instancetype)legendWithMessage:(NSString*)message
+{
   return [[self alloc] initWithMessage:message];
 }
 
-+ (instancetype)dangerLegendWithMessage:(NSString*)message {
++ (instancetype)dangerLegendWithMessage:(NSString*)message
+{
   DCLegendView* v = [self legendWithMessage:message];
-  v.symbolName = @"exclamationmark.triangle.fill";
-  v.tintColor = NSColor.systemOrangeColor;
+
+  v.symbolName    = @"exclamationmark.triangle.fill";
+  v.tintColor     = NSColor.systemOrangeColor;
+
   return v;
 }
 
-- (BOOL)wantsUpdateLayer {
+- (BOOL)wantsUpdateLayer
+{
   return YES;
 }
 
-- (BOOL)isDark {
+- (BOOL)isDark
+{
   NSAppearanceName match =
       [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
+
   return [match isEqualToString:NSAppearanceNameDarkAqua];
 }
 
-- (NSColor*)resolvedTint {
+- (NSColor*)resolvedTint
+{
   return self.tintColor ?: NSColor.systemBlueColor;
 }
 
-- (void)updateLayer {
-  const BOOL dark = [self isDark];
-  NSColor* tint = [self resolvedTint];
-  self.layer.cornerRadius = self.cornerRadius;
+- (void)updateLayer
+{
+  const BOOL dark          = [self isDark];
+  NSColor* tint            = [self resolvedTint];
+  self.layer.cornerRadius  = self.cornerRadius;
   self.layer.masksToBounds = YES;
-  self.layer.borderWidth = self.borderWidth;
-  NSColor* fill = self.fillColor ?: [tint colorWithAlphaComponent:dark ? 0.18 : 0.10];
-  NSColor* border = self.borderColor ?: [tint colorWithAlphaComponent:dark ? 0.38 : 0.22];
-  NSColor* divider = self.dividerColor ?: [tint colorWithAlphaComponent:dark ? 0.32 : 0.20];
+  self.layer.borderWidth   = self.borderWidth;
+  NSColor* fill            = self.fillColor ?: [tint colorWithAlphaComponent:dark ? 0.18 : 0.10];
+  NSColor* border          = self.borderColor ?: [tint colorWithAlphaComponent:dark ? 0.38 : 0.22];
+  NSColor* divider         = self.dividerColor ?: [tint colorWithAlphaComponent:dark ? 0.32 : 0.20];
   self.layer.backgroundColor = fill.CGColor;
-  self.layer.borderColor = border.CGColor;
-  if (_divider.wantsLayer) _divider.layer.backgroundColor = divider.CGColor;
+  self.layer.borderColor     = border.CGColor;
+
+  if (_divider.wantsLayer)
+  {
+    _divider.layer.backgroundColor = divider.CGColor;
+  }
 }
 
-- (void)viewDidChangeEffectiveAppearance {
+- (void)viewDidChangeEffectiveAppearance
+{
   [super viewDidChangeEffectiveAppearance];
   [self setNeedsDisplay:YES];
 }
 
-- (void)refreshIcon {
+- (void)refreshIcon
+{
   NSImage* img = self.icon;
-  if (!img && self.symbolName.length) {
-    img = [NSImage imageWithSystemSymbolName:self.symbolName
-                    accessibilityDescription:self.message];
+
+  if (!img && self.symbolName.length)
+  {
+    img = [NSImage imageWithSystemSymbolName:self.symbolName accessibilityDescription:self.message];
     img = [img imageWithSymbolConfiguration:[NSImageSymbolConfiguration
                                                 configurationWithPointSize:self.iconPointSize
                                                                     weight:NSFontWeightRegular]];
   }
-  _iconView.image = img;
+
+  _iconView.image            = img;
   _iconView.contentTintColor = self.iconTintColor ?: [self resolvedTint];
 }
 
-- (void)setMessage:(NSString*)message {
-  _message = [message copy] ?: @"";
+- (void)setMessage:(NSString*)message
+{
+  _message          = [message copy] ?: @"";
   _text.stringValue = _message;
-  self.toolTip = _message;
+  self.toolTip      = _message;
   [self refreshIcon];
 }
 
-- (void)setIcon:(NSImage*)icon {
+- (void)setIcon:(NSImage*)icon
+{
   _icon = icon;
   [self refreshIcon];
 }
 
-- (void)setSymbolName:(NSString*)symbolName {
+- (void)setSymbolName:(NSString*)symbolName
+{
   _symbolName = [symbolName copy];
   [self refreshIcon];
 }
 
-- (void)setTintColor:(NSColor*)tintColor {
+- (void)setTintColor:(NSColor*)tintColor
+{
   _tintColor = tintColor ?: NSColor.systemBlueColor;
   [self refreshIcon];
   [self setNeedsDisplay:YES];
 }
 
-- (void)setFillColor:(NSColor*)fillColor {
+- (void)setFillColor:(NSColor*)fillColor
+{
   _fillColor = fillColor;
   [self setNeedsDisplay:YES];
 }
 
-- (void)setBorderColor:(NSColor*)borderColor {
+- (void)setBorderColor:(NSColor*)borderColor
+{
   _borderColor = borderColor;
   [self setNeedsDisplay:YES];
 }
 
-- (void)setDividerColor:(NSColor*)dividerColor {
+- (void)setDividerColor:(NSColor*)dividerColor
+{
   _dividerColor = dividerColor;
   [self setNeedsDisplay:YES];
 }
 
-- (void)setIconTintColor:(NSColor*)iconTintColor {
+- (void)setIconTintColor:(NSColor*)iconTintColor
+{
   _iconTintColor = iconTintColor;
   [self refreshIcon];
 }
 
-- (void)setCornerRadius:(CGFloat)cornerRadius {
+- (void)setCornerRadius:(CGFloat)cornerRadius
+{
   _cornerRadius = cornerRadius;
   [self setNeedsDisplay:YES];
 }
 
-- (void)setBorderWidth:(CGFloat)borderWidth {
+- (void)setBorderWidth:(CGFloat)borderWidth
+{
   _borderWidth = borderWidth;
   [self setNeedsDisplay:YES];
 }
 
-- (void)setIconPointSize:(CGFloat)iconPointSize {
+- (void)setIconPointSize:(CGFloat)iconPointSize
+{
   _iconPointSize = iconPointSize;
   [self refreshIcon];
 }
 
 @end
 
-@implementation DCStartScreen {
+@implementation DCStartScreen
+{
   NSTextField* _titleLabel;
   NSTextField* _subtitleLabel;
   NSImageView* _iconView;
@@ -1275,14 +1792,17 @@ static const CGFloat kDCDupIcon = 72;
   BOOL _progressing;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame
+{
   self = [super initWithFrame:frame];
-  if (self) {
-    _spacing = 16;
-    _buttonControlSize = NSControlSizeRegular;
+
+  if (self)
+  {
+    _spacing                                       = 16;
+    _buttonControlSize                             = NSControlSizeRegular;
     self.translatesAutoresizingMaskIntoConstraints = NO;
 
-    _iconView = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    _iconView              = [[NSImageView alloc] initWithFrame:NSZeroRect];
     _iconView.imageScaling = NSImageScaleProportionallyUpOrDown;
     [_iconView setContentHuggingPriority:NSLayoutPriorityRequired
                           forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -1291,28 +1811,29 @@ static const CGFloat kDCDupIcon = 72;
     _iconW = [_iconView.widthAnchor constraintEqualToConstant:0];
     _iconH = [_iconView.heightAnchor constraintEqualToConstant:0];
 
-    _titleLabel = DCTitleLabel(@"");
+    _titleLabel           = DCTitleLabel(@"");
     _titleLabel.alignment = NSTextAlignmentCenter;
-    _titleLabel.hidden = YES;
+    _titleLabel.hidden    = YES;
 
-    _subtitleLabel = DCSecondaryLabel(@"");
+    _subtitleLabel           = DCSecondaryLabel(@"");
     _subtitleLabel.alignment = NSTextAlignmentCenter;
-    _subtitleLabel.hidden = YES;
-    _subtitleMaxW = [_subtitleLabel.widthAnchor constraintLessThanOrEqualToConstant:0];
+    _subtitleLabel.hidden    = YES;
+    _subtitleMaxW            = [_subtitleLabel.widthAnchor constraintLessThanOrEqualToConstant:0];
 
-    _button = [DCGlowButton buttonWithTitle:@""
-                                     target:self
-                                     action:@selector(tap:)
-                                  glowColor:NSColor.controlAccentColor
-                              glowLineWidth:2.5
-                                 clockwise:YES];
+    _button              = [DCGlowButton buttonWithTitle:@""
+                                                  target:self
+                                                  action:@selector(tap:)
+                                               glowColor:NSColor.controlAccentColor
+                                           glowLineWidth:2.5
+                                               clockwise:YES];
     _button.fullyRounded = DCNativePillBezel();
-    _buttonMinW = [_button.widthAnchor constraintGreaterThanOrEqualToConstant:0];
+    _buttonMinW          = [_button.widthAnchor constraintGreaterThanOrEqualToConstant:0];
 
-    _cluster = [NSStackView stackViewWithViews:@[ _iconView, _titleLabel, _subtitleLabel, _button ]];
-    _cluster.orientation = NSUserInterfaceLayoutOrientationVertical;
-    _cluster.alignment = NSLayoutAttributeCenterX;
-    _cluster.spacing = _spacing;
+    _cluster =
+        [NSStackView stackViewWithViews:@[ _iconView, _titleLabel, _subtitleLabel, _button ]];
+    _cluster.orientation                               = NSUserInterfaceLayoutOrientationVertical;
+    _cluster.alignment                                 = NSLayoutAttributeCenterX;
+    _cluster.spacing                                   = _spacing;
     _cluster.translatesAutoresizingMaskIntoConstraints = NO;
     [_cluster setCustomSpacing:4 afterView:_titleLabel];
     [self addSubview:_cluster];
@@ -1324,6 +1845,7 @@ static const CGFloat kDCDupIcon = 72;
       [_subtitleLabel.widthAnchor constraintLessThanOrEqualToAnchor:self.widthAnchor constant:-48],
     ]];
   }
+
   return self;
 }
 
@@ -1333,41 +1855,61 @@ static const CGFloat kDCDupIcon = 72;
                 iconPointSize:(CGFloat)iconPointSize
                       colored:(BOOL)colored
                   buttonTitle:(NSString*)buttonTitle
-                     onAction:(void (^)(void))onAction {
+                     onAction:(void (^)(void))onAction
+{
   self = [self initWithFrame:NSZeroRect];
-  if (self) {
-    self.title = title;
-    self.subtitle = subtitle;
-    self.symbolName = symbolName;
+
+  if (self)
+  {
+    self.title         = title;
+    self.subtitle      = subtitle;
+    self.symbolName    = symbolName;
     self.iconPointSize = iconPointSize;
-    self.colored = colored;
-    self.buttonTitle = buttonTitle;
-    self.onAction = onAction;
+    self.colored       = colored;
+    self.buttonTitle   = buttonTitle;
+    self.onAction      = onAction;
   }
+
   return self;
 }
 
-- (DCGlowButton*)actionButton {
+- (DCGlowButton*)actionButton
+{
   return _button;
 }
 
-- (void)tap:(id)sender {
+- (void)tap:(id)sender
+{
   (void)sender;
-  if (_progressing) return;
-  if (self.onAction) self.onAction();
+
+  if (_progressing)
+  {
+    return;
+  }
+
+  if (self.onAction)
+  {
+    self.onAction();
+  }
 }
 
-- (void)beginProgress {
-  if (_progressing) return;
-  _progressing = YES;
+- (void)beginProgress
+{
+  if (_progressing)
+  {
+    return;
+  }
+
+  _progressing    = YES;
   _button.enabled = NO;
   [_button beginGlow];
 }
 
-- (void)endProgress {
+- (void)endProgress
+{
   [_button endGlow];
   _button.enabled = YES;
-  _progressing = NO;
+  _progressing    = NO;
 }
 
 - (void)configureSymbol:(NSString*)symbolName
@@ -1375,148 +1917,205 @@ static const CGFloat kDCDupIcon = 72;
             buttonTitle:(NSString*)buttonTitle
               tintColor:(NSColor*)tintColor
           defaultButton:(BOOL)defaultButton
-           appearBounce:(BOOL)appearBounce {
-  self.subtitle = subtitle;
-  self.buttonTitle = buttonTitle;
-  self.icon = nil;
-  self.colored = NO;
+           appearBounce:(BOOL)appearBounce
+{
+  self.subtitle      = subtitle;
+  self.buttonTitle   = buttonTitle;
+  self.icon          = nil;
+  self.colored       = NO;
   self.iconTintColor = tintColor;
-  self.symbolName = symbolName;
+  self.symbolName    = symbolName;
   self.defaultButton = defaultButton;
-  if (!appearBounce) return;
-  if (@available(macOS 14.0, *)) {
+
+  if (!appearBounce)
+  {
+    return;
+  }
+
+  if (@available(macOS 14.0, *))
+  {
     [_iconView removeAllSymbolEffects];
     [_iconView addSymbolEffect:[NSSymbolAppearEffect appearUpEffect]
                        options:[NSSymbolEffectOptions optionsWithNonRepeating]
                       animated:YES];
     __weak NSImageView* icon = _iconView;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-      [icon addSymbolEffect:[NSSymbolBounceEffect bounceUpEffect]
-                    options:[NSSymbolEffectOptions optionsWithNonRepeating]
-                   animated:YES];
-    });
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(),
+                   ^{
+                     [icon addSymbolEffect:[NSSymbolBounceEffect bounceUpEffect]
+                                   options:[NSSymbolEffectOptions optionsWithNonRepeating]
+                                  animated:YES];
+                   });
   }
 }
 
-- (void)refreshIcon {
+- (void)refreshIcon
+{
   const BOOL sized = _iconPointSize > 0;
-  _iconW.active = sized;
-  _iconH.active = sized;
-  if (sized) {
+  _iconW.active    = sized;
+  _iconH.active    = sized;
+
+  if (sized)
+  {
     _iconW.constant = _iconPointSize;
     _iconH.constant = _iconPointSize;
   }
+
   NSImage* img = self.icon;
-  if (!img && self.symbolName.length) {
+
+  if (!img && self.symbolName.length)
+  {
     NSString* desc = self.title.length ? self.title : self.buttonTitle;
     img = [NSImage imageWithSystemSymbolName:self.symbolName accessibilityDescription:desc];
-    if (img) {
+
+    if (img)
+    {
       CGFloat pt = sized ? _iconPointSize : 32;
       NSImageSymbolConfiguration* cfg =
           [NSImageSymbolConfiguration configurationWithPointSize:pt weight:NSFontWeightRegular];
+
       if (self.colored)
+      {
         cfg = [cfg configurationByApplyingConfiguration:[NSImageSymbolConfiguration
                                                             configurationPreferringMulticolor]];
+      }
+
       img = [img imageWithSymbolConfiguration:cfg];
     }
   }
-  _iconView.image = img;
+
+  _iconView.image            = img;
   _iconView.contentTintColor = self.colored ? nil : self.iconTintColor;
 }
 
-- (void)setSymbolName:(NSString*)symbolName {
+- (void)setSymbolName:(NSString*)symbolName
+{
   _symbolName = [symbolName copy];
   [self refreshIcon];
 }
 
-- (void)setIcon:(NSImage*)icon {
+- (void)setIcon:(NSImage*)icon
+{
   _icon = icon;
   [self refreshIcon];
 }
 
-- (void)setIconPointSize:(CGFloat)iconPointSize {
+- (void)setIconPointSize:(CGFloat)iconPointSize
+{
   _iconPointSize = iconPointSize;
   [self refreshIcon];
 }
 
-- (void)setIconTintColor:(NSColor*)iconTintColor {
+- (void)setIconTintColor:(NSColor*)iconTintColor
+{
   _iconTintColor = iconTintColor;
   [self refreshIcon];
 }
 
-- (void)setColored:(BOOL)colored {
+- (void)setColored:(BOOL)colored
+{
   _colored = colored;
   [self refreshIcon];
 }
 
-- (void)setSpacing:(CGFloat)spacing {
-  _spacing = spacing;
+- (void)setSpacing:(CGFloat)spacing
+{
+  _spacing         = spacing;
   _cluster.spacing = spacing;
 }
 
-- (void)setTitle:(NSString*)title {
-  _title = [title copy] ?: @"";
+- (void)setTitle:(NSString*)title
+{
+  _title                  = [title copy] ?: @"";
   _titleLabel.stringValue = _title;
-  _titleLabel.hidden = _title.length == 0;
+  _titleLabel.hidden      = _title.length == 0;
   [self refreshIcon];
 }
 
-- (void)setTitleFont:(NSFont*)titleFont {
+- (void)setTitleFont:(NSFont*)titleFont
+{
   _titleFont = titleFont;
-  if (titleFont) _titleLabel.font = titleFont;
+
+  if (titleFont)
+  {
+    _titleLabel.font = titleFont;
+  }
 }
 
-- (void)setSubtitle:(NSString*)subtitle {
-  _subtitle = [subtitle copy] ?: @"";
+- (void)setSubtitle:(NSString*)subtitle
+{
+  _subtitle                  = [subtitle copy] ?: @"";
   _subtitleLabel.stringValue = _subtitle;
-  _subtitleLabel.hidden = _subtitle.length == 0;
+  _subtitleLabel.hidden      = _subtitle.length == 0;
 }
 
-- (void)setSubtitleFont:(NSFont*)subtitleFont {
+- (void)setSubtitleFont:(NSFont*)subtitleFont
+{
   _subtitleFont = subtitleFont;
-  if (subtitleFont) _subtitleLabel.font = subtitleFont;
+
+  if (subtitleFont)
+  {
+    _subtitleLabel.font = subtitleFont;
+  }
 }
 
-- (void)setSubtitleColor:(NSColor*)subtitleColor {
+- (void)setSubtitleColor:(NSColor*)subtitleColor
+{
   _subtitleColor = subtitleColor;
-  if (subtitleColor) _subtitleLabel.textColor = subtitleColor;
+
+  if (subtitleColor)
+  {
+    _subtitleLabel.textColor = subtitleColor;
+  }
 }
 
-- (void)setSubtitleMaxWidth:(CGFloat)subtitleMaxWidth {
-  _subtitleMaxWidth = subtitleMaxWidth;
+- (void)setSubtitleMaxWidth:(CGFloat)subtitleMaxWidth
+{
+  _subtitleMaxWidth      = subtitleMaxWidth;
   _subtitleMaxW.constant = subtitleMaxWidth;
-  _subtitleMaxW.active = subtitleMaxWidth > 0;
+  _subtitleMaxW.active   = subtitleMaxWidth > 0;
 }
 
-- (void)setButtonTitle:(NSString*)buttonTitle {
-  _buttonTitle = [buttonTitle copy] ?: @"";
+- (void)setButtonTitle:(NSString*)buttonTitle
+{
+  _buttonTitle  = [buttonTitle copy] ?: @"";
   _button.title = _buttonTitle;
 }
 
-- (void)setButtonControlSize:(NSControlSize)buttonControlSize {
-  _buttonControlSize = buttonControlSize;
+- (void)setButtonControlSize:(NSControlSize)buttonControlSize
+{
+  _buttonControlSize  = buttonControlSize;
   _button.controlSize = buttonControlSize;
 }
 
-- (void)setButtonMinWidth:(CGFloat)buttonMinWidth {
-  _buttonMinWidth = buttonMinWidth;
+- (void)setButtonMinWidth:(CGFloat)buttonMinWidth
+{
+  _buttonMinWidth      = buttonMinWidth;
   _buttonMinW.constant = buttonMinWidth;
-  _buttonMinW.active = buttonMinWidth > 0;
+  _buttonMinW.active   = buttonMinWidth > 0;
 }
 
-- (void)setButtonFont:(NSFont*)buttonFont {
+- (void)setButtonFont:(NSFont*)buttonFont
+{
   _buttonFont = buttonFont;
-  if (buttonFont) _button.font = buttonFont;
+
+  if (buttonFont)
+  {
+    _button.font = buttonFont;
+  }
 }
 
-- (void)setDefaultButton:(BOOL)defaultButton {
-  _defaultButton = defaultButton;
+- (void)setDefaultButton:(BOOL)defaultButton
+{
+  _defaultButton        = defaultButton;
   _button.keyEquivalent = defaultButton ? @"\r" : @"";
 }
 
 @end
 
-NSTableCellView* DCCenteredCheckCell(NSButton* checkbox) {
+NSTableCellView* DCCenteredCheckCell(NSButton* checkbox)
+{
   NSTableCellView* cell = [[NSTableCellView alloc] initWithFrame:NSZeroRect];
   checkbox.translatesAutoresizingMaskIntoConstraints = NO;
   [cell addSubview:checkbox];
@@ -1524,22 +2123,26 @@ NSTableCellView* DCCenteredCheckCell(NSButton* checkbox) {
     [checkbox.centerXAnchor constraintEqualToAnchor:cell.centerXAnchor],
     [checkbox.centerYAnchor constraintEqualToAnchor:cell.centerYAnchor],
   ]];
+
   return cell;
 }
 
-NSScrollView* DCWrapTable(NSTableView* table) {
-  NSScrollView* s = [[NSScrollView alloc] initWithFrame:NSZeroRect];
-  s.documentView = table;
-  s.hasVerticalScroller = YES;
-  s.hasHorizontalScroller = NO;
-  s.autohidesScrollers = YES;
-  s.borderType = NSNoBorder;
-  s.drawsBackground = NO;
+NSScrollView* DCWrapTable(NSTableView* table)
+{
+  NSScrollView* s                     = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+  s.documentView                      = table;
+  s.hasVerticalScroller               = YES;
+  s.hasHorizontalScroller             = NO;
+  s.autohidesScrollers                = YES;
+  s.borderType                        = NSNoBorder;
+  s.drawsBackground                   = NO;
   s.automaticallyAdjustsContentInsets = YES;
+
   return s;
 }
 
-void DCPinEdges(NSView* child, NSView* parent) {
+void DCPinEdges(NSView* child, NSView* parent)
+{
   child.translatesAutoresizingMaskIntoConstraints = NO;
   [NSLayoutConstraint activateConstraints:@[
     [child.leadingAnchor constraintEqualToAnchor:parent.leadingAnchor],
@@ -1549,31 +2152,36 @@ void DCPinEdges(NSView* child, NSView* parent) {
   ]];
 }
 
-NSStackView* DCPageStack(NSView* host) {
+NSStackView* DCPageStack(NSView* host)
+{
   NSStackView* stack = [NSStackView stackViewWithViews:@[]];
-  stack.orientation = NSUserInterfaceLayoutOrientationVertical;
-  stack.alignment = NSLayoutAttributeLeading;
+  stack.orientation  = NSUserInterfaceLayoutOrientationVertical;
+  stack.alignment    = NSLayoutAttributeLeading;
   stack.distribution = NSStackViewDistributionFill;
-  stack.spacing = 16;
-  stack.edgeInsets = NSEdgeInsetsMake(24, 28, 24, 28);
+  stack.spacing      = 16;
+  stack.edgeInsets   = NSEdgeInsetsMake(24, 28, 24, 28);
   [stack setContentHuggingPriority:NSLayoutPriorityDefaultLow
                     forOrientation:NSLayoutConstraintOrientationVertical];
   [host addSubview:stack];
   DCPinEdges(stack, host);
+
   return stack;
 }
 
-NSStackView* DCHeaderStack(NSString* title, NSString* subtitle) {
-  NSTextField* t = DCTitleLabel(title);
-  NSTextField* s = DCSecondaryLabel(subtitle);
-  NSBox* rule = [[NSBox alloc] initWithFrame:NSZeroRect];
-  rule.boxType = NSBoxSeparator;
-  rule.translatesAutoresizingMaskIntoConstraints = NO;
+NSStackView* DCHeaderStack(NSString* title, NSString* subtitle)
+{
+  NSTextField* t                                         = DCTitleLabel(title);
+  NSTextField* s                                         = DCSecondaryLabel(subtitle);
+  NSBox* rule                                            = [[NSBox alloc] initWithFrame:NSZeroRect];
+  rule.boxType                                           = NSBoxSeparator;
+  rule.translatesAutoresizingMaskIntoConstraints         = NO;
   [rule.heightAnchor constraintEqualToConstant:1].active = YES;
+
   NSStackView* header = [NSStackView stackViewWithViews:@[ t, s, rule ]];
-  header.orientation = NSUserInterfaceLayoutOrientationVertical;
-  header.alignment = NSLayoutAttributeLeading;
-  header.spacing = 10;
+  header.orientation  = NSUserInterfaceLayoutOrientationVertical;
+  header.alignment    = NSLayoutAttributeLeading;
+  header.spacing      = 10;
+
   [t setContentHuggingPriority:NSLayoutPriorityRequired
                 forOrientation:NSLayoutConstraintOrientationVertical];
   [s setContentHuggingPriority:NSLayoutPriorityRequired
@@ -1581,32 +2189,41 @@ NSStackView* DCHeaderStack(NSString* title, NSString* subtitle) {
   [header setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationVertical];
   [rule.widthAnchor constraintEqualToAnchor:header.widthAnchor].active = YES;
+
   return header;
 }
 
-NSStackView* DCTrailingButtons(NSArray<NSButton*>* buttons) {
+NSStackView* DCTrailingButtons(NSArray<NSButton*>* buttons)
+{
   NSView* spacer = [[NSView alloc] initWithFrame:NSZeroRect];
   [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+
   NSMutableArray* views = [NSMutableArray arrayWithObject:spacer];
   [views addObjectsFromArray:buttons];
+
   NSStackView* row = [NSStackView stackViewWithViews:views];
-  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-  row.alignment = NSLayoutAttributeCenterY;
-  row.spacing = 8;
+  row.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+  row.alignment    = NSLayoutAttributeCenterY;
+  row.spacing      = 8;
+
   [row setContentHuggingPriority:NSLayoutPriorityRequired
                   forOrientation:NSLayoutConstraintOrientationVertical];
+
   return row;
 }
 
-void DCStackFullWidth(NSStackView* stack, NSView* view) {
+void DCStackFullWidth(NSStackView* stack, NSView* view)
+{
   [view.widthAnchor constraintEqualToAnchor:stack.widthAnchor
                                    constant:-(stack.edgeInsets.left + stack.edgeInsets.right)]
       .active = YES;
 }
 
-NSView* DCStackCentered(NSStackView* stack, NSView* view) {
-  NSView* slot = [[NSView alloc] initWithFrame:NSZeroRect];
+NSView* DCStackCentered(NSStackView* stack, NSView* view)
+{
+  NSView* slot                                   = [[NSView alloc] initWithFrame:NSZeroRect];
   view.translatesAutoresizingMaskIntoConstraints = NO;
+
   [slot addSubview:view];
   [NSLayoutConstraint activateConstraints:@[
     [view.centerXAnchor constraintEqualToAnchor:slot.centerXAnchor],
@@ -1615,23 +2232,29 @@ NSView* DCStackCentered(NSStackView* stack, NSView* view) {
     [view.leadingAnchor constraintGreaterThanOrEqualToAnchor:slot.leadingAnchor],
     [view.trailingAnchor constraintLessThanOrEqualToAnchor:slot.trailingAnchor],
   ]];
+
   [slot setContentHuggingPriority:NSLayoutPriorityRequired
                    forOrientation:NSLayoutConstraintOrientationVertical];
   [stack addArrangedSubview:slot];
+
   DCStackFullWidth(stack, slot);
+
   return slot;
 }
 
-NSStackView* DCEqualButtonRow(NSArray<NSButton*>* buttons) {
+NSStackView* DCEqualButtonRow(NSArray<NSButton*>* buttons)
+{
   NSStackView* row = [NSStackView stackViewWithViews:buttons];
-  row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-  row.alignment = NSLayoutAttributeCenterY;
+  row.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+  row.alignment    = NSLayoutAttributeCenterY;
   row.distribution = NSStackViewDistributionFillEqually;
-  row.spacing = 12;
+  row.spacing      = 12;
+
   return row;
 }
 
-void DCStackExpand(NSStackView* stack, NSView* view) {
+void DCStackExpand(NSStackView* stack, NSView* view)
+{
   [view setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
   [view setContentCompressionResistancePriority:1
                                  forOrientation:NSLayoutConstraintOrientationVertical];
@@ -1639,42 +2262,81 @@ void DCStackExpand(NSStackView* stack, NSView* view) {
   DCStackFullWidth(stack, view);
 }
 
-NSView* DCFlexibleSpace(void) {
+NSView* DCFlexibleSpace(void)
+{
   NSView* spacer = [[NSView alloc] initWithFrame:NSZeroRect];
   [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
   [spacer setContentCompressionResistancePriority:1
                                    forOrientation:NSLayoutConstraintOrientationVertical];
+
   return spacer;
 }
 
-void DCRunBackground(uint64_t* jobSlot, void (^work)(void), void (^done)(void)) {
-  if (!jobSlot || !work) return;
+void DCRunBackground(uint64_t* jobSlot, void (^work)(void), void (^done)(void))
+{
+  if (!jobSlot || !work)
+  {
+    return;
+  }
+
   const uint64_t job = ++(*jobSlot);
+
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     work();
-    if (!done) return;
+
+    if (!done)
+    {
+      return;
+    }
+
     dispatch_async(dispatch_get_main_queue(), ^{
-      if (*jobSlot != job) return;
+      if (*jobSlot != job)
+      {
+        return;
+      }
+
       done();
     });
   });
 }
 
-void DCDispatchMainThrottled(std::atomic<uint64_t>* lastMs, uint64_t minMs, void (^block)(void)) {
-  if (!lastMs || !block) return;
+void DCDispatchMainThrottled(std::atomic<uint64_t>* lastMs, uint64_t minMs, void (^block)(void))
+{
+  if (!lastMs || !block)
+  {
+    return;
+  }
+
   const uint64_t now = static_cast<uint64_t>(CFAbsoluteTimeGetCurrent() * 1000.0);
-  uint64_t prev = lastMs->load(std::memory_order_relaxed);
-  if (prev && now - prev < minMs) return;
-  if (!lastMs->compare_exchange_strong(prev, now, std::memory_order_relaxed)) return;
+  uint64_t prev      = lastMs->load(std::memory_order_relaxed);
+
+  if (prev && now - prev < minMs)
+  {
+    return;
+  }
+
+  if (!lastMs->compare_exchange_strong(prev, now, std::memory_order_relaxed))
+  {
+    return;
+  }
+
   dispatch_async(dispatch_get_main_queue(), block);
 }
 
-NSModalResponse DCPresentAlert(NSAlert* alert) {
+NSModalResponse DCPresentAlert(NSAlert* alert)
+{
   NSWindow* parent = NSApp.mainWindow;
-  if (!parent || !parent.isVisible) parent = NSApp.keyWindow;
-  if (!parent) {
-    for (NSWindow* w in NSApp.windows) {
-      if (w.isVisible) {
+  if (!parent || !parent.isVisible)
+  {
+    parent = NSApp.keyWindow;
+  }
+
+  if (!parent)
+  {
+    for (NSWindow* w in NSApp.windows)
+    {
+      if (w.isVisible)
+      {
         parent = w;
         break;
       }
@@ -1682,82 +2344,124 @@ NSModalResponse DCPresentAlert(NSAlert* alert) {
   }
 
   [alert layout];
-  if (!parent) {
+
+  if (!parent)
+  {
     [alert.window center];
     return [alert runModal];
   }
 
-  __block BOOL done = NO;
+  __block BOOL done              = NO;
   __block NSModalResponse result = NSAlertFirstButtonReturn;
-  [alert beginSheetModalForWindow:parent completionHandler:^(NSModalResponse code) {
-    result = code;
-    done = YES;
-  }];
-  while (!done) {
+
+  [alert beginSheetModalForWindow:parent
+                completionHandler:^(NSModalResponse code) {
+                  result = code;
+                  done   = YES;
+                }];
+
+  while (!done)
+  {
     NSEvent* e = [NSApp nextEventMatchingMask:NSEventMaskAny
                                     untilDate:[NSDate dateWithTimeIntervalSinceNow:0.1]
                                        inMode:NSDefaultRunLoopMode
                                       dequeue:YES];
-    if (e) [NSApp sendEvent:e];
+
+    if (e)
+    {
+      [NSApp sendEvent:e];
+    }
   }
+
   return result;
 }
 
-BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle) {
-  NSAlert* a = [[NSAlert alloc] init];
-  a.alertStyle = NSAlertStyleWarning;
-  a.messageText = title ?: @"Are you sure?";
+BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle)
+{
+  NSAlert* a        = [[NSAlert alloc] init];
+  a.alertStyle      = NSAlertStyleWarning;
+  a.messageText     = title ?: @"Are you sure?";
   a.informativeText = info ?: @"";
   [a addButtonWithTitle:@"Cancel"];
-  NSButton* proceed = [a addButtonWithTitle:proceedTitle ?: @"Continue"];
+
+  NSButton* proceed            = [a addButtonWithTitle:proceedTitle ?: @"Continue"];
   proceed.hasDestructiveAction = YES;
+
   return DCPresentAlert(a) == NSAlertSecondButtonReturn;
 }
 
-BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes) {
-  if (paths.count == 0) return NO;
-  const bool perm = DCCleanPref() == ui::CleanPref::DeletePermanently;
+BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes)
+{
+  if (paths.count == 0)
+  {
+    return NO;
+  }
+
+  const bool perm       = DCCleanPref() == ui::CleanPref::DeletePermanently;
   NSMutableString* info = [NSMutableString string];
-  if (perm) {
+
+  if (perm)
+  {
     [info appendFormat:@"%lu item%s (%@) will be deleted permanently. This cannot be undone from "
                        @"Trash.\n\nProtected system files, keys, and personal libraries are never "
                        @"touched.",
-                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
-                       DCNS(dcmm::formatBytes(bytes))];
-  } else {
-    [info appendFormat:@"%lu item%s (%@) will be moved to Trash. You can restore them from Trash "
-                       @"until it is emptied.\n\nProtected system files, keys, and personal libraries "
-                       @"are never touched.",
-                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
+                       (unsigned long)paths.count,
+                       paths.count == 1 ? "" : "s",
                        DCNS(dcmm::formatBytes(bytes))];
   }
-  NSString* title = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
+  else
+  {
+    [info appendFormat:
+              @"%lu item%s (%@) will be moved to Trash. You can restore them from Trash "
+              @"until it is emptied.\n\nProtected system files, keys, and personal libraries "
+              @"are never touched.",
+              (unsigned long)paths.count,
+              paths.count == 1 ? "" : "s",
+              DCNS(dcmm::formatBytes(bytes))];
+  }
+
+  NSString* title   = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
   NSString* proceed = perm ? @"Delete Permanently" : @"Move to Trash";
+
   return DCConfirmDestructive(title, info, proceed);
 }
 
-BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes) {
+BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes)
+{
   return DCConfirmClean(paths, bytes);
 }
 
-BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes) {
-  if (paths.count == 0) return NO;
-  const bool perm = DCCleanPref() == ui::CleanPref::DeletePermanently;
+BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes)
+{
+  if (paths.count == 0)
+  {
+    return NO;
+  }
+
+  const bool perm       = DCCleanPref() == ui::CleanPref::DeletePermanently;
   NSMutableString* info = [NSMutableString string];
-  if (perm) {
+
+  if (perm)
+  {
     [info appendFormat:@"%lu item%s (%@) will be deleted permanently. This cannot be undone from "
                        @"Trash.\n\nAny folder you checked is removed at your own risk.",
-                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
+                       (unsigned long)paths.count,
+                       paths.count == 1 ? "" : "s",
                        DCNS(dcmm::formatBytes(bytes))];
-  } else {
+  }
+  else
+  {
     [info appendFormat:@"%lu item%s (%@) will be moved to Trash. You can restore them from Trash "
                        @"until it is emptied.\n\nAny folder you checked is removed at your own "
                        @"risk.",
-                       (unsigned long)paths.count, paths.count == 1 ? "" : "s",
+                       (unsigned long)paths.count,
+                       paths.count == 1 ? "" : "s",
                        DCNS(dcmm::formatBytes(bytes))];
   }
-  NSString* title = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
+
+  NSString* title   = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
   NSString* proceed = perm ? @"Delete Permanently" : @"Move to Trash";
+
   return DCConfirmDestructive(title, info, proceed);
 }
 
@@ -1769,35 +2473,46 @@ BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes) {
 @end
 @implementation DCNotifyDelegate
 - (BOOL)userNotificationCenter:(NSUserNotificationCenter*)center
-     shouldPresentNotification:(NSUserNotification*)notification {
+     shouldPresentNotification:(NSUserNotification*)notification
+{
   (void)center;
   (void)notification;
+
   return YES;
 }
 @end
 
 static DCNotifyDelegate* gNotifyDelegate;
 
-void DCRequestNotificationPermission(void) {
-  if (!gNotifyDelegate) gNotifyDelegate = [[DCNotifyDelegate alloc] init];
+void DCRequestNotificationPermission(void)
+{
+  if (!gNotifyDelegate)
+  {
+    gNotifyDelegate = [[DCNotifyDelegate alloc] init];
+  }
+
   NSUserNotificationCenter.defaultUserNotificationCenter.delegate = gNotifyDelegate;
 }
 
-static void DCNotify(NSString* title, NSString* body) {
+static void DCNotify(NSString* title, NSString* body)
+{
   NSUserNotification* n = [[NSUserNotification alloc] init];
-  n.title = title.length ? title : @"DeepCleanMyMac";
-  n.informativeText = body.length ? body : @"";
-  n.soundName = NSUserNotificationDefaultSoundName;
+  n.title               = title.length ? title : @"DeepCleanMyMac";
+  n.informativeText     = body.length ? body : @"";
+  n.soundName           = NSUserNotificationDefaultSoundName;
+
   [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:n];
 }
 
 #pragma clang diagnostic pop
 
-void DCInformNothingToClean(NSString* detail) {
+void DCInformNothingToClean(NSString* detail)
+{
   DCNotify(@"Nothing to clean", detail.length ? detail : @"There is nothing here to remove.");
 }
 
-void DCInformCleaned(NSString* title, NSString* detail) {
+void DCInformCleaned(NSString* title, NSString* detail)
+{
   DCNotify(title.length ? title : @"Clean finished", detail ?: @"");
 }
 
@@ -1805,11 +2520,13 @@ void DCInformCleaned(NSString* title, NSString* detail) {
 @property(nonatomic, copy) NSURL* url;
 @end
 @implementation DCQLHost
-- (NSInteger)numberOfPreviewItemsInPreviewPanel:(QLPreviewPanel*)panel {
+- (NSInteger)numberOfPreviewItemsInPreviewPanel:(QLPreviewPanel*)panel
+{
   (void)panel;
   return self.url ? 1 : 0;
 }
-- (id<QLPreviewItem>)previewPanel:(QLPreviewPanel*)panel previewItemAtIndex:(NSInteger)index {
+- (id<QLPreviewItem>)previewPanel:(QLPreviewPanel*)panel previewItemAtIndex:(NSInteger)index
+{
   (void)panel;
   (void)index;
   return self.url;
@@ -1819,71 +2536,120 @@ void DCInformCleaned(NSString* title, NSString* detail) {
 @interface DCPathActions : NSObject
 @end
 @implementation DCPathActions
-+ (instancetype)shared {
++ (instancetype)shared
+{
   static DCPathActions* s;
   static dispatch_once_t once;
-  dispatch_once(&once, ^{ s = [DCPathActions new]; });
+
+  dispatch_once(&once, ^{
+    s = [DCPathActions new];
+  });
+
   return s;
 }
-- (void)reveal:(NSMenuItem*)item {
+- (void)reveal:(NSMenuItem*)item
+{
   DCRevealInFinder(item.representedObject);
 }
-- (void)open:(NSMenuItem*)item {
+- (void)open:(NSMenuItem*)item
+{
   NSString* path = item.representedObject;
-  if (path.length) [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:path]];
+
+  if (path.length)
+  {
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:path]];
+  }
 }
-- (void)quickLook:(NSMenuItem*)item {
+- (void)quickLook:(NSMenuItem*)item
+{
   NSString* path = item.representedObject;
-  if (!path.length) return;
+
+  if (!path.length)
+  {
+    return;
+  }
+
   static DCQLHost* host;
-  if (!host) host = [DCQLHost new];
-  host.url = [NSURL fileURLWithPath:path];
+
+  if (!host)
+  {
+    host = [DCQLHost new];
+  }
+
+  host.url              = [NSURL fileURLWithPath:path];
   QLPreviewPanel* panel = [QLPreviewPanel sharedPreviewPanel];
-  panel.dataSource = host;
+  panel.dataSource      = host;
   [panel reloadData];
   [panel makeKeyAndOrderFront:nil];
 }
-- (void)copyPath:(NSMenuItem*)item {
+- (void)copyPath:(NSMenuItem*)item
+{
   NSString* path = item.representedObject;
-  if (!path.length) return;
+
+  if (!path.length)
+  {
+    return;
+  }
+
   NSPasteboard* pb = [NSPasteboard generalPasteboard];
   [pb clearContents];
   [pb setString:path forType:NSPasteboardTypeString];
 }
-- (void)copyName:(NSMenuItem*)item {
+- (void)copyName:(NSMenuItem*)item
+{
   NSString* path = item.representedObject;
-  if (!path.length) return;
+
+  if (!path.length)
+  {
+    return;
+  }
+
   NSPasteboard* pb = [NSPasteboard generalPasteboard];
   [pb clearContents];
   [pb setString:path.lastPathComponent forType:NSPasteboardTypeString];
 }
 @end
 
-void DCRevealInFinder(NSString* path) {
-  if (!path.length) return;
+void DCRevealInFinder(NSString* path)
+{
+  if (!path.length)
+  {
+    return;
+  }
+
   [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[ [NSURL fileURLWithPath:path] ]];
 }
 
-void DCAttachTableMenu(NSTableView* table, id<NSMenuDelegate> delegate) {
-  NSMenu* menu = [[NSMenu alloc] initWithTitle:@""];
-  menu.delegate = delegate;
+void DCAttachTableMenu(NSTableView* table, id<NSMenuDelegate> delegate)
+{
+  NSMenu* menu          = [[NSMenu alloc] initWithTitle:@""];
+  menu.delegate         = delegate;
   menu.autoenablesItems = YES;
-  table.menu = menu;
+  table.menu            = menu;
 }
 
-void DCAddPathMenuItems(NSMenu* menu, NSString* path) {
-  if (!path.length) return;
+void DCAddPathMenuItems(NSMenu* menu, NSString* path)
+{
+  if (!path.length)
+  {
+    return;
+  }
+
   DCPathActions* actions = [DCPathActions shared];
-  auto add = ^(NSString* title, SEL sel) {
-    NSMenuItem* it = [[NSMenuItem alloc] initWithTitle:title action:sel keyEquivalent:@""];
-    it.target = actions;
+
+  auto add               = ^(NSString* title, SEL sel) {
+    NSMenuItem* it       = [[NSMenuItem alloc] initWithTitle:title action:sel keyEquivalent:@""];
+    it.target            = actions;
     it.representedObject = path;
     [menu addItem:it];
   };
+
   add(@"Show in Finder", @selector(reveal:));
   add(@"Quick Look", @selector(quickLook:));
   add(@"Open", @selector(open:));
+
   [menu addItem:[NSMenuItem separatorItem]];
+
   add(@"Copy Path", @selector(copyPath:));
   add(@"Copy Name", @selector(copyName:));
 }

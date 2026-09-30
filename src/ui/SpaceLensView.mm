@@ -20,43 +20,66 @@
 @end
 
 @implementation DCLensRow
-- (instancetype)initWithNode:(dcmm::SpaceNode)node {
+- (instancetype)initWithNode:(dcmm::SpaceNode)node
+{
   self = [super init];
-  if (self) {
-    _node = std::move(node);
+  if (self)
+  {
+    _node     = std::move(node);
     _children = [NSMutableArray array];
   }
   return self;
 }
 
-- (ui::GroupCheck)checkState {
-  if (_selected) return ui::GroupCheck::On;
+- (ui::GroupCheck)checkState
+{
+  if (_selected)
+  {
+    return ui::GroupCheck::On;
+  }
   BOOL any = NO;
-  for (DCLensRow* c in _children) {
+  for (DCLensRow* c in _children)
+  {
     auto st = [c checkState];
-    if (st == ui::GroupCheck::On || st == ui::GroupCheck::Mixed) any = YES;
+    if (st == ui::GroupCheck::On || st == ui::GroupCheck::Mixed)
+    {
+      any = YES;
+    }
   }
   return any ? ui::GroupCheck::Mixed : ui::GroupCheck::Off;
 }
 
-- (void)setSelectedDeep:(BOOL)on {
+- (void)setSelectedDeep:(BOOL)on
+{
   _selected = on;
-  for (DCLensRow* c in _children) [c setSelectedDeep:on];
+  for (DCLensRow* c in _children)
+  {
+    [c setSelectedDeep:on];
+  }
 }
 
-- (void)collectSelected:(std::vector<std::pair<std::string, uint64_t>>&)out {
-  if (_selected) {
-    if (!_node.path.empty()) out.push_back({_node.path, _node.bytes});
+- (void)collectSelected:(std::vector<std::pair<std::string, uint64_t>>&)out
+{
+  if (_selected)
+  {
+    if (!_node.path.empty())
+    {
+      out.push_back({_node.path, _node.bytes});
+    }
     return;
   }
-  for (DCLensRow* c in _children) [c collectSelected:out];
+  for (DCLensRow* c in _children)
+  {
+    [c collectSelected:out];
+  }
 }
 @end
 
 @interface DCSpaceLensView () <NSOutlineViewDataSource, NSOutlineViewDelegate, NSMenuDelegate>
 @end
 
-@implementation DCSpaceLensView {
+@implementation DCSpaceLensView
+{
   dcmm::Engine _engine;
   NSMutableArray<DCLensRow*>* _roots;
   uint64_t _volumeBytes;
@@ -70,32 +93,34 @@
   uint64_t _job;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame
+{
   self = [super initWithFrame:frame];
-  if (self) {
-    _volumeBytes = 0;
-    _roots = [NSMutableArray array];
-    NSStackView* page = DCPageStack(self);
-    _content = page;
+  if (self)
+  {
+    _volumeBytes        = 0;
+    _roots              = [NSMutableArray array];
+    NSStackView* page   = DCPageStack(self);
+    _content            = page;
     NSStackView* header = DCHeaderStack(
         @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    _scan = [DCGlowButton defaultButtonWithTitle:@"Analyze"
-                                          target:self
-                                          action:@selector(startScan)
-                                       glowColor:NSColor.controlAccentColor
-                                   glowLineWidth:2.5
-                                      clockwise:YES];
-    _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
-    _selAll.enabled = NO;
-    _clean = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
-    _clean.hidden = YES;
+    _scan                = [DCGlowButton defaultButtonWithTitle:@"Analyze"
+                                                         target:self
+                                                         action:@selector(startScan)
+                                                      glowColor:NSColor.controlAccentColor
+                                                  glowLineWidth:2.5
+                                                      clockwise:YES];
+    _selAll              = DCPushButton(@"Select All", self, @selector(toggleAll));
+    _selAll.enabled      = NO;
+    _clean               = DCDestructiveButton(@"Move to Trash", self, @selector(cleanSelected));
+    _clean.hidden        = YES;
     NSStackView* actions = DCTrailingButtons(@[ _selAll, _clean, _scan ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
-    NSView* legend = [DCLegendView dangerLegendWithMessage:
-                          @"Warning icon shows the folder might not be safe to delete."];
+    NSView* legend    = [DCLegendView
+        dangerLegendWithMessage:@"Warning icon shows the folder might not be safe to delete."];
     NSView* legendRow = DCStackCentered(page, legend);
     [page setCustomSpacing:20 afterView:actions];
     [page setCustomSpacing:20 afterView:legendRow];
@@ -104,40 +129,40 @@
 
     _outline = [[NSOutlineView alloc] initWithFrame:NSZeroRect];
     DCStyleTable(_outline);
-    _outline.dataSource = self;
-    _outline.delegate = self;
-    _outline.indentationPerLevel = 16;
+    _outline.dataSource               = self;
+    _outline.delegate                 = self;
+    _outline.indentationPerLevel      = 16;
     _outline.autoresizesOutlineColumn = YES;
     DCAttachTableMenu(_outline, self);
     NSTableColumn* c0 = [[NSTableColumn alloc] initWithIdentifier:@"check"];
-    c0.width = 24;
-    c0.minWidth = 24;
-    c0.maxWidth = 32;
-    c0.title = @"";
+    c0.width          = 24;
+    c0.minWidth       = 24;
+    c0.maxWidth       = 32;
+    c0.title          = @"";
     [_outline addTableColumn:c0];
     NSTableColumn* c1 = [[NSTableColumn alloc] initWithIdentifier:@"name"];
-    c1.title = @"Folder";
-    c1.width = 280;
-    c1.minWidth = 160;
+    c1.title          = @"Folder";
+    c1.width          = 280;
+    c1.minWidth       = 160;
     [_outline addTableColumn:c1];
-    _outline.outlineTableColumn = c1;
+    _outline.outlineTableColumn       = c1;
     _outline.autoresizesOutlineColumn = NO;
-    _outline.columnAutoresizingStyle = NSTableViewNoColumnAutoresizing;
-    NSTableColumn* c2 = [[NSTableColumn alloc] initWithIdentifier:@"size"];
-    c2.title = @"Size";
-    c2.width = 100;
-    c2.minWidth = 80;
+    _outline.columnAutoresizingStyle  = NSTableViewNoColumnAutoresizing;
+    NSTableColumn* c2                 = [[NSTableColumn alloc] initWithIdentifier:@"size"];
+    c2.title                          = @"Size";
+    c2.width                          = 100;
+    c2.minWidth                       = 80;
     [_outline addTableColumn:c2];
     NSTableColumn* c3 = [[NSTableColumn alloc] initWithIdentifier:@"share"];
-    c3.title = @"Share";
-    c3.width = 72;
-    c3.minWidth = 56;
+    c3.title          = @"Share";
+    c3.width          = 72;
+    c3.minWidth       = 56;
     [_outline addTableColumn:c3];
-    NSScrollView* scroll = DCWrapTable(_outline);
+    NSScrollView* scroll         = DCWrapTable(_outline);
     scroll.hasHorizontalScroller = YES;
     DCStackExpand(page, scroll);
     __weak DCSpaceLensView* weakSelf = self;
-    _startScreen = [[DCStartScreen alloc]
+    _startScreen                     = [[DCStartScreen alloc]
         initWithTitle:@"Space Lens"
              subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]
                symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::SpaceLens)]
@@ -147,14 +172,14 @@
              onAction:^{
                [weakSelf startScan];
              }];
-    _startScreen.subtitleMaxWidth = 360;
-    _startScreen.buttonControlSize = NSControlSizeLarge;
-    _startScreen.buttonMinWidth = 100;
-    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
-    _startScreen.defaultButton = YES;
+    _startScreen.subtitleMaxWidth    = 360;
+    _startScreen.buttonControlSize   = NSControlSizeLarge;
+    _startScreen.buttonMinWidth      = 100;
+    _startScreen.buttonFont          = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.defaultButton       = YES;
     [self addSubview:_startScreen];
     DCPinEdges(_startScreen, self);
-    _content.hidden = YES;
+    _content.hidden     = YES;
     _scan.keyEquivalent = @"";
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(refreshClean)
@@ -165,18 +190,24 @@
   return self;
 }
 
-- (void)dealloc {
+- (void)dealloc
+{
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (void)showContent {
-  if (!_startScreen || _startScreen.hidden) return;
+- (void)showContent
+{
+  if (!_startScreen || _startScreen.hidden)
+  {
+    return;
+  }
   _startScreen.hidden = YES;
-  _content.hidden = NO;
+  _content.hidden     = NO;
   _scan.keyEquivalent = @"\r";
 }
 
-- (void)showNothingFound {
+- (void)showNothingFound
+{
   _scan.keyEquivalent = @"";
   [_startScreen configureSymbol:@"checkmark.seal.fill"
                        subtitle:@"Everything is clean"
@@ -185,112 +216,180 @@
                   defaultButton:YES
                    appearBounce:YES];
   _startScreen.hidden = NO;
-  _content.hidden = YES;
+  _content.hidden     = YES;
 }
 
-- (void)setScanEnabled:(BOOL)on {
-  _scan.enabled = on;
+- (void)setScanEnabled:(BOOL)on
+{
+  _scan.enabled                     = on;
   _startScreen.actionButton.enabled = on;
 }
 
-- (void)startScan {
-  if (!_scan.enabled) return;
+- (void)startScan
+{
+  if (!_scan.enabled)
+  {
+    return;
+  }
   _status.stringValue = @"Measuring…";
-  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
+  if (_startScreen && !_startScreen.hidden)
+  {
+    [_startScreen beginProgress];
+  }
   DCGlowButtonSetActive(_scan, YES);
   DCGlowButtonSetActive(_startScreen.actionButton, YES);
   [self setScanEnabled:NO];
   __weak DCSpaceLensView* weakSelf = self;
   __block std::vector<dcmm::SpaceNode> n;
   __block uint64_t volume = 0;
-  DCRunBackground(&_job, ^{
-    DCSpaceLensView* strong = weakSelf;
-    if (!strong) return;
-    n = strong->_engine.spaceLens();
-    volume = ui::volumeInfo("/").totalBytes;
-    if (volume == 0) volume = strong->_engine.disk("/").totalBytes;
-  }, ^{
-    DCSpaceLensView* s = weakSelf;
-    if (!s) return;
-    [s->_roots removeAllObjects];
-    for (auto& node : n) {
-      DCLensRow* row = [[DCLensRow alloc] initWithNode:std::move(node)];
-      [s->_roots addObject:row];
-    }
-    s->_volumeBytes = volume;
-    [s setScanEnabled:YES];
-    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
-    [s->_startScreen endProgress];
-    if (s->_roots.count == 0) {
-      [s showNothingFound];
-      return;
-    }
-    [s->_outline reloadData];
-    [s fitOutlineColumns];
-    DCGlowButtonSetActive(s->_scan, NO);
-    s->_status.stringValue =
-        [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
-    [s refreshClean];
-    [s showContent];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCSpaceLensView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        n      = strong->_engine.spaceLens();
+        volume = ui::volumeInfo("/").totalBytes;
+        if (volume == 0)
+        {
+          volume = strong->_engine.disk("/").totalBytes;
+        }
+      },
+      ^{
+        DCSpaceLensView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        [s->_roots removeAllObjects];
+        for (auto& node : n)
+        {
+          DCLensRow* row = [[DCLensRow alloc] initWithNode:std::move(node)];
+          [s->_roots addObject:row];
+        }
+        s->_volumeBytes = volume;
+        [s setScanEnabled:YES];
+        DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+        [s->_startScreen endProgress];
+        if (s->_roots.count == 0)
+        {
+          [s showNothingFound];
+          return;
+        }
+        [s->_outline reloadData];
+        [s fitOutlineColumns];
+        DCGlowButtonSetActive(s->_scan, NO);
+        s->_status.stringValue =
+            [NSString stringWithFormat:@"%lu folders", (unsigned long)s->_roots.count];
+        [s refreshClean];
+        [s showContent];
+      });
 }
 
-- (BOOL)allSelected {
-  if (_roots.count == 0) return NO;
+- (BOOL)allSelected
+{
+  if (_roots.count == 0)
+  {
+    return NO;
+  }
   for (DCLensRow* r in _roots)
-    if ([r checkState] != ui::GroupCheck::On) return NO;
+  {
+    if ([r checkState] != ui::GroupCheck::On)
+    {
+      return NO;
+    }
+  }
   return YES;
 }
 
-- (void)refreshClean {
+- (void)refreshClean
+{
   std::vector<std::pair<std::string, uint64_t>> picked;
-  for (DCLensRow* r in _roots) [r collectSelected:picked];
+  for (DCLensRow* r in _roots)
+  {
+    [r collectSelected:picked];
+  }
   uint64_t b = 0;
-  for (const auto& p : picked) b += p.second;
-  _clean.hidden = picked.empty();
-  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), picked.empty() ? 0 : b));
+  for (const auto& p : picked)
+  {
+    b += p.second;
+  }
+  _clean.hidden   = picked.empty();
+  _clean.title    = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), picked.empty() ? 0 : b));
   _selAll.enabled = _roots.count > 0;
-  _selAll.title = [self allSelected] ? @"Unselect All" : @"Select All";
+  _selAll.title   = [self allSelected] ? @"Unselect All" : @"Select All";
 }
 
-- (void)toggleAll {
+- (void)toggleAll
+{
   BOOL on = ![self allSelected];
-  for (DCLensRow* r in _roots) [r setSelectedDeep:on];
+  for (DCLensRow* r in _roots)
+  {
+    [r setSelectedDeep:on];
+  }
   [_outline reloadData];
   [self refreshClean];
 }
 
-- (std::vector<std::string>)selectedPaths {
+- (std::vector<std::string>)selectedPaths
+{
   std::vector<std::pair<std::string, uint64_t>> picked;
-  for (DCLensRow* r in _roots) [r collectSelected:picked];
+  for (DCLensRow* r in _roots)
+  {
+    [r collectSelected:picked];
+  }
   std::vector<std::string> paths;
   paths.reserve(picked.size());
-  for (const auto& p : picked) paths.push_back(p.first);
+  for (const auto& p : picked)
+  {
+    paths.push_back(p.first);
+  }
   ui::pruneNestedSpaceLensPaths(paths);
   return paths;
 }
 
-- (DCLensRow*)findRow:(const std::string&)path in:(NSArray<DCLensRow*>*)rows {
-  for (DCLensRow* r in rows) {
-    if (r.node.path == path) return r;
+- (DCLensRow*)findRow:(const std::string&)path in:(NSArray<DCLensRow*>*)rows
+{
+  for (DCLensRow* r in rows)
+  {
+    if (r.node.path == path)
+    {
+      return r;
+    }
     DCLensRow* f = [self findRow:path in:r.children];
-    if (f) return f;
+    if (f)
+    {
+      return f;
+    }
   }
   return nil;
 }
 
-- (void)reorderSiblings:(NSMutableArray<DCLensRow*>*)siblings parent:(DCLensRow*)parent {
-  if (siblings.count < 2) return;
-  NSArray<DCLensRow*>* desired = [siblings sortedArrayUsingComparator:^NSComparisonResult(DCLensRow* a, DCLensRow* b) {
-    if (a.node.bytes != b.node.bytes)
-      return a.node.bytes > b.node.bytes ? NSOrderedAscending : NSOrderedDescending;
-    return [@(a.node.name.c_str()) compare:@(b.node.name.c_str())];
-  }];
+- (void)reorderSiblings:(NSMutableArray<DCLensRow*>*)siblings parent:(DCLensRow*)parent
+{
+  if (siblings.count < 2)
+  {
+    return;
+  }
+  NSArray<DCLensRow*>* desired =
+      [siblings sortedArrayUsingComparator:^NSComparisonResult(DCLensRow* a, DCLensRow* b) {
+        if (a.node.bytes != b.node.bytes)
+        {
+          return a.node.bytes > b.node.bytes ? NSOrderedAscending : NSOrderedDescending;
+        }
+        return [@(a.node.name.c_str()) compare:@(b.node.name.c_str())];
+      }];
   NSMutableArray<DCLensRow*>* current = [siblings mutableCopy];
-  for (NSInteger to = 0; to < (NSInteger)desired.count; ++to) {
+  for (NSInteger to = 0; to < (NSInteger)desired.count; ++to)
+  {
     DCLensRow* item = desired[(NSUInteger)to];
-    NSInteger from = [current indexOfObject:item];
-    if (from == NSNotFound || from == to) continue;
+    NSInteger from  = [current indexOfObject:item];
+    if (from == NSNotFound || from == to)
+    {
+      continue;
+    }
     [_outline moveItemAtIndex:from inParent:parent toIndex:to inParent:parent];
     DCLensRow* obj = current[(NSUInteger)from];
     [current removeObjectAtIndex:(NSUInteger)from];
@@ -299,153 +398,235 @@
   [siblings setArray:desired];
 }
 
-- (void)reorderTree:(NSMutableArray<DCLensRow*>*)siblings parent:(DCLensRow*)parent {
+- (void)reorderTree:(NSMutableArray<DCLensRow*>*)siblings parent:(DCLensRow*)parent
+{
   [self reorderSiblings:siblings parent:parent];
   for (DCLensRow* r in siblings)
-    if (r.loaded && r.children.count > 1) [self reorderTree:r.children parent:r];
+  {
+    if (r.loaded && r.children.count > 1)
+    {
+      [self reorderTree:r.children parent:r];
+    }
+  }
 }
 
-- (void)applyDeletes:(const std::vector<std::string>&)paths {
+- (void)applyDeletes:(const std::vector<std::string>&)paths
+{
   NSMutableSet<DCLensRow*>* dirty = [NSMutableSet set];
   [_outline beginUpdates];
-  for (const auto& path : paths) {
-    if (dcmm::pathExists(path)) continue;
+  for (const auto& path : paths)
+  {
+    if (dcmm::pathExists(path))
+    {
+      continue;
+    }
     DCLensRow* row = [self findRow:path in:_roots];
-    if (!row) continue;
-    DCLensRow* parent = row.parent;
+    if (!row)
+    {
+      continue;
+    }
+    DCLensRow* parent                    = row.parent;
     NSMutableArray<DCLensRow*>* siblings = parent ? parent.children : _roots;
-    NSInteger idx = [siblings indexOfObject:row];
-    if (idx == NSNotFound) continue;
+    NSInteger idx                        = [siblings indexOfObject:row];
+    if (idx == NSNotFound)
+    {
+      continue;
+    }
     const uint64_t bytes = row.node.bytes;
     [siblings removeObjectAtIndex:(NSUInteger)idx];
     [_outline removeItemsAtIndexes:[NSIndexSet indexSetWithIndex:(NSUInteger)idx]
                           inParent:parent
                      withAnimation:NSTableViewAnimationSlideUp];
     DCLensRow* p = parent;
-    while (p) {
+    while (p)
+    {
       dcmm::SpaceNode n = p.node;
-      n.bytes = n.bytes > bytes ? n.bytes - bytes : 0;
-      p.node = n;
+      n.bytes           = n.bytes > bytes ? n.bytes - bytes : 0;
+      p.node            = n;
       [dirty addObject:p];
       NSInteger i = [_outline rowForItem:p];
-      if (i >= 0) {
+      if (i >= 0)
+      {
         NSTableRowView* rv = [_outline rowViewAtRow:i makeIfNecessary:NO];
-        if (rv) rv.backgroundColor = DCSpaceSizeBandFill(ui::spaceSizeBand(n.bytes));
+        if (rv)
+        {
+          rv.backgroundColor = DCSpaceSizeBandFill(ui::spaceSizeBand(n.bytes));
+        }
       }
       p = p.parent;
     }
   }
   [self reorderTree:_roots parent:nil];
   [_outline endUpdates];
-  for (DCLensRow* p in dirty) [_outline reloadItem:p];
+  for (DCLensRow* p in dirty)
+  {
+    [_outline reloadItem:p];
+  }
   [self fitOutlineColumns];
   [self refreshClean];
 }
 
-- (uint64_t)selectedBytes {
+- (uint64_t)selectedBytes
+{
   std::vector<std::pair<std::string, uint64_t>> picked;
-  for (DCLensRow* r in _roots) [r collectSelected:picked];
+  for (DCLensRow* r in _roots)
+  {
+    [r collectSelected:picked];
+  }
   auto paths = [self selectedPaths];
   uint64_t b = 0;
   for (const auto& want : paths)
+  {
     for (const auto& p : picked)
-      if (p.first == want) {
+    {
+      if (p.first == want)
+      {
         b += p.second;
         break;
       }
+    }
+  }
   return b;
 }
 
-- (void)cleanSelected {
+- (void)cleanSelected
+{
   auto paths = [self selectedPaths];
-  if (paths.empty()) {
+  if (paths.empty())
+  {
     DCInformNothingToClean(@"Check the folders you want to remove. Please clean at your own risk.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray arrayWithCapacity:paths.size()];
-  for (const auto& p : paths) [list addObject:DCNS(p)];
+  for (const auto& p : paths)
+  {
+    [list addObject:DCNS(p)];
+  }
   uint64_t bytes = [self selectedBytes];
-  if (!DCConfirmSpaceLensClean(list, bytes)) return;
+  if (!DCConfirmSpaceLensClean(list, bytes))
+  {
+    return;
+  }
   const auto mode = DCCleanPref();
   [self setScanEnabled:NO];
-  _clean.hidden = YES;
+  _clean.hidden                    = YES;
   __weak DCSpaceLensView* weakSelf = self;
   __block dcmm::CleanResult r;
-  DCRunBackground(&_job, ^{
-    DCSpaceLensView* strong = weakSelf;
-    if (!strong) return;
-    r = ui::applySpaceLensClean(strong->_engine, paths, mode);
-  }, ^{
-    DCSpaceLensView* s = weakSelf;
-    if (!s) return;
-    [s setScanEnabled:YES];
-    if (r.trashedItems == 0) {
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    } else {
-      NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
-      s->_status.stringValue = msg;
-      DCInformCleaned(@"Clean finished", msg);
-      [s applyDeletes:paths];
-    }
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCSpaceLensView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        r = ui::applySpaceLensClean(strong->_engine, paths, mode);
+      },
+      ^{
+        DCSpaceLensView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        [s setScanEnabled:YES];
+        if (r.trashedItems == 0)
+        {
+          DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+        }
+        else
+        {
+          NSString* msg          = DCNS(ui::cleanFinishedDetail(mode, r));
+          s->_status.stringValue = msg;
+          DCInformCleaned(@"Clean finished", msg);
+          [s applyDeletes:paths];
+        }
+      });
 }
 
-static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
-  if (band == ui::SpaceSizeBand::Normal) return NSColor.clearColor;
+static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band)
+{
+  if (band == ui::SpaceSizeBand::Normal)
+  {
+    return NSColor.clearColor;
+  }
   NSColor* base =
       band == ui::SpaceSizeBand::TooBig ? NSColor.systemRedColor : NSColor.systemOrangeColor;
   return [NSColor colorWithName:nil
-               dynamicProvider:^NSColor*(NSAppearance* appearance) {
-                 NSAppearanceName match =
-                     [appearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
-                 const CGFloat alpha =
-                     [match isEqualToString:NSAppearanceNameDarkAqua] ? 0.18 : 0.10;
-                 return [base colorWithAlphaComponent:alpha];
-               }];
+                dynamicProvider:^NSColor*(NSAppearance* appearance) {
+                  NSAppearanceName match =
+                      [appearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
+                  const CGFloat alpha =
+                      [match isEqualToString:NSAppearanceNameDarkAqua] ? 0.18 : 0.10;
+                  return [base colorWithAlphaComponent:alpha];
+                }];
 }
 
-- (void)fitOutlineColumns {
-  NSInteger maxLevel = 0;
+- (void)fitOutlineColumns
+{
+  NSInteger maxLevel   = 0;
   const NSInteger rows = _outline.numberOfRows;
-  for (NSInteger i = 0; i < rows; ++i) {
+  for (NSInteger i = 0; i < rows; ++i)
+  {
     const NSInteger level = [_outline levelForRow:i];
-    if (level > maxLevel) maxLevel = level;
+    if (level > maxLevel)
+    {
+      maxLevel = level;
+    }
   }
   NSTableColumn* name = [_outline tableColumnWithIdentifier:@"name"];
-  const CGFloat need = 160 + (maxLevel + 1) * _outline.indentationPerLevel + 96;
-  if (name && need > name.width) name.width = need;
+  const CGFloat need  = 160 + (maxLevel + 1) * _outline.indentationPerLevel + 96;
+  if (name && need > name.width)
+  {
+    name.width = need;
+  }
 }
 
-- (void)outlineViewItemDidExpand:(NSNotification*)notification {
+- (void)outlineViewItemDidExpand:(NSNotification*)notification
+{
   [self fitOutlineColumns];
 }
 
-- (void)outlineViewItemDidCollapse:(NSNotification*)notification {
+- (void)outlineViewItemDidCollapse:(NSNotification*)notification
+{
   [self fitOutlineColumns];
 }
 
-- (void)loadChildren:(DCLensRow*)row {
-  if (!row.node.isDir || row.loaded || row.loading) return;
-  row.loading = YES;
-  std::string path = row.node.path;
+- (void)loadChildren:(DCLensRow*)row
+{
+  if (!row.node.isDir || row.loaded || row.loading)
+  {
+    return;
+  }
+  row.loading                      = YES;
+  std::string path                 = row.node.path;
   __weak DCSpaceLensView* weakSelf = self;
-  __weak DCLensRow* weakRow = row;
+  __weak DCLensRow* weakRow        = row;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCSpaceLensView* strong = weakSelf;
-    if (!strong) return;
+    if (!strong)
+    {
+      return;
+    }
     auto kids = strong->_engine.spaceLensChildren(path);
     dispatch_async(dispatch_get_main_queue(), ^{
       DCSpaceLensView* s = weakSelf;
-      DCLensRow* parent = weakRow;
-      if (!s || !parent) return;
+      DCLensRow* parent  = weakRow;
+      if (!s || !parent)
+      {
+        return;
+      }
       [parent.children removeAllObjects];
-      for (auto& n : kids) {
+      for (auto& n : kids)
+      {
         DCLensRow* child = [[DCLensRow alloc] initWithNode:std::move(n)];
-        child.parent = parent;
-        if (parent.selected) child.selected = YES;
+        child.parent     = parent;
+        if (parent.selected)
+        {
+          child.selected = YES;
+        }
         [parent.children addObject:child];
       }
-      parent.loaded = YES;
+      parent.loaded  = YES;
       parent.loading = NO;
       [s->_outline reloadItem:parent reloadChildren:YES];
       [s fitOutlineColumns];
@@ -454,36 +635,52 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
   });
 }
 
-- (NSInteger)outlineView:(NSOutlineView*)ov numberOfChildrenOfItem:(id)item {
-  if (!item) return (NSInteger)_roots.count;
+- (NSInteger)outlineView:(NSOutlineView*)ov numberOfChildrenOfItem:(id)item
+{
+  if (!item)
+  {
+    return (NSInteger)_roots.count;
+  }
   DCLensRow* row = item;
-  if (row.node.isDir && !row.loaded) [self loadChildren:row];
+  if (row.node.isDir && !row.loaded)
+  {
+    [self loadChildren:row];
+  }
   return (NSInteger)row.children.count;
 }
 
-- (id)outlineView:(NSOutlineView*)ov child:(NSInteger)idx ofItem:(id)item {
+- (id)outlineView:(NSOutlineView*)ov child:(NSInteger)idx ofItem:(id)item
+{
   NSArray<DCLensRow*>* list = item ? ((DCLensRow*)item).children : _roots;
-  if (idx < 0 || idx >= (NSInteger)list.count) return nil;
+  if (idx < 0 || idx >= (NSInteger)list.count)
+  {
+    return nil;
+  }
   return list[(NSUInteger)idx];
 }
 
-- (BOOL)outlineView:(NSOutlineView*)ov isItemExpandable:(id)item {
+- (BOOL)outlineView:(NSOutlineView*)ov isItemExpandable:(id)item
+{
   DCLensRow* row = item;
   return row.node.isDir;
 }
 
-- (void)outlineView:(NSOutlineView*)ov didAddRowView:(NSTableRowView*)rowView forRow:(NSInteger)row {
-  DCLensRow* item = [ov itemAtRow:row];
-  ui::SpaceSizeBand band = item ? ui::spaceSizeBand(item.node.bytes) : ui::SpaceSizeBand::Normal;
+- (void)outlineView:(NSOutlineView*)ov didAddRowView:(NSTableRowView*)rowView forRow:(NSInteger)row
+{
+  DCLensRow* item         = [ov itemAtRow:row];
+  ui::SpaceSizeBand band  = item ? ui::spaceSizeBand(item.node.bytes) : ui::SpaceSizeBand::Normal;
   rowView.backgroundColor = DCSpaceSizeBandFill(band);
 }
 
-- (NSView*)outlineView:(NSOutlineView*)ov viewForTableColumn:(NSTableColumn*)col item:(id)item {
+- (NSView*)outlineView:(NSOutlineView*)ov viewForTableColumn:(NSTableColumn*)col item:(id)item
+{
   DCLensRow* row = item;
-  if ([col.identifier isEqualToString:@"check"]) {
-    NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
+  if ([col.identifier isEqualToString:@"check"])
+  {
+    NSButton* b        = [NSButton checkboxWithTitle:@"" target:self action:@selector(tog:)];
     b.allowsMixedState = YES;
-    switch ([row checkState]) {
+    switch ([row checkState])
+    {
       case ui::GroupCheck::On:
         b.state = NSControlStateValueOn;
         break;
@@ -496,104 +693,162 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band) {
     }
     return DCCenteredCheckCell(b);
   }
-  NSTextField* t = DCLabel(@"");
+  NSTextField* t  = DCLabel(@"");
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
-  if ([col.identifier isEqualToString:@"name"]) {
+  if ([col.identifier isEqualToString:@"name"])
+  {
     t.stringValue = DCNS(row.node.name);
-    t.toolTip = DCNS(row.node.path);
-    if (ui::spaceLensDanger(row.node.path)) return DCCenteredDangerTextCell(t);
-  } else if ([col.identifier isEqualToString:@"share"]) {
+    t.toolTip     = DCNS(row.node.path);
+    if (ui::spaceLensDanger(row.node.path))
+    {
+      return DCCenteredDangerTextCell(t);
+    }
+  }
+  else if ([col.identifier isEqualToString:@"share"])
+  {
     t.stringValue = DCNS(ui::spaceSharePercent(row.node.bytes, _volumeBytes));
-    t.alignment = NSTextAlignmentRight;
-    t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
-    t.textColor = [NSColor secondaryLabelColor];
-  } else {
+    t.alignment   = NSTextAlignmentRight;
+    t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
+                                                     weight:NSFontWeightRegular];
+    t.textColor   = [NSColor secondaryLabelColor];
+  }
+  else
+  {
     t.stringValue = DCNS(dcmm::formatBytes(row.node.bytes));
-    t.alignment = NSTextAlignmentRight;
-    t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
+    t.alignment   = NSTextAlignmentRight;
+    t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
+                                                     weight:NSFontWeightRegular];
   }
   return DCCenteredTextCell(t);
 }
 
-- (void)tog:(NSButton*)s {
+- (void)tog:(NSButton*)s
+{
   NSInteger row = [_outline rowForView:s];
-  if (row < 0) return;
+  if (row < 0)
+  {
+    return;
+  }
   [self toggleSelect:[_outline itemAtRow:row]];
 }
 
-- (void)toggleSelect:(DCLensRow*)item {
-  if (!item) return;
+- (void)toggleSelect:(DCLensRow*)item
+{
+  if (!item)
+  {
+    return;
+  }
   BOOL on = [item checkState] != ui::GroupCheck::On;
   [item setSelectedDeep:on];
-  if (!on) {
+  if (!on)
+  {
     DCLensRow* p = item.parent;
-    while (p) {
+    while (p)
+    {
       p.selected = NO;
-      p = p.parent;
+      p          = p.parent;
     }
-  } else if (item.parent) {
+  }
+  else if (item.parent)
+  {
     BOOL all = YES;
     for (DCLensRow* c in item.parent.children)
-      if ([c checkState] != ui::GroupCheck::On) all = NO;
-    if (all) item.parent.selected = YES;
+    {
+      if ([c checkState] != ui::GroupCheck::On)
+      {
+        all = NO;
+      }
+    }
+    if (all)
+    {
+      item.parent.selected = YES;
+    }
   }
   [_outline reloadData];
   [self refreshClean];
 }
 
-- (void)menuNeedsUpdate:(NSMenu*)menu {
+- (void)menuNeedsUpdate:(NSMenu*)menu
+{
   [menu removeAllItems];
   NSInteger row = _outline.clickedRow;
-  if (row < 0) return;
+  if (row < 0)
+  {
+    return;
+  }
   DCLensRow* item = [_outline itemAtRow:row];
-  if (!item) return;
+  if (!item)
+  {
+    return;
+  }
   DCAddPathMenuItems(menu, DCNS(item.node.path));
   [menu addItem:[NSMenuItem separatorItem]];
-  const bool on = [item checkState] == ui::GroupCheck::On;
-  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:on ? @"Unselect" : @"Select"
-                                               action:@selector(ctxToggleSelect:)
-                                        keyEquivalent:@""];
-  sel.target = self;
+  const bool on         = [item checkState] == ui::GroupCheck::On;
+  NSMenuItem* sel       = [[NSMenuItem alloc] initWithTitle:on ? @"Unselect" : @"Select"
+                                                     action:@selector(ctxToggleSelect:)
+                                              keyEquivalent:@""];
+  sel.target            = self;
   sel.representedObject = item;
   [menu addItem:sel];
   NSMenuItem* trash = [[NSMenuItem alloc] initWithTitle:DCNS(ui::cleanMenuTitle(DCCleanPref()))
                                                  action:@selector(ctxTrashRow:)
                                           keyEquivalent:@""];
-  trash.target = self;
-  trash.tag = row;
+  trash.target      = self;
+  trash.tag         = row;
   [menu addItem:trash];
 }
 
-- (void)ctxToggleSelect:(NSMenuItem*)sender {
+- (void)ctxToggleSelect:(NSMenuItem*)sender
+{
   [self toggleSelect:sender.representedObject];
 }
 
-- (void)ctxTrashRow:(NSMenuItem*)sender {
+- (void)ctxTrashRow:(NSMenuItem*)sender
+{
   NSInteger row = sender.tag;
-  if (row < 0) return;
+  if (row < 0)
+  {
+    return;
+  }
   DCLensRow* item = [_outline itemAtRow:row];
-  if (!item) return;
-  if (!DCConfirmSpaceLensClean(@[ DCNS(item.node.path) ], item.node.bytes)) return;
-  const auto mode = DCCleanPref();
+  if (!item)
+  {
+    return;
+  }
+  if (!DCConfirmSpaceLensClean(@[ DCNS(item.node.path) ], item.node.bytes))
+  {
+    return;
+  }
+  const auto mode  = DCCleanPref();
   std::string path = item.node.path;
   [self setScanEnabled:NO];
   __weak DCSpaceLensView* weakSelf = self;
   __block dcmm::CleanResult r;
-  DCRunBackground(&_job, ^{
-    DCSpaceLensView* strong = weakSelf;
-    if (!strong) return;
-    r = ui::applySpaceLensClean(strong->_engine, {path}, mode);
-  }, ^{
-    DCSpaceLensView* s = weakSelf;
-    if (!s) return;
-    [s setScanEnabled:YES];
-    if (r.trashedItems == 0) {
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-      return;
-    }
-    DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
-    [s applyDeletes:{path}];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCSpaceLensView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        r = ui::applySpaceLensClean(strong->_engine, {path}, mode);
+      },
+      ^{
+        DCSpaceLensView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        [s setScanEnabled:YES];
+        if (r.trashedItems == 0)
+        {
+          DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+          return;
+        }
+        DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
+        [s applyDeletes:{path}];
+      });
 }
 
 @end

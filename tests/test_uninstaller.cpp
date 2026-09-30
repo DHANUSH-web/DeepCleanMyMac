@@ -6,7 +6,8 @@
 
 #include <gtest/gtest.h>
 
-TEST_F(HomeFixture, UninstallerListsAppsWithoutSelectingLeftovers) {
+TEST_F(HomeFixture, UninstallerListsAppsWithoutSelectingLeftovers)
+{
   auto app = home / "Applications" / "Fixture.app" / "Contents";
   fs::create_directories(app);
   {
@@ -19,18 +20,26 @@ TEST_F(HomeFixture, UninstallerListsAppsWithoutSelectingLeftovers) {
   writeBytes(home / "Library" / "Caches" / "com.example.Fixture" / "c.bin", 256);
 
   dcmm::Engine e;
-  auto apps = e.listApps();
+  auto apps  = e.listApps();
   bool found = false;
-  for (auto& a : apps) {
-    if (a.bundleId != "com.example.Fixture" && a.name != "Fixture") continue;
+  for (auto& a : apps)
+  {
+    if (a.bundleId != "com.example.Fixture" && a.name != "Fixture")
+    {
+      continue;
+    }
     found = true;
     e.attachLeftovers(a);
-    for (const auto& it : a.leftovers) EXPECT_FALSE(it.selected);
+    for (const auto& it : a.leftovers)
+    {
+      EXPECT_FALSE(it.selected);
+    }
   }
   EXPECT_TRUE(found);
 }
 
-TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp) {
+TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp)
+{
   auto appDir = home / "Applications" / "Fixture.app";
   fs::create_directories(appDir / "Contents");
   {
@@ -42,10 +51,14 @@ TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp) {
   }
   writeBytes(home / "Library" / "Caches" / "com.example.Fixture" / "c.bin", 256);
   dcmm::Engine e;
-  auto apps = e.listApps();
+  auto apps                       = e.listApps();
   const dcmm::InstalledApp* found = nullptr;
-  for (auto& a : apps) {
-    if (a.bundleId == "com.example.Fixture" || a.name == "Fixture") found = &a;
+  for (auto& a : apps)
+  {
+    if (a.bundleId == "com.example.Fixture" || a.name == "Fixture")
+    {
+      found = &a;
+    }
   }
   ASSERT_NE(found, nullptr);
   dcmm::InstalledApp app = *found;
@@ -55,7 +68,12 @@ TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp) {
   EXPECT_EQ(paths.front(), app.appPath);
   bool sawCache = false;
   for (const auto& p : paths)
-    if (p.find("Caches") != std::string::npos) sawCache = true;
+  {
+    if (p.find("Caches") != std::string::npos)
+    {
+      sawCache = true;
+    }
+  }
   EXPECT_TRUE(sawCache);
   auto r = ui::applyClean(e, paths, ui::CleanPref::MoveToTrash);
   EXPECT_GE(r.trashedItems, 1u);
@@ -63,24 +81,36 @@ TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp) {
   EXPECT_FALSE(fs::exists(home / "Library" / "Caches" / "com.example.Fixture"));
 }
 
-TEST_F(HomeFixture, ApplicationSupportNamesUseIdAndShortName) {
+TEST_F(HomeFixture, ApplicationSupportNamesUseIdAndShortName)
+{
   dcmm::InstalledApp app;
-  app.appPath = (home / "Applications" / "Chrome.app").string();
-  app.name = "Google Chrome";
+  app.appPath  = (home / "Applications" / "Chrome.app").string();
+  app.name     = "Google Chrome";
   app.bundleId = "com.google.chrome";
-  auto names = ui::applicationSupportNames(app);
+  auto names   = ui::applicationSupportNames(app);
   bool id = false, display = false, shortName = false;
-  for (const auto& n : names) {
-    if (n == "com.google.chrome") id = true;
-    if (n == "Google Chrome") display = true;
-    if (n == "Chrome") shortName = true;
+  for (const auto& n : names)
+  {
+    if (n == "com.google.chrome")
+    {
+      id = true;
+    }
+    if (n == "Google Chrome")
+    {
+      display = true;
+    }
+    if (n == "Chrome")
+    {
+      shortName = true;
+    }
   }
   EXPECT_TRUE(id);
   EXPECT_TRUE(display);
   EXPECT_TRUE(shortName);
 }
 
-TEST_F(HomeFixture, UninstallRemovesApplicationSupportNamedFolders) {
+TEST_F(HomeFixture, UninstallRemovesApplicationSupportNamedFolders)
+{
   auto appDir = home / "Applications" / "Chrome.app";
   fs::create_directories(appDir / "Contents");
   {
@@ -95,20 +125,34 @@ TEST_F(HomeFixture, UninstallRemovesApplicationSupportNamedFolders) {
   writeBytes(home / "Library" / "Application Support" / "Google" / "keep.txt", 32);
   writeBytes(home / "Library" / "Caches" / "com.google.chrome" / "c.bin", 64);
   dcmm::Engine e;
-  auto apps = e.listApps();
+  auto apps                       = e.listApps();
   const dcmm::InstalledApp* found = nullptr;
-  for (auto& a : apps) {
-    if (a.bundleId == "com.google.chrome") found = &a;
+  for (auto& a : apps)
+  {
+    if (a.bundleId == "com.google.chrome")
+    {
+      found = &a;
+    }
   }
   ASSERT_NE(found, nullptr);
   dcmm::InstalledApp app = *found;
-  auto paths = ui::uninstallPaths(app);
+  auto paths             = ui::uninstallPaths(app);
   bool sawId = false, sawChrome = false, sawCache = false;
-  for (const auto& p : paths) {
-    if (p.find("Application Support") != std::string::npos && p.find("com.google.chrome") != std::string::npos)
+  for (const auto& p : paths)
+  {
+    if (p.find("Application Support") != std::string::npos &&
+        p.find("com.google.chrome") != std::string::npos)
+    {
       sawId = true;
-    if (p.size() >= 6 && p.compare(p.size() - 6, 6, "Chrome") == 0) sawChrome = true;
-    if (p.find("Caches") != std::string::npos) sawCache = true;
+    }
+    if (p.size() >= 6 && p.compare(p.size() - 6, 6, "Chrome") == 0)
+    {
+      sawChrome = true;
+    }
+    if (p.find("Caches") != std::string::npos)
+    {
+      sawCache = true;
+    }
   }
   EXPECT_TRUE(sawId);
   EXPECT_TRUE(sawChrome);
@@ -122,16 +166,17 @@ TEST_F(HomeFixture, UninstallRemovesApplicationSupportNamedFolders) {
   EXPECT_TRUE(fs::exists(home / "Library" / "Caches" / "com.google.chrome"));
 }
 
-TEST_F(HomeFixture, UninstallPathsCollectsMultipleApps) {
+TEST_F(HomeFixture, UninstallPathsCollectsMultipleApps)
+{
   dcmm::InstalledApp a, b;
-  a.appPath = (home / "Applications" / "One.app").string();
+  a.appPath  = (home / "Applications" / "One.app").string();
   a.appBytes = 10;
-  b.appPath = (home / "Applications" / "Two.app").string();
+  b.appPath  = (home / "Applications" / "Two.app").string();
   b.appBytes = 20;
   dcmm::ScanItem leftover;
-  leftover.path = (home / "Library" / "Caches" / "com.example.Two").string();
+  leftover.path     = (home / "Library" / "Caches" / "com.example.Two").string();
   leftover.selected = true;
-  leftover.bytes = 5;
+  leftover.bytes    = 5;
   b.leftovers.push_back(leftover);
   auto paths = ui::uninstallPaths(std::vector<dcmm::InstalledApp>{a, b});
   ASSERT_EQ(paths.size(), 3u);
@@ -141,7 +186,8 @@ TEST_F(HomeFixture, UninstallPathsCollectsMultipleApps) {
   EXPECT_EQ(ui::uninstallBytes(std::vector<dcmm::InstalledApp>{a, b}), 35u);
 }
 
-TEST_F(HomeFixture, UninstallerRefusesSystemApps) {
+TEST_F(HomeFixture, UninstallerRefusesSystemApps)
+{
   dcmm::Engine e;
   auto r = e.trashPaths({"/System/Applications/Safari.app"});
   EXPECT_EQ(r.trashedItems, 0u);

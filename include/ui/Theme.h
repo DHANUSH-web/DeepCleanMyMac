@@ -10,9 +10,14 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-inline NSString* DCNS(const std::string& s) {
-  if (s.empty()) return @"";
-  return [[NSString alloc] initWithBytes:s.data() length:s.size() encoding:NSUTF8StringEncoding] ?: @"";
+inline NSString* DCNS(const std::string& s)
+{
+  if (s.empty())
+  {
+    return @"";
+  }
+  return [[NSString alloc] initWithBytes:s.data() length:s.size() encoding:NSUTF8StringEncoding]
+             ?: @"";
 }
 
 NSTextField* DCLabel(NSString* text);
@@ -48,13 +53,13 @@ NSButton* DCDestructiveButton(NSString* title, id target, SEL action);
                          action:(nullable SEL)action
                       glowColor:(NSColor*)glowColor
                   glowLineWidth:(CGFloat)glowLineWidth
-                     clockwise:(BOOL)clockwise;
+                      clockwise:(BOOL)clockwise;
 + (instancetype)defaultButtonWithTitle:(NSString*)title
                                 target:(nullable id)target
                                 action:(nullable SEL)action
                              glowColor:(NSColor*)glowColor
                          glowLineWidth:(CGFloat)glowLineWidth
-                            clockwise:(BOOL)clockwise;
+                             clockwise:(BOOL)clockwise;
 - (void)beginGlow;
 - (void)endGlow;
 @end
@@ -168,9 +173,7 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 @property(nonatomic, copy, nullable) void (^onToggle)(DCDuplicateItemCard* card);
 @property(nonatomic, copy, nullable) void (^onTrash)(DCDuplicateItemCard* card);
 
-- (instancetype)initWithPath:(NSString*)path
-                       bytes:(uint64_t)bytes
-                    selected:(BOOL)selected;
+- (instancetype)initWithPath:(NSString*)path bytes:(uint64_t)bytes selected:(BOOL)selected;
 @end
 
 /// Filename header plus a horizontal carousel of duplicate item cards.
@@ -178,8 +181,7 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 @property(nonatomic, copy) NSString* title;
 @property(nonatomic, readonly) NSArray<DCDuplicateItemCard*>* cards;
 
-- (instancetype)initWithTitle:(NSString*)title
-                        cards:(NSArray<DCDuplicateItemCard*>*)cards;
+- (instancetype)initWithTitle:(NSString*)title cards:(NSArray<DCDuplicateItemCard*>*)cards;
 @end
 
 void DCPinEdges(NSView* child, NSView* parent);

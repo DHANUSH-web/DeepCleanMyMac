@@ -4,18 +4,22 @@
 #include <gtest/gtest.h>
 #include <set>
 
-TEST(Navigation, SidebarHasASymbolPerModule) {
-  for (int i = 0; i < static_cast<int>(ui::Module::Count); ++i) {
+TEST(Navigation, SidebarHasASymbolPerModule)
+{
+  for (int i = 0; i < static_cast<int>(ui::Module::Count); ++i)
+  {
     auto m = static_cast<ui::Module>(i);
     EXPECT_TRUE(ui::sidebarSymbol(m) && *ui::sidebarSymbol(m)) << ui::title(m);
   }
 }
 
-TEST(Navigation, DashboardToolsAreASubsetOfSidebar) {
+TEST(Navigation, DashboardToolsAreASubsetOfSidebar)
+{
   auto tools = ui::dashboardTools();
   EXPECT_EQ(tools.size(), 9u);
   std::set<int> seen;
-  for (const auto& t : tools) {
+  for (const auto& t : tools)
+  {
     EXPECT_GE(static_cast<int>(t.module), 0);
     EXPECT_LT(static_cast<int>(t.module), static_cast<int>(ui::Module::Count));
     EXPECT_STREQ(t.title, ui::title(t.module));
@@ -27,42 +31,56 @@ TEST(Navigation, DashboardToolsAreASubsetOfSidebar) {
 
 TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
 {
-  bool hasSmartScan = false,
-  hasDeepScan       = false,
-  hasLargeFiles     = false,
-  hasDuplicates     = false,
-  hasUninstaller    = false,
-  hasPrivacy        = false,
-  hasSpaceLens      = false,
-  hasDevCorner      = false,
-  hasMyMac          = false,
-  hasSettings       = false,
-  hasMaintenance    = false;
+  bool hasSmartScan = false, hasDeepScan = false, hasLargeFiles = false, hasDuplicates = false,
+       hasUninstaller = false, hasPrivacy = false, hasSpaceLens = false, hasDevCorner = false,
+       hasMyMac = false, hasSettings = false, hasMaintenance = false;
 
   for (const auto& t : ui::dashboardTools())
   {
     if (t.module == ui::Module::SmartScan)
+    {
       hasSmartScan = true;
+    }
     else if (t.module == ui::Module::DeepScan)
+    {
       hasDeepScan = true;
+    }
     else if (t.module == ui::Module::LargeFiles)
+    {
       hasLargeFiles = true;
+    }
     else if (t.module == ui::Module::Duplicates)
+    {
       hasDuplicates = true;
+    }
     else if (t.module == ui::Module::Uninstaller)
+    {
       hasUninstaller = true;
+    }
     else if (t.module == ui::Module::Privacy)
+    {
       hasPrivacy = true;
+    }
     else if (t.module == ui::Module::SpaceLens)
+    {
       hasSpaceLens = true;
+    }
     else if (t.module == ui::Module::DevCorner)
+    {
       hasDevCorner = true;
+    }
     else if (t.module == ui::Module::Maintenance)
+    {
       hasMaintenance = true;
+    }
     else if (t.module == ui::Module::Settings)
+    {
       hasSettings = true;
+    }
     else if (t.module == ui::Module::MyMac)
+    {
       hasMyMac = true;
+    }
   }
 
   EXPECT_TRUE(hasSmartScan);
@@ -78,7 +96,8 @@ TEST(Navigation, DashboardHasNeccessaryDashboardToolsOnly)
   EXPECT_FALSE(hasSettings);
 }
 
-TEST(Navigation, ScanDispatchOnlyForScanPages) {
+TEST(Navigation, ScanDispatchOnlyForScanPages)
+{
   dcmm::Engine e;
   auto empty = ui::runScan(e, ui::Module::MyMac);
   EXPECT_TRUE(empty.groups.empty());

@@ -11,16 +11,18 @@
 
 namespace fs = std::filesystem;
 
-class HomeFixture : public ::testing::Test {
- protected:
+class HomeFixture : public ::testing::Test
+{
+protected:
   fs::path home;
   fs::path trash;
 
-  void SetUp() override {
+  void SetUp() override
+  {
     auto stamp = std::to_string(reinterpret_cast<uintptr_t>(this));
-    auto base = fs::weakly_canonical(fs::temp_directory_path());
-    home = base / ("dcmm-desktop-home-" + stamp);
-    trash = base / ("dcmm-desktop-trash-" + stamp);
+    auto base  = fs::weakly_canonical(fs::temp_directory_path());
+    home       = base / ("dcmm-desktop-home-" + stamp);
+    trash      = base / ("dcmm-desktop-trash-" + stamp);
     fs::remove_all(home);
     fs::remove_all(trash);
     fs::create_directories(home / "Library" / "Caches");
@@ -36,7 +38,8 @@ class HomeFixture : public ::testing::Test {
     setenv("DCMM_TRASH", trash.string().c_str(), 1);
   }
 
-  void TearDown() override {
+  void TearDown() override
+  {
     unsetenv("DCMM_HOME");
     unsetenv("DCMM_TRASH");
     std::error_code ec;
@@ -44,7 +47,8 @@ class HomeFixture : public ::testing::Test {
     fs::remove_all(trash, ec);
   }
 
-  static void writeBytes(const fs::path& p, std::size_t n, char fill = 'x') {
+  static void writeBytes(const fs::path& p, std::size_t n, char fill = 'x')
+  {
     fs::create_directories(p.parent_path());
     std::ofstream out(p, std::ios::binary);
     std::string chunk(n, fill);

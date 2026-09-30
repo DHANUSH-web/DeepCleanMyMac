@@ -5,68 +5,79 @@
 
 #include <vector>
 
-namespace {
+namespace
+{
 
-struct ConfirmCopy {
+struct ConfirmCopy
+{
   NSString* title;
   NSString* body;
   NSString* proceed;
 };
 
-ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& task) {
-  if (id == "empty_trash") {
+ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& task)
+{
+  if (id == "empty_trash")
+  {
     return {@"Empty Trash permanently?",
             @"This permanently deletes every item currently in your user Trash.\n\n"
-             @"• Cannot be undone from this app\n"
-             @"• Only items already in Trash are removed\n"
-             @"• Documents, apps, and system files outside Trash are not touched\n"
-             @"• Symlinks that point outside Trash are skipped",
+            @"• Cannot be undone from this app\n"
+            @"• Only items already in Trash are removed\n"
+            @"• Documents, apps, and system files outside Trash are not touched\n"
+            @"• Symlinks that point outside Trash are skipped",
             @"Empty Trash"};
   }
-  if (id == "flush_dns") {
+  if (id == "flush_dns")
+  {
     return {@"Flush the DNS cache?",
             @"This only clears locally cached DNS lookups (dscacheutil).\n\n"
-             @"• Does not delete files, apps, or browsing history\n"
-             @"• Some sites may need a moment to resolve again\n"
-             @"• No documents or settings are changed",
+            @"• Does not delete files, apps, or browsing history\n"
+            @"• Some sites may need a moment to resolve again\n"
+            @"• No documents or settings are changed",
             @"Flush DNS Cache"};
   }
-  if (id == "launch_services") {
+  if (id == "launch_services")
+  {
     return {@"Rebuild Launch Services?",
             @"This refreshes the user-domain database that maps file types to apps "
-             @"(the Open With menu).\n\n"
-             @"• Does not delete documents or applications\n"
-             @"• Only the current user domain is rebuilt\n"
-             @"• The Open With list may take a moment to repopulate",
+            @"(the Open With menu).\n\n"
+            @"• Does not delete documents or applications\n"
+            @"• Only the current user domain is rebuilt\n"
+            @"• The Open With list may take a moment to repopulate",
             @"Rebuild"};
   }
-  if (id == "quicklook") {
+  if (id == "quicklook")
+  {
     return {@"Clear Quick Look caches?",
             @"Thumbnail and preview caches in your user Library/Caches will be moved to Trash "
-             @"(not erased in place).\n\n"
-             @"• Original documents are not deleted\n"
-             @"• Caches rebuild as you preview files in Finder\n"
-             @"• You can restore the cache folders from Trash until it is emptied",
+            @"(not erased in place).\n\n"
+            @"• Original documents are not deleted\n"
+            @"• Caches rebuild as you preview files in Finder\n"
+            @"• You can restore the cache folders from Trash until it is emptied",
             @"Move Caches to Trash"};
   }
   return {DCNS(task.title),
-          [NSString stringWithFormat:@"%@\n\n%@", DCNS(task.detail),
-                                     task.note.empty() ? @"This action cannot be undone from this screen."
-                                                       : DCNS(task.note)],
+          [NSString stringWithFormat:@"%@\n\n%@",
+                                     DCNS(task.detail),
+                                     task.note.empty()
+                                         ? @"This action cannot be undone from this screen."
+                                         : DCNS(task.note)],
           @"Run"};
 }
 
-}  // namespace
+} // namespace
 
-@implementation DCMaintenanceView {
+@implementation DCMaintenanceView
+{
   dcmm::Engine _engine;
   std::vector<uint64_t> _taskJobs;
   NSMutableArray<DCGlowButton*>* _runButtons;
 }
 
-- (NSView*)cardForTask:(const dcmm::MaintenanceTask&)task index:(NSInteger)index {
-  NSTextField* title = DCLabel(DCNS(task.title));
-  title.font = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
+- (NSView*)cardForTask:(const dcmm::MaintenanceTask&)task index:(NSInteger)index
+{
+  NSTextField* title         = DCLabel(DCNS(task.title));
+  title.font                 = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
   title.maximumNumberOfLines = 1;
   [title setContentHuggingPriority:NSLayoutPriorityDefaultLow
                     forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -74,7 +85,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
 
   NSTextField* subtitle = DCSecondaryLabel(DCNS(task.detail));
-  subtitle.font = [NSFont preferredFontForTextStyle:NSFontTextStyleSubheadline options:@{}];
+  subtitle.font         = [NSFont preferredFontForTextStyle:NSFontTextStyleSubheadline options:@{}];
   subtitle.maximumNumberOfLines = 0;
   [subtitle setContentHuggingPriority:NSLayoutPriorityDefaultLow
                        forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -82,9 +93,9 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
                                      forOrientation:NSLayoutConstraintOrientationHorizontal];
 
   NSStackView* text = [NSStackView stackViewWithViews:@[ title, subtitle ]];
-  text.orientation = NSUserInterfaceLayoutOrientationVertical;
-  text.alignment = NSLayoutAttributeLeading;
-  text.spacing = 4;
+  text.orientation  = NSUserInterfaceLayoutOrientationVertical;
+  text.alignment    = NSLayoutAttributeLeading;
+  text.spacing      = 4;
   [text setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
   [text setContentCompressionResistancePriority:1
                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -94,8 +105,8 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
                                                     action:@selector(runTask:)
                                                  glowColor:NSColor.controlAccentColor
                                              glowLineWidth:2.5
-                                                clockwise:YES];
-  run.tag = index;
+                                                 clockwise:YES];
+  run.tag           = index;
   [run setContentHuggingPriority:NSLayoutPriorityRequired
                   forOrientation:NSLayoutConstraintOrientationHorizontal];
   [run setContentCompressionResistancePriority:NSLayoutPriorityRequired
@@ -108,17 +119,17 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
                                    forOrientation:NSLayoutConstraintOrientationHorizontal];
 
   NSStackView* body = [NSStackView stackViewWithViews:@[ text, spacer, run ]];
-  body.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-  body.alignment = NSLayoutAttributeCenterY;
-  body.spacing = 16;
-  body.edgeInsets = NSEdgeInsetsMake(16, 16, 16, 16);
+  body.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+  body.alignment    = NSLayoutAttributeCenterY;
+  body.spacing      = 16;
+  body.edgeInsets   = NSEdgeInsetsMake(16, 16, 16, 16);
 
   NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-  card.material = NSVisualEffectMaterialContentBackground;
-  card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-  card.state = NSVisualEffectStateFollowsWindowActiveState;
-  card.wantsLayer = YES;
-  card.layer.cornerRadius = 10;
+  card.material            = NSVisualEffectMaterialContentBackground;
+  card.blendingMode        = NSVisualEffectBlendingModeWithinWindow;
+  card.state               = NSVisualEffectStateFollowsWindowActiveState;
+  card.wantsLayer          = YES;
+  card.layer.cornerRadius  = 10;
   card.layer.masksToBounds = YES;
   [card addSubview:body];
   DCPinEdges(body, card);
@@ -127,32 +138,36 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   return card;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame
+{
   self = [super initWithFrame:frame];
-  if (self) {
-    NSStackView* page = DCPageStack(self);
+  if (self)
+  {
+    NSStackView* page   = DCPageStack(self);
     NSStackView* header = DCHeaderStack(
         @"Maintenance", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Maintenance)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
 
     _runButtons = [NSMutableArray array];
-    auto tasks = _engine.maintenanceTasks();
+    auto tasks  = _engine.maintenanceTasks();
     _taskJobs.assign(tasks.size(), 0);
     NSMutableArray<NSView*>* cards = [NSMutableArray array];
-    for (size_t i = 0; i < tasks.size(); ++i) {
+    for (size_t i = 0; i < tasks.size(); ++i)
+    {
       [cards addObject:[self cardForTask:tasks[i] index:(NSInteger)i]];
     }
 
     NSStackView* list = [NSStackView stackViewWithViews:cards];
-    list.orientation = NSUserInterfaceLayoutOrientationVertical;
-    list.alignment = NSLayoutAttributeLeading;
-    list.spacing = 12;
+    list.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    list.alignment    = NSLayoutAttributeLeading;
+    list.spacing      = 12;
     [list setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationVertical];
     [page addArrangedSubview:list];
     DCStackFullWidth(page, list);
-    for (NSView* card in cards) {
+    for (NSView* card in cards)
+    {
       [card.widthAnchor constraintEqualToAnchor:list.widthAnchor].active = YES;
     }
 
@@ -163,77 +178,119 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   return self;
 }
 
-- (void)finishTask:(NSButton*)sender {
+- (void)finishTask:(NSButton*)sender
+{
   DCGlowButtonSetActive(sender, NO);
   sender.enabled = YES;
 }
 
-- (uint64_t*)jobSlotFor:(NSButton*)sender {
-  if (sender.tag < 0 || (size_t)sender.tag >= _taskJobs.size()) return nullptr;
+- (uint64_t*)jobSlotFor:(NSButton*)sender
+{
+  if (sender.tag < 0 || (size_t)sender.tag >= _taskJobs.size())
+  {
+    return nullptr;
+  }
   return &_taskJobs[(size_t)sender.tag];
 }
 
-- (void)runTask:(NSButton*)sender {
-  if (!sender.enabled) return;
+- (void)runTask:(NSButton*)sender
+{
+  if (!sender.enabled)
+  {
+    return;
+  }
   auto tasks = _engine.maintenanceTasks();
-  if (sender.tag < 0 || sender.tag >= (NSInteger)tasks.size()) return;
+  if (sender.tag < 0 || sender.tag >= (NSInteger)tasks.size())
+  {
+    return;
+  }
   uint64_t* slot = [self jobSlotFor:sender];
-  if (!slot) return;
-  const auto task = tasks[(size_t)sender.tag];
+  if (!slot)
+  {
+    return;
+  }
+  const auto task      = tasks[(size_t)sender.tag];
   const std::string id = task.id;
-  ConfirmCopy c = ConfirmForTask(id, task);
-  sender.enabled = NO;
+  ConfirmCopy c        = ConfirmForTask(id, task);
+  sender.enabled       = NO;
   DCGlowButtonSetActive(sender, YES);
   __weak DCMaintenanceView* weakSelf = self;
   __block dcmm::MaintenanceResult preview;
-  DCRunBackground(slot, ^{
-    DCMaintenanceView* strong = weakSelf;
-    if (!strong) return;
-    preview = strong->_engine.previewMaintenance(id);
-  }, ^{
-    DCMaintenanceView* s = weakSelf;
-    if (!s) {
-      sender.enabled = YES;
-      DCGlowButtonSetActive(sender, NO);
-      return;
-    }
-    if (preview.nothingToDo) {
-      [s finishTask:sender];
-      DCInformNothingToClean(DCNS(preview.message));
-      return;
-    }
-    ConfirmCopy copy = c;
-    if (preview.bytesFreed > 0) {
-      copy.body = [NSString stringWithFormat:@"%@\n\nCurrently using %@.", copy.body,
-                                             DCNS(dcmm::formatBytes(preview.bytesFreed))];
-    }
-    if (!DCConfirmDestructive(copy.title, copy.body, copy.proceed)) {
-      [s finishTask:sender];
-      return;
-    }
-    __block dcmm::MaintenanceResult result;
-    DCRunBackground([s jobSlotFor:sender], ^{
-      DCMaintenanceView* st = weakSelf;
-      if (!st) return;
-      result = st->_engine.runMaintenance(id);
-    }, ^{
-      DCMaintenanceView* st = weakSelf;
-      if (st) [st finishTask:sender];
-      else {
-        sender.enabled = YES;
-        DCGlowButtonSetActive(sender, NO);
-      }
-      if (!st) return;
-      if (result.nothingToDo) {
-        DCInformNothingToClean(DCNS(result.message));
-        return;
-      }
-      NSString* doneTitle = result.bytesFreed > 0
-                                ? [NSString stringWithFormat:@"Freed %@", DCNS(dcmm::formatBytes(result.bytesFreed))]
-                                : @"Finished";
-      DCInformCleaned(doneTitle, DCNS(result.message));
-    });
-  });
+  DCRunBackground(
+      slot,
+      ^{
+        DCMaintenanceView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        preview = strong->_engine.previewMaintenance(id);
+      },
+      ^{
+        DCMaintenanceView* s = weakSelf;
+        if (!s)
+        {
+          sender.enabled = YES;
+          DCGlowButtonSetActive(sender, NO);
+          return;
+        }
+        if (preview.nothingToDo)
+        {
+          [s finishTask:sender];
+          DCInformNothingToClean(DCNS(preview.message));
+          return;
+        }
+        ConfirmCopy copy = c;
+        if (preview.bytesFreed > 0)
+        {
+          copy.body = [NSString stringWithFormat:@"%@\n\nCurrently using %@.",
+                                                 copy.body,
+                                                 DCNS(dcmm::formatBytes(preview.bytesFreed))];
+        }
+        if (!DCConfirmDestructive(copy.title, copy.body, copy.proceed))
+        {
+          [s finishTask:sender];
+          return;
+        }
+        __block dcmm::MaintenanceResult result;
+        DCRunBackground(
+            [s jobSlotFor:sender],
+            ^{
+              DCMaintenanceView* st = weakSelf;
+              if (!st)
+              {
+                return;
+              }
+              result = st->_engine.runMaintenance(id);
+            },
+            ^{
+              DCMaintenanceView* st = weakSelf;
+              if (st)
+              {
+                [st finishTask:sender];
+              }
+              else
+              {
+                sender.enabled = YES;
+                DCGlowButtonSetActive(sender, NO);
+              }
+              if (!st)
+              {
+                return;
+              }
+              if (result.nothingToDo)
+              {
+                DCInformNothingToClean(DCNS(result.message));
+                return;
+              }
+              NSString* doneTitle =
+                  result.bytesFreed > 0
+                      ? [NSString stringWithFormat:@"Freed %@",
+                                                   DCNS(dcmm::formatBytes(result.bytesFreed))]
+                      : @"Finished";
+              DCInformCleaned(doneTitle, DCNS(result.message));
+            });
+      });
 }
 
 @end

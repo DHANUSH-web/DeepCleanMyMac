@@ -9,30 +9,37 @@
 
 #include <vector>
 
-namespace {
-struct DCDevExtCopy {
+namespace
+{
+struct DCDevExtCopy
+{
   std::string name, path, iconPath, version, publisher, repositoryUrl;
   uint64_t bytes = 0;
 };
 
 template <typename Ext>
-DCDevExtCopy DCDevCopyExt(const Ext& e) {
+DCDevExtCopy DCDevCopyExt(const Ext& e)
+{
   DCDevExtCopy x;
-  x.name = e.name;
-  x.path = e.path;
-  x.iconPath = e.iconPath;
-  x.version = e.version;
-  x.publisher = e.publisher;
+  x.name          = e.name;
+  x.path          = e.path;
+  x.iconPath      = e.iconPath;
+  x.version       = e.version;
+  x.publisher     = e.publisher;
   x.repositoryUrl = e.repositoryUrl;
-  x.bytes = e.bytes;
+  x.bytes         = e.bytes;
   return x;
 }
-}  // namespace
+} // namespace
 
 static char kDCDevUninstallRowKey;
 static char kDCDevCheckRowKey;
 
-typedef NS_ENUM(NSInteger, DCDevKind) { DCDevKindApp, DCDevKindFolder, DCDevKindExtension };
+typedef NS_ENUM(NSInteger, DCDevKind) {
+  DCDevKindApp,
+  DCDevKindFolder,
+  DCDevKindExtension
+};
 typedef NS_ENUM(NSInteger, DCDevFamily) {
   DCDevFamilyVsCode,
   DCDevFamilyCursor,
@@ -60,9 +67,13 @@ typedef NS_ENUM(NSInteger, DCDevFamily) {
 @end
 
 @implementation DCDevRow
-- (instancetype)init {
+- (instancetype)init
+{
   self = [super init];
-  if (self) _children = [NSMutableArray array];
+  if (self)
+  {
+    _children = [NSMutableArray array];
+  }
   return self;
 }
 @end
@@ -70,27 +81,31 @@ typedef NS_ENUM(NSInteger, DCDevFamily) {
 @interface DCDevFlippedDoc : NSView
 @end
 @implementation DCDevFlippedDoc
-- (BOOL)isFlipped {
+- (BOOL)isFlipped
+{
   return YES;
 }
 @end
 
-static void DCDevClearStack(NSStackView* stack) {
+static void DCDevClearStack(NSStackView* stack)
+{
   NSArray<NSView*>* old = [stack.arrangedSubviews copy];
-  for (NSView* v in old) {
+  for (NSView* v in old)
+  {
     [stack removeArrangedSubview:v];
     [v removeFromSuperview];
   }
 }
 
-static NSVisualEffectView* DCDevWrapCard(NSView* body, CGFloat radius) {
+static NSVisualEffectView* DCDevWrapCard(NSView* body, CGFloat radius)
+{
   body.translatesAutoresizingMaskIntoConstraints = NO;
   NSVisualEffectView* card = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-  card.material = NSVisualEffectMaterialContentBackground;
-  card.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-  card.state = NSVisualEffectStateFollowsWindowActiveState;
-  card.wantsLayer = YES;
-  card.layer.cornerRadius = radius;
+  card.material            = NSVisualEffectMaterialContentBackground;
+  card.blendingMode        = NSVisualEffectBlendingModeWithinWindow;
+  card.state               = NSVisualEffectStateFollowsWindowActiveState;
+  card.wantsLayer          = YES;
+  card.layer.cornerRadius  = radius;
   card.layer.masksToBounds = YES;
   card.translatesAutoresizingMaskIntoConstraints = NO;
   [card addSubview:body];
@@ -102,31 +117,47 @@ static NSVisualEffectView* DCDevWrapCard(NSView* body, CGFloat radius) {
   return card;
 }
 
-static NSImageView* DCDevAppIcon(NSString* appPath, CGFloat size) {
+static NSImageView* DCDevAppIcon(NSString* appPath, CGFloat size)
+{
   NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
-  NSImage* img = nil;
-  if (appPath.length) img = [[[NSWorkspace sharedWorkspace] iconForFile:appPath] copy];
-  if (!img) img = [NSImage imageWithSystemSymbolName:@"app" accessibilityDescription:nil];
-  img.size = NSMakeSize(size, size);
-  icon.image = img;
-  icon.imageScaling = NSImageScaleProportionallyUpOrDown;
-  icon.translatesAutoresizingMaskIntoConstraints = NO;
-  [icon.widthAnchor constraintEqualToConstant:size].active = YES;
+  NSImage* img      = nil;
+  if (appPath.length)
+  {
+    img = [[[NSWorkspace sharedWorkspace] iconForFile:appPath] copy];
+  }
+  if (!img)
+  {
+    img = [NSImage imageWithSystemSymbolName:@"app" accessibilityDescription:nil];
+  }
+  img.size                                                  = NSMakeSize(size, size);
+  icon.image                                                = img;
+  icon.imageScaling                                         = NSImageScaleProportionallyUpOrDown;
+  icon.translatesAutoresizingMaskIntoConstraints            = NO;
+  [icon.widthAnchor constraintEqualToConstant:size].active  = YES;
   [icon.heightAnchor constraintEqualToConstant:size].active = YES;
   return icon;
 }
 
-static NSImage* DCDevExtensionImage(NSString* iconPath) {
+static NSImage* DCDevExtensionImage(NSString* iconPath)
+{
   NSImage* img = nil;
-  if (iconPath.length) img = [[NSImage alloc] initWithContentsOfFile:iconPath];
-  if (img) return img;
-  NSImage* symbol =
-      [NSImage imageWithSystemSymbolName:@"puzzlepiece.extension.fill" accessibilityDescription:nil];
-  if (symbol) {
-    return [symbol imageWithSymbolConfiguration:[NSImageSymbolConfiguration
-                                                    configurationWithPointSize:28
-                                                                        weight:NSFontWeightRegular
-                                                                         scale:NSImageSymbolScaleMedium]];
+  if (iconPath.length)
+  {
+    img = [[NSImage alloc] initWithContentsOfFile:iconPath];
+  }
+  if (img)
+  {
+    return img;
+  }
+  NSImage* symbol = [NSImage imageWithSystemSymbolName:@"puzzlepiece.extension.fill"
+                              accessibilityDescription:nil];
+  if (symbol)
+  {
+    return [symbol
+        imageWithSymbolConfiguration:[NSImageSymbolConfiguration
+                                         configurationWithPointSize:28
+                                                             weight:NSFontWeightRegular
+                                                              scale:NSImageSymbolScaleMedium]];
   }
   img = [[NSImage alloc] initWithSize:NSMakeSize(28, 28)];
   [img lockFocus];
@@ -136,9 +167,16 @@ static NSImage* DCDevExtensionImage(NSString* iconPath) {
   return img;
 }
 
-static NSColor* DCDevSizeTint(uint64_t bytes) {
-  if (bytes >= ui::kSpaceTooBigBytes) return NSColor.systemRedColor;
-  if (bytes >= ui::kSpaceBigBytes) return NSColor.systemOrangeColor;
+static NSColor* DCDevSizeTint(uint64_t bytes)
+{
+  if (bytes >= ui::kSpaceTooBigBytes)
+  {
+    return NSColor.systemRedColor;
+  }
+  if (bytes >= ui::kSpaceBigBytes)
+  {
+    return NSColor.systemOrangeColor;
+  }
   return nil;
 }
 
@@ -147,39 +185,47 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
 - (void)setBytes:(uint64_t)bytes;
 @end
 
-@implementation DCDevSizeBadge {
+@implementation DCDevSizeBadge
+{
   NSTextField* _label;
   uint64_t _bytes;
 }
 
-- (BOOL)wantsUpdateLayer {
+- (BOOL)wantsUpdateLayer
+{
   return YES;
 }
 
-- (void)updateLayer {
+- (void)updateLayer
+{
   NSAppearanceName match =
       [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
   const BOOL dark = [match isEqualToString:NSAppearanceNameDarkAqua];
-  NSColor* tint = DCDevSizeTint(_bytes);
-  if (tint) {
+  NSColor* tint   = DCDevSizeTint(_bytes);
+  if (tint)
+  {
     self.layer.backgroundColor = [tint colorWithAlphaComponent:dark ? 0.22 : 0.12].CGColor;
-    _label.textColor = tint;
-  } else {
+    _label.textColor           = tint;
+  }
+  else
+  {
     self.layer.backgroundColor =
         [[NSColor labelColor] colorWithAlphaComponent:dark ? 0.10 : 0.06].CGColor;
     _label.textColor = NSColor.secondaryLabelColor;
   }
-  self.layer.cornerRadius = MAX(NSHeight(self.bounds) / 2.0, 8);
+  self.layer.cornerRadius  = MAX(NSHeight(self.bounds) / 2.0, 8);
   self.layer.masksToBounds = YES;
 }
 
-- (instancetype)initWithBytes:(uint64_t)bytes {
+- (instancetype)initWithBytes:(uint64_t)bytes
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    self.wantsLayer = YES;
+  if (self)
+  {
+    self.wantsLayer                                = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
-    _label = DCLabel(@"");
-    _label.font = [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightMedium];
+    _label                                         = DCLabel(@"");
+    _label.font      = [NSFont monospacedDigitSystemFontOfSize:11 weight:NSFontWeightMedium];
     _label.alignment = NSTextAlignmentCenter;
     _label.translatesAutoresizingMaskIntoConstraints = NO;
     [self addSubview:_label];
@@ -200,21 +246,35 @@ static NSColor* DCDevSizeTint(uint64_t bytes) {
   return self;
 }
 
-- (void)setBytes:(uint64_t)bytes {
-  _bytes = bytes;
+- (void)setBytes:(uint64_t)bytes
+{
+  _bytes             = bytes;
   _label.stringValue = DCNS(dcmm::formatBytes(bytes));
   [self setNeedsDisplay:YES];
 }
 
 @end
 
-static NSURL* DCDevRepoURL(NSString* s) {
-  if (!s.length) return nil;
+static NSURL* DCDevRepoURL(NSString* s)
+{
+  if (!s.length)
+  {
+    return nil;
+  }
   NSString* t = s;
-  if ([t hasPrefix:@"git+"]) t = [t substringFromIndex:4];
-  if ([t hasPrefix:@"git://"]) t = [@"https://" stringByAppendingString:[t substringFromIndex:6]];
+  if ([t hasPrefix:@"git+"])
+  {
+    t = [t substringFromIndex:4];
+  }
+  if ([t hasPrefix:@"git://"])
+  {
+    t = [@"https://" stringByAppendingString:[t substringFromIndex:6]];
+  }
   NSURL* u = [NSURL URLWithString:t];
-  if (u.scheme.length) return u;
+  if (u.scheme.length)
+  {
+    return u;
+  }
   return [NSURL URLWithString:[@"https://" stringByAppendingString:t]];
 }
 
@@ -222,43 +282,49 @@ static NSURL* DCDevRepoURL(NSString* s) {
 - (instancetype)initWithRow:(DCDevRow*)row;
 @end
 
-@implementation DCDevExtensionCard {
+@implementation DCDevExtensionCard
+{
   NSString* _repo;
   NSPoint _down;
 }
 
-- (BOOL)wantsUpdateLayer {
+- (BOOL)wantsUpdateLayer
+{
   return YES;
 }
 
-- (void)updateLayer {
-  self.layer.cornerRadius = 8;
+- (void)updateLayer
+{
+  self.layer.cornerRadius  = 8;
   self.layer.masksToBounds = YES;
-  self.layer.borderWidth = 1;
-  self.layer.borderColor = NSColor.separatorColor.CGColor;
+  self.layer.borderWidth   = 1;
+  self.layer.borderColor   = NSColor.separatorColor.CGColor;
   NSAppearanceName match =
       [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
   const BOOL dark = [match isEqualToString:NSAppearanceNameDarkAqua];
-  self.layer.backgroundColor = [[NSColor labelColor] colorWithAlphaComponent:dark ? 0.10 : 0.05].CGColor;
+  self.layer.backgroundColor =
+      [[NSColor labelColor] colorWithAlphaComponent:dark ? 0.10 : 0.05].CGColor;
 }
 
-- (instancetype)initWithRow:(DCDevRow*)row {
+- (instancetype)initWithRow:(DCDevRow*)row
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    self.wantsLayer = YES;
+  if (self)
+  {
+    self.wantsLayer                                = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
-    NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
-    icon.image = DCDevExtensionImage(row.iconPath);
-    icon.imageScaling = NSImageScaleProportionallyUpOrDown;
+    NSImageView* icon                              = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    icon.image                                     = DCDevExtensionImage(row.iconPath);
+    icon.imageScaling                              = NSImageScaleProportionallyUpOrDown;
     icon.translatesAutoresizingMaskIntoConstraints = NO;
-    [icon.widthAnchor constraintEqualToConstant:36].active = YES;
+    [icon.widthAnchor constraintEqualToConstant:36].active  = YES;
     [icon.heightAnchor constraintEqualToConstant:36].active = YES;
 
-    NSTextField* name = DCLabel(row.title.length ? row.title : row.path.lastPathComponent);
-    name.font = [NSFont systemFontOfSize:11];
-    name.alignment = NSTextAlignmentCenter;
-    name.lineBreakMode = NSLineBreakByTruncatingTail;
-    name.usesSingleLineMode = YES;
+    NSTextField* name         = DCLabel(row.title.length ? row.title : row.path.lastPathComponent);
+    name.font                 = [NSFont systemFontOfSize:11];
+    name.alignment            = NSTextAlignmentCenter;
+    name.lineBreakMode        = NSLineBreakByTruncatingTail;
+    name.usesSingleLineMode   = YES;
     name.maximumNumberOfLines = 1;
     name.preferredMaxLayoutWidth = 70;
     [name setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -268,14 +334,14 @@ static NSURL* DCDevRepoURL(NSString* s) {
     DCDevSizeBadge* size = [[DCDevSizeBadge alloc] initWithBytes:row.bytes];
 
     NSStackView* line = [NSStackView stackViewWithViews:@[ name, size ]];
-    line.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    line.alignment = NSLayoutAttributeCenterY;
-    line.spacing = 4;
+    line.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    line.alignment    = NSLayoutAttributeCenterY;
+    line.spacing      = 4;
 
     NSStackView* col = [NSStackView stackViewWithViews:@[ icon, line ]];
-    col.orientation = NSUserInterfaceLayoutOrientationVertical;
-    col.alignment = NSLayoutAttributeCenterX;
-    col.spacing = 8;
+    col.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    col.alignment    = NSLayoutAttributeCenterX;
+    col.spacing      = 8;
     col.translatesAutoresizingMaskIntoConstraints = NO;
     [self addSubview:col];
     [NSLayoutConstraint activateConstraints:@[
@@ -286,40 +352,68 @@ static NSURL* DCDevRepoURL(NSString* s) {
       [col.topAnchor constraintGreaterThanOrEqualToAnchor:self.topAnchor constant:8],
       [col.bottomAnchor constraintLessThanOrEqualToAnchor:self.bottomAnchor constant:-8],
     ]];
-    [self.widthAnchor constraintEqualToConstant:128].active = YES;
+    [self.widthAnchor constraintEqualToConstant:128].active  = YES;
     [self.heightAnchor constraintEqualToConstant:100].active = YES;
     NSString* title = row.title.length ? row.title : row.path.lastPathComponent;
     NSMutableArray<NSArray<NSString*>*>* hover = [NSMutableArray array];
-    if (title.length) [hover addObject:@[ @"Name", title ]];
-    if (row.publisher.length) [hover addObject:@[ @"Publisher", row.publisher ]];
-    if (row.version.length) [hover addObject:@[ @"Version", row.version ]];
-    if (hover.count) [DCHoverPopover attachToView:self rows:hover];
+    if (title.length)
+    {
+      [hover addObject:@[ @"Name", title ]];
+    }
+    if (row.publisher.length)
+    {
+      [hover addObject:@[ @"Publisher", row.publisher ]];
+    }
+    if (row.version.length)
+    {
+      [hover addObject:@[ @"Version", row.version ]];
+    }
+    if (hover.count)
+    {
+      [DCHoverPopover attachToView:self rows:hover];
+    }
     _repo = [row.repositoryUrl copy];
   }
   return self;
 }
 
-- (NSView*)hitTest:(NSPoint)point {
+- (NSView*)hitTest:(NSPoint)point
+{
   NSView* hit = [super hitTest:point];
   return hit ? self : nil;
 }
 
-- (void)resetCursorRects {
+- (void)resetCursorRects
+{
   [super resetCursorRects];
-  if (DCDevRepoURL(_repo)) [self addCursorRect:self.bounds cursor:NSCursor.pointingHandCursor];
+  if (DCDevRepoURL(_repo))
+  {
+    [self addCursorRect:self.bounds cursor:NSCursor.pointingHandCursor];
+  }
 }
 
-- (void)mouseDown:(NSEvent*)event {
+- (void)mouseDown:(NSEvent*)event
+{
   _down = [self convertPoint:event.locationInWindow fromView:nil];
 }
 
-- (void)mouseUp:(NSEvent*)event {
+- (void)mouseUp:(NSEvent*)event
+{
   NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
-  if (!NSPointInRect(p, self.bounds)) return;
+  if (!NSPointInRect(p, self.bounds))
+  {
+    return;
+  }
   const CGFloat dx = p.x - _down.x, dy = p.y - _down.y;
-  if (dx * dx + dy * dy > 16) return;
+  if (dx * dx + dy * dy > 16)
+  {
+    return;
+  }
   NSURL* url = DCDevRepoURL(_repo);
-  if (url) [NSWorkspace.sharedWorkspace openURL:url];
+  if (url)
+  {
+    [NSWorkspace.sharedWorkspace openURL:url];
+  }
 }
 
 @end
@@ -332,7 +426,8 @@ static NSURL* DCDevRepoURL(NSString* s) {
 - (void)reloadCarousel;
 @end
 
-@implementation DCDevVsCodeCard {
+@implementation DCDevVsCodeCard
+{
   DCDevRow* _app;
   NSButton* _uninstall;
   DCDevSizeBadge* _extSize;
@@ -343,177 +438,225 @@ static NSURL* DCDevRepoURL(NSString* s) {
   NSView* _leftoverBlock;
 }
 
-- (DCDevRow*)extensionsFolder {
+- (DCDevRow*)extensionsFolder
+{
   for (DCDevRow* r in _app.children)
-    if (r.extensions) return r;
+  {
+    if (r.extensions)
+    {
+      return r;
+    }
+  }
   return nil;
 }
 
-- (instancetype)initWithApp:(DCDevRow*)app
-                     target:(id)target
-                        tog:(SEL)tog
-                  uninstall:(SEL)uninstall {
+- (instancetype)initWithApp:(DCDevRow*)app target:(id)target tog:(SEL)tog uninstall:(SEL)uninstall
+{
   self = [super initWithFrame:NSZeroRect];
-  if (self) {
-    _app = app;
+  if (self)
+  {
+    _app                                           = app;
     self.translatesAutoresizingMaskIntoConstraints = NO;
 
-    NSImageView* icon = DCDevAppIcon(app.appPath, 32);
-    NSTextField* name = DCLabel(app.title);
-    name.font = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
-    name.lineBreakMode = NSLineBreakByTruncatingTail;
+    NSImageView* icon       = DCDevAppIcon(app.appPath, 32);
+    NSTextField* name       = DCLabel(app.title);
+    name.font               = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
+    name.lineBreakMode      = NSLineBreakByTruncatingTail;
     name.usesSingleLineMode = YES;
     [name setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
     [name setContentCompressionResistancePriority:1
                                    forOrientation:NSLayoutConstraintOrientationHorizontal];
     NSStackView* identity = [NSStackView stackViewWithViews:@[ icon, name ]];
-    identity.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    identity.alignment = NSLayoutAttributeCenterY;
-    identity.spacing = 10;
-    [identity setContentHuggingPriority:1
-                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+    identity.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    identity.alignment    = NSLayoutAttributeCenterY;
+    identity.spacing      = 10;
+    [identity setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
 
     _uninstall = DCDestructiveButton(@"Uninstall", target, uninstall);
-    objc_setAssociatedObject(_uninstall, &kDCDevUninstallRowKey, app, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(
+        _uninstall, &kDCDevUninstallRowKey, app, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [_uninstall setContentHuggingPriority:NSLayoutPriorityRequired
                            forOrientation:NSLayoutConstraintOrientationHorizontal];
 
     NSView* spacer = [[NSView alloc] initWithFrame:NSZeroRect];
     [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
     NSStackView* header = [NSStackView stackViewWithViews:@[ identity, spacer, _uninstall ]];
-    header.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-    header.alignment = NSLayoutAttributeCenterY;
-    header.spacing = 8;
+    header.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    header.alignment    = NSLayoutAttributeCenterY;
+    header.spacing      = 8;
 
     NSMutableArray<NSView*>* sections = [NSMutableArray arrayWithObject:header];
 
     DCDevRow* ext = [self extensionsFolder];
-    if (ext) {
+    if (ext)
+    {
       NSButton* check = [NSButton checkboxWithTitle:@"Extensions" target:target action:tog];
-      check.state = ext.selected ? NSControlStateValueOn : NSControlStateValueOff;
+      check.state     = ext.selected ? NSControlStateValueOn : NSControlStateValueOff;
       objc_setAssociatedObject(check, &kDCDevCheckRowKey, ext, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
       [check setContentHuggingPriority:NSLayoutPriorityRequired
                         forOrientation:NSLayoutConstraintOrientationHorizontal];
-      _extSize = [[DCDevSizeBadge alloc] initWithBytes:ext.bytes];
+      _extSize          = [[DCDevSizeBadge alloc] initWithBytes:ext.bytes];
       NSView* extSpacer = [[NSView alloc] initWithFrame:NSZeroRect];
       [extSpacer setContentHuggingPriority:1
                             forOrientation:NSLayoutConstraintOrientationHorizontal];
       NSStackView* extHeader = [NSStackView stackViewWithViews:@[ check, extSpacer, _extSize ]];
-      extHeader.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-      extHeader.alignment = NSLayoutAttributeCenterY;
-      extHeader.spacing = 8;
+      extHeader.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+      extHeader.alignment    = NSLayoutAttributeCenterY;
+      extHeader.spacing      = 8;
 
-      _extScroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
-      _extScroll.drawsBackground = NO;
-      _extScroll.hasHorizontalScroller = NO;
-      _extScroll.hasVerticalScroller = NO;
-      _extScroll.autohidesScrollers = YES;
-      _extScroll.borderType = NSNoBorder;
+      _extScroll                            = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+      _extScroll.drawsBackground            = NO;
+      _extScroll.hasHorizontalScroller      = NO;
+      _extScroll.hasVerticalScroller        = NO;
+      _extScroll.autohidesScrollers         = YES;
+      _extScroll.borderType                 = NSNoBorder;
       _extScroll.horizontalScrollElasticity = NSScrollElasticityAllowed;
-      _extScroll.verticalScrollElasticity = NSScrollElasticityNone;
-      _extScroll.translatesAutoresizingMaskIntoConstraints = NO;
+      _extScroll.verticalScrollElasticity   = NSScrollElasticityNone;
+      _extScroll.translatesAutoresizingMaskIntoConstraints           = NO;
       [_extScroll.heightAnchor constraintEqualToConstant:108].active = YES;
 
-      _extStrip = [NSStackView stackViewWithViews:@[]];
-      _extStrip.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-      _extStrip.alignment = NSLayoutAttributeCenterY;
-      _extStrip.spacing = 8;
+      _extStrip               = [NSStackView stackViewWithViews:@[]];
+      _extStrip.orientation   = NSUserInterfaceLayoutOrientationHorizontal;
+      _extStrip.alignment     = NSLayoutAttributeCenterY;
+      _extStrip.spacing       = 8;
       _extScroll.documentView = _extStrip;
 
       _extBlock = [NSStackView stackViewWithViews:@[ extHeader, _extScroll ]];
       ((NSStackView*)_extBlock).orientation = NSUserInterfaceLayoutOrientationVertical;
-      ((NSStackView*)_extBlock).alignment = NSLayoutAttributeLeading;
-      ((NSStackView*)_extBlock).spacing = 8;
+      ((NSStackView*)_extBlock).alignment   = NSLayoutAttributeLeading;
+      ((NSStackView*)_extBlock).spacing     = 8;
       [sections addObject:_extBlock];
     }
 
     NSMutableArray<DCDevRow*>* leftoverRows = [NSMutableArray array];
     for (DCDevRow* r in app.children)
-      if (!r.extensions) [leftoverRows addObject:r];
-    if (leftoverRows.count) {
-      _leftovers = [NSStackView stackViewWithViews:@[]];
+    {
+      if (!r.extensions)
+      {
+        [leftoverRows addObject:r];
+      }
+    }
+    if (leftoverRows.count)
+    {
+      _leftovers             = [NSStackView stackViewWithViews:@[]];
       _leftovers.orientation = NSUserInterfaceLayoutOrientationVertical;
-      _leftovers.alignment = NSLayoutAttributeLeading;
-      _leftovers.spacing = 6;
-      for (DCDevRow* folder in leftoverRows) {
+      _leftovers.alignment   = NSLayoutAttributeLeading;
+      _leftovers.spacing     = 6;
+      for (DCDevRow* folder in leftoverRows)
+      {
         NSButton* check = [NSButton checkboxWithTitle:folder.title target:target action:tog];
-        check.state = folder.selected ? NSControlStateValueOn : NSControlStateValueOff;
-        objc_setAssociatedObject(check, &kDCDevCheckRowKey, folder, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        [check setContentHuggingPriority:1
-                          forOrientation:NSLayoutConstraintOrientationHorizontal];
+        check.state     = folder.selected ? NSControlStateValueOn : NSControlStateValueOff;
+        objc_setAssociatedObject(
+            check, &kDCDevCheckRowKey, folder, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [check setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
         [check setContentCompressionResistancePriority:1
                                         forOrientation:NSLayoutConstraintOrientationHorizontal];
         DCDevSizeBadge* size = [[DCDevSizeBadge alloc] initWithBytes:folder.bytes];
-        NSView* rowSpacer = [[NSView alloc] initWithFrame:NSZeroRect];
+        NSView* rowSpacer    = [[NSView alloc] initWithFrame:NSZeroRect];
         [rowSpacer setContentHuggingPriority:1
                               forOrientation:NSLayoutConstraintOrientationHorizontal];
         NSStackView* row = [NSStackView stackViewWithViews:@[ check, rowSpacer, size ]];
-        row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
-        row.alignment = NSLayoutAttributeCenterY;
-        row.spacing = 8;
+        row.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+        row.alignment    = NSLayoutAttributeCenterY;
+        row.spacing      = 8;
         [_leftovers addArrangedSubview:row];
       }
       _leftoverBlock = _leftovers;
       [sections addObject:_leftoverBlock];
     }
 
-    NSStackView* body = [NSStackView stackViewWithViews:sections];
-    body.orientation = NSUserInterfaceLayoutOrientationVertical;
-    body.alignment = NSLayoutAttributeLeading;
-    body.spacing = 12;
-    body.edgeInsets = NSEdgeInsetsMake(14, 14, 14, 14);
+    NSStackView* body        = [NSStackView stackViewWithViews:sections];
+    body.orientation         = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment           = NSLayoutAttributeLeading;
+    body.spacing             = 12;
+    body.edgeInsets          = NSEdgeInsetsMake(14, 14, 14, 14);
     NSVisualEffectView* card = DCDevWrapCard(body, 10);
     [self addSubview:card];
     DCPinEdges(card, self);
     [self setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationVertical];
     DCStackFullWidth((NSStackView*)body, header);
-    if (_extBlock) DCStackFullWidth((NSStackView*)body, _extBlock);
-    if (_leftoverBlock) DCStackFullWidth((NSStackView*)body, _leftoverBlock);
-    if (_extBlock) {
+    if (_extBlock)
+    {
+      DCStackFullWidth((NSStackView*)body, _extBlock);
+    }
+    if (_leftoverBlock)
+    {
+      DCStackFullWidth((NSStackView*)body, _leftoverBlock);
+    }
+    if (_extBlock)
+    {
       DCStackFullWidth((NSStackView*)_extBlock, _extScroll);
       NSStackView* extHeader = (NSStackView*)((NSStackView*)_extBlock).arrangedSubviews.firstObject;
-      if (extHeader) DCStackFullWidth((NSStackView*)_extBlock, extHeader);
+      if (extHeader)
+      {
+        DCStackFullWidth((NSStackView*)_extBlock, extHeader);
+      }
     }
-    for (NSView* row in _leftovers.arrangedSubviews) DCStackFullWidth(_leftovers, row);
+    for (NSView* row in _leftovers.arrangedSubviews)
+    {
+      DCStackFullWidth(_leftovers, row);
+    }
   }
   return self;
 }
 
-- (DCDevRow*)appRow {
+- (DCDevRow*)appRow
+{
   return _app;
 }
 
-- (void)setUninstallEnabled:(BOOL)uninstallEnabled {
-  _uninstallEnabled = uninstallEnabled;
+- (void)setUninstallEnabled:(BOOL)uninstallEnabled
+{
+  _uninstallEnabled  = uninstallEnabled;
   _uninstall.enabled = uninstallEnabled;
 }
 
-- (void)layout {
+- (void)layout
+{
   [super layout];
-  if (!_extScroll || !_extStrip) return;
+  if (!_extScroll || !_extStrip)
+  {
+    return;
+  }
   CGFloat clipH = NSHeight(_extScroll.contentView.bounds);
-  if (clipH < 1) clipH = 100;
-  NSSize fit = _extStrip.fittingSize;
-  CGFloat w = MAX(fit.width, 1);
-  CGFloat h = MAX(fit.height, 1);
-  CGFloat y = clipH > h ? (clipH - h) / 2.0 : 0;
+  if (clipH < 1)
+  {
+    clipH = 100;
+  }
+  NSSize fit      = _extStrip.fittingSize;
+  CGFloat w       = MAX(fit.width, 1);
+  CGFloat h       = MAX(fit.height, 1);
+  CGFloat y       = clipH > h ? (clipH - h) / 2.0 : 0;
   _extStrip.frame = NSMakeRect(0, y, w, h);
 }
 
-- (void)reloadCarousel {
-  if (!_extStrip) return;
+- (void)reloadCarousel
+{
+  if (!_extStrip)
+  {
+    return;
+  }
   DCDevClearStack(_extStrip);
   DCDevRow* ext = [self extensionsFolder];
-  if (!ext) return;
+  if (!ext)
+  {
+    return;
+  }
   [_extSize setBytes:ext.bytes];
   [ext.children sortUsingComparator:^NSComparisonResult(DCDevRow* a, DCDevRow* b) {
     if (a.bytes != b.bytes)
+    {
       return a.bytes > b.bytes ? NSOrderedAscending : NSOrderedDescending;
+    }
     return [a.title compare:b.title options:NSCaseInsensitiveSearch];
   }];
-  for (DCDevRow* e in ext.children) {
-    if (e.kind != DCDevKindExtension) continue;
+  for (DCDevRow* e in ext.children)
+  {
+    if (e.kind != DCDevKindExtension)
+    {
+      continue;
+    }
     [_extStrip addArrangedSubview:[[DCDevExtensionCard alloc] initWithRow:e]];
   }
   [self setNeedsLayout:YES];
@@ -521,7 +664,8 @@ static NSURL* DCDevRepoURL(NSString* s) {
 
 @end
 
-@implementation DCDevCornerView {
+@implementation DCDevCornerView
+{
   dcmm::Engine _engine;
   NSMutableArray<DCDevRow*>* _roots;
   NSMutableArray<DCDevVsCodeCard*>* _cards;
@@ -542,47 +686,49 @@ static NSURL* DCDevRepoURL(NSString* s) {
   uint64_t _extGen;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame
+{
   self = [super initWithFrame:frame];
-  if (self) {
-    _roots = [NSMutableArray array];
-    _cards = [NSMutableArray array];
-    NSStackView* page = DCPageStack(self);
-    page.edgeInsets = NSEdgeInsetsMake(24, 0, 24, 0);
-    _scanApps = [DCGlowButton defaultButtonWithTitle:@"Scan Applications"
-                                              target:self
-                                              action:@selector(reload)
-                                           glowColor:NSColor.controlAccentColor
-                                       glowLineWidth:2.5
-                                          clockwise:YES];
-    _clean = [DCGlowButton buttonWithTitle:DCNS(ui::cleanButtonTitle(DCCleanPref()))
-                                    target:self
-                                    action:@selector(cleanSelected)
-                                 glowColor:NSColor.systemRedColor
-                             glowLineWidth:2.5
-                                clockwise:YES];
+  if (self)
+  {
+    _roots             = [NSMutableArray array];
+    _cards             = [NSMutableArray array];
+    NSStackView* page  = DCPageStack(self);
+    page.edgeInsets    = NSEdgeInsetsMake(24, 0, 24, 0);
+    _scanApps          = [DCGlowButton defaultButtonWithTitle:@"Scan Applications"
+                                                       target:self
+                                                       action:@selector(reload)
+                                                    glowColor:NSColor.controlAccentColor
+                                                glowLineWidth:2.5
+                                                    clockwise:YES];
+    _clean             = [DCGlowButton buttonWithTitle:DCNS(ui::cleanButtonTitle(DCCleanPref()))
+                                                target:self
+                                                action:@selector(cleanSelected)
+                                             glowColor:NSColor.systemRedColor
+                                         glowLineWidth:2.5
+                                             clockwise:YES];
     _clean.buttonColor = NSColor.systemRedColor;
-    _clean.titleColor = NSColor.whiteColor;
+    _clean.titleColor  = NSColor.whiteColor;
     _clean.hasDestructiveAction = YES;
-    _clean.hidden = YES;
-    _actions = DCTrailingButtons(@[ _scanApps, _clean ]);
-    _actions.edgeInsets = NSEdgeInsetsMake(0, 28, 0, 28);
+    _clean.hidden               = YES;
+    _actions                    = DCTrailingButtons(@[ _scanApps, _clean ]);
+    _actions.edgeInsets         = NSEdgeInsetsMake(0, 28, 0, 28);
 
-    _appsScroll = [[NSScrollView alloc] initWithFrame:NSZeroRect];
-    _appsScroll.drawsBackground = NO;
-    _appsScroll.hasVerticalScroller = YES;
-    _appsScroll.hasHorizontalScroller = NO;
-    _appsScroll.autohidesScrollers = YES;
-    _appsScroll.borderType = NSNoBorder;
+    _appsScroll                                   = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+    _appsScroll.drawsBackground                   = NO;
+    _appsScroll.hasVerticalScroller               = YES;
+    _appsScroll.hasHorizontalScroller             = NO;
+    _appsScroll.autohidesScrollers                = YES;
+    _appsScroll.borderType                        = NSNoBorder;
     _appsScroll.automaticallyAdjustsContentInsets = NO;
-    _appsScroll.contentInsets = NSEdgeInsetsZero;
+    _appsScroll.contentInsets                     = NSEdgeInsetsZero;
 
-    _appsDoc = [[DCDevFlippedDoc alloc] initWithFrame:NSZeroRect];
-    _appsList = [NSStackView stackViewWithViews:@[]];
-    _appsList.orientation = NSUserInterfaceLayoutOrientationVertical;
-    _appsList.alignment = NSLayoutAttributeLeading;
+    _appsDoc               = [[DCDevFlippedDoc alloc] initWithFrame:NSZeroRect];
+    _appsList              = [NSStackView stackViewWithViews:@[]];
+    _appsList.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    _appsList.alignment    = NSLayoutAttributeLeading;
     _appsList.distribution = NSStackViewDistributionFill;
-    _appsList.spacing = 12;
+    _appsList.spacing      = 12;
     _appsList.translatesAutoresizingMaskIntoConstraints = NO;
     [_appsDoc addSubview:_appsList];
     [NSLayoutConstraint activateConstraints:@[
@@ -592,23 +738,23 @@ static NSURL* DCDevRepoURL(NSString* s) {
       [_appsList.bottomAnchor constraintEqualToAnchor:_appsDoc.bottomAnchor],
     ]];
     _appsScroll.documentView = _appsDoc;
-    _appsWrap = _appsScroll;
+    _appsWrap                = _appsScroll;
 
-    NSTextField* soon = DCSecondaryLabel(@"Under development");
-    soon.alignment = NSTextAlignmentCenter;
+    NSTextField* soon                              = DCSecondaryLabel(@"Under development");
+    soon.alignment                                 = NSTextAlignmentCenter;
     soon.translatesAutoresizingMaskIntoConstraints = NO;
-    _placeholder = [[NSView alloc] initWithFrame:NSZeroRect];
+    _placeholder                                   = [[NSView alloc] initWithFrame:NSZeroRect];
     [_placeholder addSubview:soon];
     [NSLayoutConstraint activateConstraints:@[
       [soon.centerXAnchor constraintEqualToAnchor:_placeholder.centerXAnchor],
       [soon.centerYAnchor constraintEqualToAnchor:_placeholder.centerYAnchor],
     ]];
-    _placeholder.hidden = YES;
-    NSView* body = [[NSView alloc] initWithFrame:NSZeroRect];
+    _placeholder.hidden                                 = YES;
+    NSView* body                                        = [[NSView alloc] initWithFrame:NSZeroRect];
     _appsWrap.translatesAutoresizingMaskIntoConstraints = NO;
     _placeholder.translatesAutoresizingMaskIntoConstraints = NO;
-    __weak DCDevCornerView* weakSelf = self;
-    _startScreen = [[DCStartScreen alloc]
+    __weak DCDevCornerView* weakSelf                       = self;
+    _startScreen                                           = [[DCStartScreen alloc]
         initWithTitle:@"Dev Corner"
              subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::DevCorner)]
                symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::DevCorner)]
@@ -618,12 +764,12 @@ static NSURL* DCDevRepoURL(NSString* s) {
              onAction:^{
                [weakSelf reload];
              }];
-    _startScreen.subtitleMaxWidth = 360;
-    _startScreen.buttonControlSize = NSControlSizeLarge;
-    _startScreen.buttonMinWidth = 100;
-    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.subtitleMaxWidth                          = 360;
+    _startScreen.buttonControlSize                         = NSControlSizeLarge;
+    _startScreen.buttonMinWidth                            = 100;
+    _startScreen.buttonFont    = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
     _startScreen.defaultButton = YES;
-    _startScreen.hidden = YES;
+    _startScreen.hidden        = YES;
     _startScreen.translatesAutoresizingMaskIntoConstraints = NO;
     [body addSubview:_appsWrap];
     [body addSubview:_placeholder];
@@ -633,11 +779,12 @@ static NSURL* DCDevRepoURL(NSString* s) {
     DCPinEdges(_startScreen, body);
     _scanApps.keyEquivalent = @"";
 
-    _tabs = [NSSegmentedControl segmentedControlWithLabels:@[ @"Applications", @"Toolchains", @"Others" ]
-                                              trackingMode:NSSegmentSwitchTrackingSelectOne
-                                                    target:self
-                                                    action:@selector(tabChanged:)];
-    _tabs.segmentStyle = NSSegmentStyleRounded;
+    _tabs                 = [NSSegmentedControl
+        segmentedControlWithLabels:@[ @"Applications", @"Toolchains", @"Others" ]
+                      trackingMode:NSSegmentSwitchTrackingSelectOne
+                            target:self
+                            action:@selector(tabChanged:)];
+    _tabs.segmentStyle    = NSSegmentStyleRounded;
     _tabs.selectedSegment = 0;
     DCStackCentered(page, _tabs);
     DCStackExpand(page, body);
@@ -652,28 +799,36 @@ static NSURL* DCDevRepoURL(NSString* s) {
   return self;
 }
 
-- (void)dealloc {
+- (void)dealloc
+{
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (void)layout {
+- (void)layout
+{
   [super layout];
   CGFloat w = NSWidth(_appsScroll.contentView.bounds);
-  if (w < 1) return;
-  CGFloat h = MAX(_appsList.fittingSize.height, 1);
+  if (w < 1)
+  {
+    return;
+  }
+  CGFloat h      = MAX(_appsList.fittingSize.height, 1);
   _appsDoc.frame = NSMakeRect(0, 0, w, h);
 }
 
-- (BOOL)applicationTabSelected {
+- (BOOL)applicationTabSelected
+{
   return _tabs.selectedSegment == 0;
 }
 
-- (void)tabChanged:(NSSegmentedControl*)sender {
+- (void)tabChanged:(NSSegmentedControl*)sender
+{
   (void)sender;
   [self syncApplicationsBody];
 }
 
-- (void)showNothingFound {
+- (void)showNothingFound
+{
   _scanApps.keyEquivalent = @"";
   [_startScreen configureSymbol:@"checkmark.seal.fill"
                        subtitle:@"Everything is clean"
@@ -682,42 +837,51 @@ static NSURL* DCDevRepoURL(NSString* s) {
                   defaultButton:YES
                    appearBounce:YES];
   _startScreen.hidden = NO;
-  _appsWrap.hidden = YES;
+  _appsWrap.hidden    = YES;
   _placeholder.hidden = YES;
-  _actions.hidden = YES;
+  _actions.hidden     = YES;
 }
 
-- (void)showContent {
-  _startScreen.hidden = YES;
-  _appsWrap.hidden = NO;
-  _placeholder.hidden = YES;
-  _actions.hidden = NO;
+- (void)showContent
+{
+  _startScreen.hidden     = YES;
+  _appsWrap.hidden        = NO;
+  _placeholder.hidden     = YES;
+  _actions.hidden         = NO;
   _scanApps.keyEquivalent = @"\r";
 }
 
-- (void)syncApplicationsBody {
-  if (![self applicationTabSelected]) {
+- (void)syncApplicationsBody
+{
+  if (![self applicationTabSelected])
+  {
     _startScreen.hidden = YES;
-    _appsWrap.hidden = YES;
+    _appsWrap.hidden    = YES;
     _placeholder.hidden = NO;
-    _actions.hidden = YES;
+    _actions.hidden     = YES;
     return;
   }
   if (_hasListed && _roots.count == 0)
+  {
     [self showNothingFound];
+  }
   else
+  {
     [self showContent];
+  }
 }
 
-- (void)rebuildCards {
+- (void)rebuildCards
+{
   _extGen++;
   DCDevClearStack(_appsList);
   [_cards removeAllObjects];
-  for (DCDevRow* app in _roots) {
+  for (DCDevRow* app in _roots)
+  {
     DCDevVsCodeCard* card = [[DCDevVsCodeCard alloc] initWithApp:app
-                                                         target:self
-                                                            tog:@selector(tog:)
-                                                      uninstall:@selector(uninstall:)];
+                                                          target:self
+                                                             tog:@selector(tog:)
+                                                       uninstall:@selector(uninstall:)];
     card.uninstallEnabled = !_uninstalling;
     [_appsList addArrangedSubview:card];
     DCStackFullWidth(_appsList, card);
@@ -727,47 +891,72 @@ static NSURL* DCDevRepoURL(NSString* s) {
   [self setNeedsLayout:YES];
 }
 
-- (void)loadExtensionsForCard:(DCDevVsCodeCard*)card {
+- (void)loadExtensionsForCard:(DCDevVsCodeCard*)card
+{
   DCDevRow* row = [card extensionsFolder];
-  if (!row || row.loaded || row.loading) return;
-  row.loading = YES;
-  const DCDevFamily family = card.appRow.family;
-  dcmm::VsCodeEdition edition = card.appRow.edition;
+  if (!row || row.loaded || row.loading)
+  {
+    return;
+  }
+  row.loading                      = YES;
+  const DCDevFamily family         = card.appRow.family;
+  dcmm::VsCodeEdition edition      = card.appRow.edition;
   __weak DCDevCornerView* weakSelf = self;
-  __weak DCDevRow* weakRow = row;
+  __weak DCDevRow* weakRow         = row;
   __weak DCDevVsCodeCard* weakCard = card;
-  const uint64_t gen = _extGen;
+  const uint64_t gen               = _extGen;
   __block std::vector<DCDevExtCopy> exts;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     DCDevCornerView* strong = weakSelf;
-    if (!strong) return;
-    if (family == DCDevFamilyCursor) {
-      for (auto& e : strong->_engine.listCursorExtensions()) exts.push_back(DCDevCopyExt(e));
-    } else if (family == DCDevFamilyAntigravity) {
-      for (auto& e : strong->_engine.listAntigravityExtensions()) exts.push_back(DCDevCopyExt(e));
-    } else {
-      for (auto& e : strong->_engine.listVsCodeExtensions(edition)) exts.push_back(DCDevCopyExt(e));
+    if (!strong)
+    {
+      return;
+    }
+    if (family == DCDevFamilyCursor)
+    {
+      for (auto& e : strong->_engine.listCursorExtensions())
+      {
+        exts.push_back(DCDevCopyExt(e));
+      }
+    }
+    else if (family == DCDevFamilyAntigravity)
+    {
+      for (auto& e : strong->_engine.listAntigravityExtensions())
+      {
+        exts.push_back(DCDevCopyExt(e));
+      }
+    }
+    else
+    {
+      for (auto& e : strong->_engine.listVsCodeExtensions(edition))
+      {
+        exts.push_back(DCDevCopyExt(e));
+      }
     }
     dispatch_async(dispatch_get_main_queue(), ^{
-      DCDevCornerView* s = weakSelf;
-      DCDevRow* parent = weakRow;
+      DCDevCornerView* s    = weakSelf;
+      DCDevRow* parent      = weakRow;
       DCDevVsCodeCard* host = weakCard;
-      if (!s || !parent || !host || s->_extGen != gen) return;
+      if (!s || !parent || !host || s->_extGen != gen)
+      {
+        return;
+      }
       [parent.children removeAllObjects];
-      for (auto& e : exts) {
-        DCDevRow* child = [[DCDevRow alloc] init];
-        child.kind = DCDevKindExtension;
-        child.title = DCNS(e.name);
-        child.path = DCNS(e.path);
-        child.iconPath = DCNS(e.iconPath);
-        child.version = DCNS(e.version);
-        child.publisher = DCNS(e.publisher);
+      for (auto& e : exts)
+      {
+        DCDevRow* child     = [[DCDevRow alloc] init];
+        child.kind          = DCDevKindExtension;
+        child.title         = DCNS(e.name);
+        child.path          = DCNS(e.path);
+        child.iconPath      = DCNS(e.iconPath);
+        child.version       = DCNS(e.version);
+        child.publisher     = DCNS(e.publisher);
         child.repositoryUrl = DCNS(e.repositoryUrl);
-        child.bytes = e.bytes;
-        child.parent = parent;
+        child.bytes         = e.bytes;
+        child.parent        = parent;
         [parent.children addObject:child];
       }
-      parent.loaded = YES;
+      parent.loaded  = YES;
       parent.loading = NO;
       [host reloadCarousel];
       [s refreshClean];
@@ -775,233 +964,341 @@ static NSURL* DCDevRepoURL(NSString* s) {
   });
 }
 
-- (void)reload {
-  if (_scanning) return;
-  _scanning = YES;
-  _scanApps.enabled = NO;
+- (void)reload
+{
+  if (_scanning)
+  {
+    return;
+  }
+  _scanning                         = YES;
+  _scanApps.enabled                 = NO;
   _startScreen.actionButton.enabled = NO;
-  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
+  if (_startScreen && !_startScreen.hidden)
+  {
+    [_startScreen beginProgress];
+  }
   [_scanApps beginGlow];
   DCGlowButtonSetActive(_startScreen.actionButton, YES);
   __weak DCDevCornerView* weakSelf = self;
   __block std::vector<dcmm::VsCodeInstall> vscode;
   __block std::vector<dcmm::CursorInstall> cursor;
   __block std::vector<dcmm::AntigravityInstall> antigravity;
-  DCRunBackground(&_job, ^{
-    DCDevCornerView* strong = weakSelf;
-    if (!strong) return;
-    vscode = strong->_engine.listVsCode();
-    cursor = strong->_engine.listCursor();
-    antigravity = strong->_engine.listAntigravity();
-  }, ^{
-    DCDevCornerView* s = weakSelf;
-    if (!s) return;
-    [s->_roots removeAllObjects];
-    for (auto& inst : vscode) {
-      DCDevRow* app = [[DCDevRow alloc] init];
-      app.kind = DCDevKindApp;
-      app.title = DCNS(inst.displayName);
-      app.appPath = DCNS(inst.appPath);
-      app.bytes = inst.bytes;
-      app.edition = inst.edition;
-      app.family = DCDevFamilyVsCode;
-      for (auto& it : inst.items) {
-        DCDevRow* child = [[DCDevRow alloc] init];
-        child.kind = DCDevKindFolder;
-        child.title = DCNS(it.label);
-        child.path = DCNS(it.path);
-        child.bytes = it.bytes;
-        child.edition = inst.edition;
-        child.family = DCDevFamilyVsCode;
-        child.extensions = it.extensions;
-        child.loaded = !it.extensions;
-        child.parent = app;
-        [app.children addObject:child];
-      }
-      [s->_roots addObject:app];
-    }
-    for (auto& inst : cursor) {
-      DCDevRow* app = [[DCDevRow alloc] init];
-      app.kind = DCDevKindApp;
-      app.title = DCNS(inst.displayName);
-      app.appPath = DCNS(inst.appPath);
-      app.bytes = inst.bytes;
-      app.family = DCDevFamilyCursor;
-      for (auto& it : inst.items) {
-        DCDevRow* child = [[DCDevRow alloc] init];
-        child.kind = DCDevKindFolder;
-        child.title = DCNS(it.label);
-        child.path = DCNS(it.path);
-        child.bytes = it.bytes;
-        child.family = DCDevFamilyCursor;
-        child.extensions = it.extensions;
-        child.loaded = !it.extensions;
-        child.parent = app;
-        [app.children addObject:child];
-      }
-      [s->_roots addObject:app];
-    }
-    for (auto& inst : antigravity) {
-      DCDevRow* app = [[DCDevRow alloc] init];
-      app.kind = DCDevKindApp;
-      app.title = DCNS(inst.displayName);
-      app.appPath = DCNS(inst.appPath);
-      app.bytes = inst.bytes;
-      app.family = DCDevFamilyAntigravity;
-      for (auto& it : inst.items) {
-        DCDevRow* child = [[DCDevRow alloc] init];
-        child.kind = DCDevKindFolder;
-        child.title = DCNS(it.label);
-        child.path = DCNS(it.path);
-        child.bytes = it.bytes;
-        child.family = DCDevFamilyAntigravity;
-        child.extensions = it.extensions;
-        child.loaded = !it.extensions;
-        child.parent = app;
-        [app.children addObject:child];
-      }
-      [s->_roots addObject:app];
-    }
-    [s->_scanApps endGlow];
-    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
-    [s->_startScreen endProgress];
-    s->_scanApps.enabled = YES;
-    s->_startScreen.actionButton.enabled = YES;
-    s->_scanning = NO;
-    s->_hasListed = YES;
-    if (s->_roots.count == 0) {
-      [s showNothingFound];
-      return;
-    }
-    [s rebuildCards];
-    [s showContent];
-    [s refreshClean];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCDevCornerView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        vscode      = strong->_engine.listVsCode();
+        cursor      = strong->_engine.listCursor();
+        antigravity = strong->_engine.listAntigravity();
+      },
+      ^{
+        DCDevCornerView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        [s->_roots removeAllObjects];
+        for (auto& inst : vscode)
+        {
+          DCDevRow* app = [[DCDevRow alloc] init];
+          app.kind      = DCDevKindApp;
+          app.title     = DCNS(inst.displayName);
+          app.appPath   = DCNS(inst.appPath);
+          app.bytes     = inst.bytes;
+          app.edition   = inst.edition;
+          app.family    = DCDevFamilyVsCode;
+          for (auto& it : inst.items)
+          {
+            DCDevRow* child  = [[DCDevRow alloc] init];
+            child.kind       = DCDevKindFolder;
+            child.title      = DCNS(it.label);
+            child.path       = DCNS(it.path);
+            child.bytes      = it.bytes;
+            child.edition    = inst.edition;
+            child.family     = DCDevFamilyVsCode;
+            child.extensions = it.extensions;
+            child.loaded     = !it.extensions;
+            child.parent     = app;
+            [app.children addObject:child];
+          }
+          [s->_roots addObject:app];
+        }
+        for (auto& inst : cursor)
+        {
+          DCDevRow* app = [[DCDevRow alloc] init];
+          app.kind      = DCDevKindApp;
+          app.title     = DCNS(inst.displayName);
+          app.appPath   = DCNS(inst.appPath);
+          app.bytes     = inst.bytes;
+          app.family    = DCDevFamilyCursor;
+          for (auto& it : inst.items)
+          {
+            DCDevRow* child  = [[DCDevRow alloc] init];
+            child.kind       = DCDevKindFolder;
+            child.title      = DCNS(it.label);
+            child.path       = DCNS(it.path);
+            child.bytes      = it.bytes;
+            child.family     = DCDevFamilyCursor;
+            child.extensions = it.extensions;
+            child.loaded     = !it.extensions;
+            child.parent     = app;
+            [app.children addObject:child];
+          }
+          [s->_roots addObject:app];
+        }
+        for (auto& inst : antigravity)
+        {
+          DCDevRow* app = [[DCDevRow alloc] init];
+          app.kind      = DCDevKindApp;
+          app.title     = DCNS(inst.displayName);
+          app.appPath   = DCNS(inst.appPath);
+          app.bytes     = inst.bytes;
+          app.family    = DCDevFamilyAntigravity;
+          for (auto& it : inst.items)
+          {
+            DCDevRow* child  = [[DCDevRow alloc] init];
+            child.kind       = DCDevKindFolder;
+            child.title      = DCNS(it.label);
+            child.path       = DCNS(it.path);
+            child.bytes      = it.bytes;
+            child.family     = DCDevFamilyAntigravity;
+            child.extensions = it.extensions;
+            child.loaded     = !it.extensions;
+            child.parent     = app;
+            [app.children addObject:child];
+          }
+          [s->_roots addObject:app];
+        }
+        [s->_scanApps endGlow];
+        DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+        [s->_startScreen endProgress];
+        s->_scanApps.enabled                 = YES;
+        s->_startScreen.actionButton.enabled = YES;
+        s->_scanning                         = NO;
+        s->_hasListed                        = YES;
+        if (s->_roots.count == 0)
+        {
+          [s showNothingFound];
+          return;
+        }
+        [s rebuildCards];
+        [s showContent];
+        [s refreshClean];
+      });
 }
 
-- (DCDevRow*)findRow:(NSString*)path in:(NSArray<DCDevRow*>*)rows {
-  for (DCDevRow* r in rows) {
-    if (r.path.length && [r.path isEqualToString:path]) return r;
+- (DCDevRow*)findRow:(NSString*)path in:(NSArray<DCDevRow*>*)rows
+{
+  for (DCDevRow* r in rows)
+  {
+    if (r.path.length && [r.path isEqualToString:path])
+    {
+      return r;
+    }
     DCDevRow* hit = [self findRow:path in:r.children];
-    if (hit) return hit;
+    if (hit)
+    {
+      return hit;
+    }
   }
   return nil;
 }
 
-- (void)collectSelected:(NSArray<DCDevRow*>*)rows into:(std::vector<std::string>&)out {
-  for (DCDevRow* r in rows) {
+- (void)collectSelected:(NSArray<DCDevRow*>*)rows into:(std::vector<std::string>&)out
+{
+  for (DCDevRow* r in rows)
+  {
     if (r.kind != DCDevKindApp && r.selected && r.path.length)
+    {
       out.push_back(r.path.UTF8String);
+    }
     [self collectSelected:r.children into:out];
   }
 }
 
-- (std::vector<std::string>)selectedCleanPaths {
+- (std::vector<std::string>)selectedCleanPaths
+{
   std::vector<std::string> paths;
   [self collectSelected:_roots into:paths];
   ui::pruneNestedSpaceLensPaths(paths);
   return paths;
 }
 
-- (uint64_t)bytesForPaths:(const std::vector<std::string>&)paths {
+- (uint64_t)bytesForPaths:(const std::vector<std::string>&)paths
+{
   uint64_t n = 0;
-  for (const auto& p : paths) {
+  for (const auto& p : paths)
+  {
     DCDevRow* row = [self findRow:DCNS(p) in:_roots];
-    if (row) n += row.bytes;
+    if (row)
+    {
+      n += row.bytes;
+    }
   }
   return n;
 }
 
-- (void)refreshClean {
+- (void)refreshClean
+{
   std::vector<std::string> paths = [self selectedCleanPaths];
-  uint64_t bytes = [self bytesForPaths:paths];
-  _clean.title = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), bytes));
-  _clean.hidden = paths.empty();
+  uint64_t bytes                 = [self bytesForPaths:paths];
+  _clean.title                   = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), bytes));
+  _clean.hidden                  = paths.empty();
   if ([self applicationTabSelected] && _hasListed && _roots.count == 0)
+  {
     _actions.hidden = YES;
+  }
   else
+  {
     _actions.hidden = ![self applicationTabSelected];
+  }
 }
 
-- (void)cleanSelected {
+- (void)cleanSelected
+{
   std::vector<std::string> paths = [self selectedCleanPaths];
-  if (paths.empty()) {
+  if (paths.empty())
+  {
     DCInformNothingToClean(@"Check the items you want to remove.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray array];
-  for (const auto& p : paths) [list addObject:DCNS(p)];
+  for (const auto& p : paths)
+  {
+    [list addObject:DCNS(p)];
+  }
   uint64_t bytes = [self bytesForPaths:paths];
-  if (!DCConfirmSpaceLensClean(list, bytes)) return;
+  if (!DCConfirmSpaceLensClean(list, bytes))
+  {
+    return;
+  }
   const auto mode = DCCleanPref();
-  _clean.enabled = NO;
+  _clean.enabled  = NO;
   [_clean beginGlow];
   __weak DCDevCornerView* weakSelf = self;
   __block dcmm::CleanResult r;
-  DCRunBackground(&_job, ^{
-    DCDevCornerView* strong = weakSelf;
-    if (!strong) return;
-    r = ui::applySpaceLensClean(strong->_engine, paths, mode);
-  }, ^{
-    DCDevCornerView* s = weakSelf;
-    if (!s) return;
-    [s->_clean endGlow];
-    s->_clean.enabled = YES;
-    if (r.trashedItems == 0)
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    else
-      DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
-    [s reload];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCDevCornerView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        r = ui::applySpaceLensClean(strong->_engine, paths, mode);
+      },
+      ^{
+        DCDevCornerView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        [s->_clean endGlow];
+        s->_clean.enabled = YES;
+        if (r.trashedItems == 0)
+        {
+          DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+        }
+        else
+        {
+          DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
+        }
+        [s reload];
+      });
 }
 
-- (void)setUninstallEnabled:(BOOL)on {
-  for (DCDevVsCodeCard* c in _cards) c.uninstallEnabled = on;
+- (void)setUninstallEnabled:(BOOL)on
+{
+  for (DCDevVsCodeCard* c in _cards)
+  {
+    c.uninstallEnabled = on;
+  }
 }
 
-- (void)uninstall:(NSButton*)sender {
-  if (_uninstalling) return;
+- (void)uninstall:(NSButton*)sender
+{
+  if (_uninstalling)
+  {
+    return;
+  }
   DCDevRow* row = objc_getAssociatedObject(sender, &kDCDevUninstallRowKey);
-  if (!row || row.kind != DCDevKindApp) return;
+  if (!row || row.kind != DCDevKindApp)
+  {
+    return;
+  }
   std::vector<std::string> paths;
   if (row.family == DCDevFamilyCursor)
+  {
     paths = dcmm::cursorNukePaths();
+  }
   else if (row.family == DCDevFamilyAntigravity)
+  {
     paths = dcmm::antigravityNukePaths();
+  }
   else
+  {
     paths = dcmm::vsCodeNukePaths(row.edition);
-  if (paths.empty()) {
+  }
+  if (paths.empty())
+  {
     DCInformNothingToClean(@"Nothing to remove.");
     return;
   }
   NSMutableArray<NSString*>* list = [NSMutableArray array];
-  for (const auto& p : paths) [list addObject:DCNS(p)];
-  if (!DCConfirmSpaceLensClean(list, row.bytes)) return;
+  for (const auto& p : paths)
+  {
+    [list addObject:DCNS(p)];
+  }
+  if (!DCConfirmSpaceLensClean(list, row.bytes))
+  {
+    return;
+  }
   const auto mode = DCCleanPref();
-  _uninstalling = YES;
+  _uninstalling   = YES;
   [self setUninstallEnabled:NO];
   __weak DCDevCornerView* weakSelf = self;
   __block dcmm::CleanResult r;
-  DCRunBackground(&_job, ^{
-    DCDevCornerView* strong = weakSelf;
-    if (!strong) return;
-    r = ui::applySpaceLensClean(strong->_engine, paths, mode);
-  }, ^{
-    DCDevCornerView* s = weakSelf;
-    if (!s) return;
-    s->_uninstalling = NO;
-    [s setUninstallEnabled:YES];
-    if (r.trashedItems == 0)
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    else
-      DCInformCleaned(@"Uninstalled", DCNS(ui::cleanFinishedDetail(mode, r)));
-    [s reload];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCDevCornerView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        r = ui::applySpaceLensClean(strong->_engine, paths, mode);
+      },
+      ^{
+        DCDevCornerView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        s->_uninstalling = NO;
+        [s setUninstallEnabled:YES];
+        if (r.trashedItems == 0)
+        {
+          DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+        }
+        else
+        {
+          DCInformCleaned(@"Uninstalled", DCNS(ui::cleanFinishedDetail(mode, r)));
+        }
+        [s reload];
+      });
 }
 
-- (void)tog:(NSButton*)s {
+- (void)tog:(NSButton*)s
+{
   DCDevRow* item = objc_getAssociatedObject(s, &kDCDevCheckRowKey);
-  if (!item) return;
+  if (!item)
+  {
+    return;
+  }
   item.selected = s.state == NSControlStateValueOn;
   [self refreshClean];
 }

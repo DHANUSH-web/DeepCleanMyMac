@@ -9,9 +9,11 @@
 @interface DCUninstallerView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
 @end
 
-@implementation DCUninstallerView {
+@implementation DCUninstallerView
+{
   dcmm::Engine _engine;
-  struct AppRow {
+  struct AppRow
+  {
     dcmm::InstalledApp app;
     bool selected = false;
   };
@@ -27,24 +29,26 @@
   uint64_t _job;
 }
 
-- (instancetype)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame
+{
   self = [super initWithFrame:frame];
-  if (self) {
-    NSStackView* page = DCPageStack(self);
-    _content = page;
+  if (self)
+  {
+    NSStackView* page   = DCPageStack(self);
+    _content            = page;
     NSStackView* header = DCHeaderStack(
         @"Uninstaller", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Uninstaller)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    _reload = [DCGlowButton defaultButtonWithTitle:@"Refresh"
-                                            target:self
-                                            action:@selector(reloadApps)
-                                         glowColor:NSColor.controlAccentColor
-                                     glowLineWidth:2.5
-                                        clockwise:YES];
-    _selAll = DCPushButton(@"Select All", self, @selector(toggleAll));
-    _remove = DCDestructiveButton(@"Uninstall", self, @selector(uninstall));
-    _remove.hidden = YES;
+    _reload              = [DCGlowButton defaultButtonWithTitle:@"Refresh"
+                                                         target:self
+                                                         action:@selector(reloadApps)
+                                                      glowColor:NSColor.controlAccentColor
+                                                  glowLineWidth:2.5
+                                                      clockwise:YES];
+    _selAll              = DCPushButton(@"Select All", self, @selector(toggleAll));
+    _remove              = DCDestructiveButton(@"Uninstall", self, @selector(uninstall));
+    _remove.hidden       = YES;
     NSStackView* actions = DCTrailingButtons(@[ _selAll, _reload, _remove ]);
     [page addArrangedSubview:actions];
     DCStackFullWidth(page, actions);
@@ -54,28 +58,28 @@
 
     _appsTable = [[NSTableView alloc] initWithFrame:NSZeroRect];
     DCStyleTable(_appsTable);
-    _appsTable.dataSource = self;
-    _appsTable.delegate = self;
+    _appsTable.dataSource   = self;
+    _appsTable.delegate     = self;
     _appsTable.rowSizeStyle = NSTableViewRowSizeStyleCustom;
-    _appsTable.rowHeight = 47;
+    _appsTable.rowHeight    = 47;
     DCAttachTableMenu(_appsTable, self);
     NSTableColumn* check = [[NSTableColumn alloc] initWithIdentifier:@"check"];
-    check.width = 24;
-    check.minWidth = 24;
-    check.maxWidth = 32;
-    check.title = @"";
+    check.width          = 24;
+    check.minWidth       = 24;
+    check.maxWidth       = 32;
+    check.title          = @"";
     [_appsTable addTableColumn:check];
     NSTableColumn* n = [[NSTableColumn alloc] initWithIdentifier:@"app"];
-    n.title = @"Application";
+    n.title          = @"Application";
     [_appsTable addTableColumn:n];
     NSTableColumn* s = [[NSTableColumn alloc] initWithIdentifier:@"size"];
-    s.title = @"Size";
-    s.width = 80;
+    s.title          = @"Size";
+    s.width          = 80;
     [_appsTable addTableColumn:s];
 
     DCStackExpand(page, DCWrapTable(_appsTable));
     __weak DCUninstallerView* weakSelf = self;
-    _startScreen = [[DCStartScreen alloc]
+    _startScreen                       = [[DCStartScreen alloc]
         initWithTitle:@"Uninstaller"
              subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::Uninstaller)]
                symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::Uninstaller)]
@@ -85,12 +89,12 @@
              onAction:^{
                [weakSelf reloadApps];
              }];
-    _startScreen.subtitleMaxWidth = 360;
-    _startScreen.buttonControlSize = NSControlSizeLarge;
-    _startScreen.buttonMinWidth = 100;
-    _startScreen.buttonFont = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
-    _startScreen.defaultButton = YES;
-    _startScreen.hidden = YES;
+    _startScreen.subtitleMaxWidth      = 360;
+    _startScreen.buttonControlSize     = NSControlSizeLarge;
+    _startScreen.buttonMinWidth        = 100;
+    _startScreen.buttonFont            = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
+    _startScreen.defaultButton         = YES;
+    _startScreen.hidden                = YES;
     [self addSubview:_startScreen];
     DCPinEdges(_startScreen, self);
     _reload.keyEquivalent = @"";
@@ -99,20 +103,26 @@
   return self;
 }
 
-- (void)viewDidMoveToWindow {
+- (void)viewDidMoveToWindow
+{
   [super viewDidMoveToWindow];
-  if (!self.window || _listed) return;
+  if (!self.window || _listed)
+  {
+    return;
+  }
   _listed = YES;
   [self reloadApps];
 }
 
-- (void)showContent {
-  _startScreen.hidden = YES;
-  _content.hidden = NO;
+- (void)showContent
+{
+  _startScreen.hidden   = YES;
+  _content.hidden       = NO;
   _reload.keyEquivalent = @"\r";
 }
 
-- (void)showNothingFound {
+- (void)showNothingFound
+{
   _reload.keyEquivalent = @"";
   [_startScreen configureSymbol:@"checkmark.seal.fill"
                        subtitle:@"Everything is clean"
@@ -121,174 +131,262 @@
                   defaultButton:YES
                    appearBounce:YES];
   _startScreen.hidden = NO;
-  _content.hidden = YES;
+  _content.hidden     = YES;
 }
 
-- (void)reloadApps {
-  _status.stringValue = @"Listing applications…";
-  _reload.enabled = NO;
+- (void)reloadApps
+{
+  _status.stringValue               = @"Listing applications…";
+  _reload.enabled                   = NO;
   _startScreen.actionButton.enabled = NO;
-  if (_startScreen && !_startScreen.hidden) [_startScreen beginProgress];
+  if (_startScreen && !_startScreen.hidden)
+  {
+    [_startScreen beginProgress];
+  }
   [_reload beginGlow];
   DCGlowButtonSetActive(_startScreen.actionButton, YES);
-  _remove.hidden = YES;
+  _remove.hidden                     = YES;
   __weak DCUninstallerView* weakSelf = self;
   __block std::vector<dcmm::InstalledApp> apps;
-  DCRunBackground(&_job, ^{
-    DCUninstallerView* strong = weakSelf;
-    if (!strong) return;
-    apps = strong->_engine.listApps();
-  }, ^{
-    DCUninstallerView* s = weakSelf;
-    if (!s) return;
-    s->_apps.clear();
-    s->_apps.reserve(apps.size());
-    for (auto& a : apps) s->_apps.push_back({std::move(a), false});
-    [s->_reload endGlow];
-    DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
-    [s->_startScreen endProgress];
-    s->_reload.enabled = YES;
-    s->_startScreen.actionButton.enabled = YES;
-    if (s->_apps.empty()) {
-      [s showNothingFound];
-      return;
-    }
-    [s->_appsTable reloadData];
-    s->_status.stringValue = [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
-    [s refreshUninstall];
-    [s showContent];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCUninstallerView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        apps = strong->_engine.listApps();
+      },
+      ^{
+        DCUninstallerView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        s->_apps.clear();
+        s->_apps.reserve(apps.size());
+        for (auto& a : apps)
+        {
+          s->_apps.push_back({std::move(a), false});
+        }
+        [s->_reload endGlow];
+        DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+        [s->_startScreen endProgress];
+        s->_reload.enabled                   = YES;
+        s->_startScreen.actionButton.enabled = YES;
+        if (s->_apps.empty())
+        {
+          [s showNothingFound];
+          return;
+        }
+        [s->_appsTable reloadData];
+        s->_status.stringValue =
+            [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
+        [s refreshUninstall];
+        [s showContent];
+      });
 }
 
-- (std::vector<dcmm::InstalledApp>)checkedApps {
+- (std::vector<dcmm::InstalledApp>)checkedApps
+{
   std::vector<dcmm::InstalledApp> out;
   for (auto& row : _apps)
-    if (row.selected) out.push_back(row.app);
+  {
+    if (row.selected)
+    {
+      out.push_back(row.app);
+    }
+  }
   return out;
 }
 
-- (BOOL)allAppsSelected {
-  if (_apps.empty()) return NO;
+- (BOOL)allAppsSelected
+{
+  if (_apps.empty())
+  {
+    return NO;
+  }
   for (const auto& row : _apps)
-    if (!row.selected) return NO;
+  {
+    if (!row.selected)
+    {
+      return NO;
+    }
+  }
   return YES;
 }
 
-- (void)refreshUninstall {
+- (void)refreshUninstall
+{
   std::size_t n = 0;
   for (const auto& row : _apps)
-    if (row.selected) ++n;
+  {
+    if (row.selected)
+    {
+      ++n;
+    }
+  }
   _remove.hidden = n == 0;
   if (n > 1)
+  {
     _remove.title = [NSString stringWithFormat:@"Uninstall %lu Apps", (unsigned long)n];
+  }
   else
+  {
     _remove.title = @"Uninstall";
-  _selAll.title = [self allAppsSelected] ? @"Unselect All" : @"Select All";
+  }
+  _selAll.title   = [self allAppsSelected] ? @"Unselect All" : @"Select All";
   _selAll.enabled = !_apps.empty();
 }
 
-- (void)toggleAll {
+- (void)toggleAll
+{
   BOOL on = ![self allAppsSelected];
-  for (auto& row : _apps) row.selected = on;
+  for (auto& row : _apps)
+  {
+    row.selected = on;
+  }
   [_appsTable reloadData];
   [self refreshUninstall];
 }
 
-- (void)uninstall {
+- (void)uninstall
+{
   auto apps = [self checkedApps];
-  if (apps.empty()) {
+  if (apps.empty())
+  {
     DCInformNothingToClean(@"Check one or more applications in the list first.");
     return;
   }
   NSMutableArray<NSString*>* names = [NSMutableArray array];
-  uint64_t bytes = ui::uninstallBytes(apps);
-  for (const auto& a : apps) [names addObject:DCNS(a.appPath)];
-  if (!DCConfirmClean(names, bytes)) return;
-  const auto mode = DCCleanPref();
-  _reload.enabled = NO;
-  _remove.hidden = YES;
-  __weak DCUninstallerView* weakSelf = self;
+  uint64_t bytes                   = ui::uninstallBytes(apps);
+  for (const auto& a : apps)
+  {
+    [names addObject:DCNS(a.appPath)];
+  }
+  if (!DCConfirmClean(names, bytes))
+  {
+    return;
+  }
+  const auto mode                                  = DCCleanPref();
+  _reload.enabled                                  = NO;
+  _remove.hidden                                   = YES;
+  __weak DCUninstallerView* weakSelf               = self;
   __block std::vector<dcmm::InstalledApp> workApps = std::move(apps);
   __block dcmm::CleanResult r;
-  DCRunBackground(&_job, ^{
-    DCUninstallerView* strong = weakSelf;
-    if (!strong) return;
-    for (auto& app : workApps) strong->_engine.attachLeftovers(app);
-    auto paths = ui::uninstallPaths(workApps);
-    r = ui::applyClean(strong->_engine, paths, mode);
-  }, ^{
-    DCUninstallerView* s = weakSelf;
-    if (!s) return;
-    s->_reload.enabled = YES;
-    if (r.trashedItems == 0) {
-      DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
-    } else {
-      NSString* msg = DCNS(ui::cleanFinishedDetail(mode, r));
-      s->_status.stringValue = msg;
-      DCInformCleaned(@"Uninstall finished", msg);
-    }
-    [s reloadApps];
-  });
+  DCRunBackground(
+      &_job,
+      ^{
+        DCUninstallerView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        for (auto& app : workApps)
+        {
+          strong->_engine.attachLeftovers(app);
+        }
+        auto paths = ui::uninstallPaths(workApps);
+        r          = ui::applyClean(strong->_engine, paths, mode);
+      },
+      ^{
+        DCUninstallerView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        s->_reload.enabled = YES;
+        if (r.trashedItems == 0)
+        {
+          DCInformNothingToClean(DCNS(ui::cleanNothingDetail(mode)));
+        }
+        else
+        {
+          NSString* msg          = DCNS(ui::cleanFinishedDetail(mode, r));
+          s->_status.stringValue = msg;
+          DCInformCleaned(@"Uninstall finished", msg);
+        }
+        [s reloadApps];
+      });
 }
 
-- (NSInteger)numberOfRowsInTableView:(NSTableView*)tv {
+- (NSInteger)numberOfRowsInTableView:(NSTableView*)tv
+{
   return (NSInteger)_apps.size();
 }
 
-- (CGFloat)tableView:(NSTableView*)tv heightOfRow:(NSInteger)row {
+- (CGFloat)tableView:(NSTableView*)tv heightOfRow:(NSInteger)row
+{
   return 47;
 }
 
-- (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row {
+- (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row
+{
   auto& a = _apps[(size_t)row];
-  if ([col.identifier isEqualToString:@"check"]) {
+  if ([col.identifier isEqualToString:@"check"])
+  {
     NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(togApp:)];
-    b.state = a.selected ? NSControlStateValueOn : NSControlStateValueOff;
-    b.tag = row;
+    b.state     = a.selected ? NSControlStateValueOn : NSControlStateValueOff;
+    b.tag       = row;
     return DCCenteredCheckCell(b);
   }
   NSTextField* t = DCLabel(@"");
-  if ([col.identifier isEqualToString:@"app"]) {
-    t.stringValue = DCNS(a.app.name);
-    t.toolTip = DCNS(a.app.appPath);
+  if ([col.identifier isEqualToString:@"app"])
+  {
+    t.stringValue     = DCNS(a.app.name);
+    t.toolTip         = DCNS(a.app.appPath);
     NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
-    NSImage* img = [[[NSWorkspace sharedWorkspace] iconForFile:DCNS(a.app.appPath)] copy];
-    img.size = NSMakeSize(35, 35);
-    icon.image = img;
+    NSImage* img      = [[[NSWorkspace sharedWorkspace] iconForFile:DCNS(a.app.appPath)] copy];
+    img.size          = NSMakeSize(35, 35);
+    icon.image        = img;
     icon.imageScaling = NSImageScaleProportionallyUpOrDown;
-    [icon.widthAnchor constraintEqualToConstant:35].active = YES;
+    [icon.widthAnchor constraintEqualToConstant:35].active  = YES;
     [icon.heightAnchor constraintEqualToConstant:35].active = YES;
     return DCCenteredIconTextCell(icon, t);
   }
   t.stringValue = DCNS(dcmm::formatBytes(a.app.appBytes));
-  t.alignment = NSTextAlignmentRight;
-  t.font = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize weight:NSFontWeightRegular];
+  t.alignment   = NSTextAlignmentRight;
+  t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
+                                                   weight:NSFontWeightRegular];
   return DCCenteredTextCell(t);
 }
 
-- (void)togApp:(NSButton*)s {
-  if (s.tag < 0 || s.tag >= (NSInteger)_apps.size()) return;
+- (void)togApp:(NSButton*)s
+{
+  if (s.tag < 0 || s.tag >= (NSInteger)_apps.size())
+  {
+    return;
+  }
   _apps[(size_t)s.tag].selected = s.state == NSControlStateValueOn;
   [self refreshUninstall];
 }
 
-- (void)menuNeedsUpdate:(NSMenu*)menu {
+- (void)menuNeedsUpdate:(NSMenu*)menu
+{
   [menu removeAllItems];
   NSInteger row = _appsTable.clickedRow;
-  if (row < 0 || row >= (NSInteger)_apps.size()) return;
+  if (row < 0 || row >= (NSInteger)_apps.size())
+  {
+    return;
+  }
   auto& a = _apps[(size_t)row];
   DCAddPathMenuItems(menu, DCNS(a.app.appPath));
   [menu addItem:[NSMenuItem separatorItem]];
   NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:a.selected ? @"Unselect" : @"Select"
                                                action:@selector(ctxToggleApp:)
                                         keyEquivalent:@""];
-  sel.target = self;
-  sel.tag = row;
+  sel.target      = self;
+  sel.tag         = row;
   [menu addItem:sel];
 }
 
-- (void)ctxToggleApp:(NSMenuItem*)sender {
-  if (sender.tag < 0 || sender.tag >= (NSInteger)_apps.size()) return;
+- (void)ctxToggleApp:(NSMenuItem*)sender
+{
+  if (sender.tag < 0 || sender.tag >= (NSInteger)_apps.size())
+  {
+    return;
+  }
   _apps[(size_t)sender.tag].selected = !_apps[(size_t)sender.tag].selected;
   [_appsTable reloadData];
   [self refreshUninstall];

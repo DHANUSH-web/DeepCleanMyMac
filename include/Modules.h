@@ -1,8 +1,10 @@
 #pragma once
 
-namespace ui {
+namespace ui
+{
 
-enum class Module : int {
+enum class Module : int
+{
   MyMac = 0,
   SmartScan,
   DeepScan,
@@ -17,39 +19,66 @@ enum class Module : int {
   Count
 };
 
-inline const char* title(Module m) {
-  switch (m) {
-    case Module::MyMac: return "My Mac";
-    case Module::SmartScan: return "Smart Scan";
-    case Module::DeepScan: return "Deep Scan";
-    case Module::LargeFiles: return "Large Files";
-    case Module::Duplicates: return "Duplicates";
-    case Module::Uninstaller: return "Uninstaller";
-    case Module::Privacy: return "Privacy";
-    case Module::SpaceLens: return "Space Lens";
-    case Module::DevCorner: return "Dev Corner";
-    case Module::Maintenance: return "Maintenance";
-    case Module::Settings: return "Settings";
-    default: return "";
+inline const char* title(Module m)
+{
+  switch (m)
+  {
+    case Module::MyMac:
+      return "My Mac";
+    case Module::SmartScan:
+      return "Smart Scan";
+    case Module::DeepScan:
+      return "Deep Scan";
+    case Module::LargeFiles:
+      return "Large Files";
+    case Module::Duplicates:
+      return "Duplicates";
+    case Module::Uninstaller:
+      return "Uninstaller";
+    case Module::Privacy:
+      return "Privacy";
+    case Module::SpaceLens:
+      return "Space Lens";
+    case Module::DevCorner:
+      return "Dev Corner";
+    case Module::Maintenance:
+      return "Maintenance";
+    case Module::Settings:
+      return "Settings";
+    default:
+      return "";
   }
 }
 
-inline const char* subtitle(Module m) {
-  switch (m) {
-    case Module::MyMac: return "Your MacBook, startup disk and DCMM tools";
-    case Module::SmartScan: return "Recommended safe groups — no file picking";
+inline const char* subtitle(Module m)
+{
+  switch (m)
+  {
+    case Module::MyMac:
+      return "Your MacBook, startup disk and DCMM tools";
+    case Module::SmartScan:
+      return "Recommended safe groups — no file picking";
     case Module::DeepScan:
       return "Item-by-item scan — review before cleaning. Not everything here is safe to remove";
-    case Module::LargeFiles: return "Oversized files hogging the disk";
-    case Module::Duplicates: return "Copies you no longer need";
-    case Module::Uninstaller: return "Uninstall multiple apps and their leftover files at once";
-    case Module::Privacy: return "Browser traces and tracking leftovers";
-    case Module::SpaceLens: return "Find all the heavy items, including hidden files and folders";
-    case Module::DevCorner: return "Clean developer tools, toolchains and caches";
-    case Module::Maintenance: return "Some more tools for your MacBook";
-    case Module::Settings: return "Manage DCMM appearance and behaviour";
-    default: return "";
+    case Module::LargeFiles:
+      return "Oversized files hogging the disk";
+    case Module::Duplicates:
+      return "Copies you no longer need";
+    case Module::Uninstaller:
+      return "Uninstall multiple apps and their leftover files at once";
+    case Module::Privacy:
+      return "Browser traces and tracking leftovers";
+    case Module::SpaceLens:
+      return "Find all the heavy items, including hidden files and folders";
+    case Module::DevCorner:
+      return "Clean developer tools, toolchains and caches";
+    case Module::Maintenance:
+      return "Some more tools for your MacBook";
+    case Module::Settings:
+      return "Manage DCMM appearance and behaviour";
+    default:
+      return "";
   }
 }
 
-}  // namespace ui
+} // namespace ui

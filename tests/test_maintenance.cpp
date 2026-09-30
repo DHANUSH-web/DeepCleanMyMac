@@ -7,24 +7,31 @@
 #include <set>
 #include <string>
 
-TEST(Maintenance, CardsMatchEngineTaskIds) {
+TEST(Maintenance, CardsMatchEngineTaskIds)
+{
   dcmm::Engine e;
   auto tasks = e.maintenanceTasks();
   std::set<std::string> ids;
-  for (const auto& t : tasks) ids.insert(t.id);
-  for (const char* id : ui::maintenanceIds()) {
+  for (const auto& t : tasks)
+  {
+    ids.insert(t.id);
+  }
+  for (const char* id : ui::maintenanceIds())
+  {
     EXPECT_TRUE(ids.count(id)) << id;
   }
 }
 
-TEST_F(HomeFixture, EmptyTrashPreviewNothingToDo) {
+TEST_F(HomeFixture, EmptyTrashPreviewNothingToDo)
+{
   dcmm::Engine e;
   auto p = e.previewMaintenance("empty_trash");
   EXPECT_TRUE(p.nothingToDo);
   EXPECT_NE(p.message.find("Nothing to clean"), std::string::npos);
 }
 
-TEST_F(HomeFixture, EmptyTrashRunRemovesOnlyTrashContents) {
+TEST_F(HomeFixture, EmptyTrashRunRemovesOnlyTrashContents)
+{
   writeBytes(home / ".Trash" / "gone.txt", 128);
   writeBytes(home / "Documents" / "keep.txt", 64);
   dcmm::Engine e;
@@ -37,7 +44,8 @@ TEST_F(HomeFixture, EmptyTrashRunRemovesOnlyTrashContents) {
   EXPECT_TRUE(fs::exists(home / "Documents" / "keep.txt"));
 }
 
-TEST_F(HomeFixture, QuickLookPreviewAndClean) {
+TEST_F(HomeFixture, QuickLookPreviewAndClean)
+{
   writeBytes(home / "Library" / "Caches" / "com.apple.QuickLook.thumbnailcache" / "t.bin", 256);
   dcmm::Engine e;
   auto p = e.previewMaintenance("quicklook");
@@ -47,18 +55,25 @@ TEST_F(HomeFixture, QuickLookPreviewAndClean) {
   EXPECT_FALSE(fs::exists(home / "Library" / "Caches" / "com.apple.QuickLook.thumbnailcache"));
 }
 
-TEST(Maintenance, UnknownTaskIsNothingToDo) {
+TEST(Maintenance, UnknownTaskIsNothingToDo)
+{
   dcmm::Engine e;
   auto p = e.previewMaintenance("not_a_real_task");
   EXPECT_TRUE(p.nothingToDo);
 }
 
-TEST(Maintenance, DnsAndLaunchServicesDoNotClaimFileDeletes) {
+TEST(Maintenance, DnsAndLaunchServicesDoNotClaimFileDeletes)
+{
   dcmm::Engine e;
-  for (const char* id : {"flush_dns", "launch_services"}) {
+  for (const char* id : {"flush_dns", "launch_services"})
+  {
     bool found = false;
-    for (const auto& t : e.maintenanceTasks()) {
-      if (t.id != id) continue;
+    for (const auto& t : e.maintenanceTasks())
+    {
+      if (t.id != id)
+      {
+        continue;
+      }
       found = true;
       EXPECT_NE(t.note.find("Does not delete files"), std::string::npos);
     }

@@ -3,7 +3,8 @@
 
 #include <gtest/gtest.h>
 
-TEST_F(HomeFixture, DuplicatesDefaultRootsExcludeHome) {
+TEST_F(HomeFixture, DuplicatesDefaultRootsExcludeHome)
+{
   auto opt = ui::duplicateOptions(home.string());
   ASSERT_EQ(opt.roots.size(), 6u);
   EXPECT_EQ(opt.roots[0], (home / "Documents").string());
@@ -15,13 +16,15 @@ TEST_F(HomeFixture, DuplicatesDefaultRootsExcludeHome) {
   EXPECT_EQ(opt.minBytes, 256ull * 1024ull);
 }
 
-TEST_F(HomeFixture, DuplicatesHomeToggleWalksHomeOnce) {
+TEST_F(HomeFixture, DuplicatesHomeToggleWalksHomeOnce)
+{
   auto opt = ui::duplicateOptions(home.string(), true);
   ASSERT_EQ(opt.roots.size(), 1u);
   EXPECT_EQ(opt.roots[0], home.string());
 }
 
-TEST_F(HomeFixture, DuplicatesKeepsFirstCopyAndTrashesTheRest) {
+TEST_F(HomeFixture, DuplicatesKeepsFirstCopyAndTrashesTheRest)
+{
   const std::size_t n = 256ull * 1024ull + 64;
   writeBytes(home / "Downloads" / "a.bin", n, 'D');
   writeBytes(home / "Documents" / "b.bin", n, 'D');
@@ -36,12 +39,19 @@ TEST_F(HomeFixture, DuplicatesKeepsFirstCopyAndTrashesTheRest) {
   auto result = e.trashPaths(paths);
   EXPECT_GE(result.trashedItems, 1u);
   int remaining = 0;
-  if (fs::exists(home / "Downloads" / "a.bin")) ++remaining;
-  if (fs::exists(home / "Documents" / "b.bin")) ++remaining;
+  if (fs::exists(home / "Downloads" / "a.bin"))
+  {
+    ++remaining;
+  }
+  if (fs::exists(home / "Documents" / "b.bin"))
+  {
+    ++remaining;
+  }
   EXPECT_EQ(remaining, 1);
 }
 
-TEST_F(HomeFixture, DuplicatesNothingToTrashWhenEveryCopyKept) {
+TEST_F(HomeFixture, DuplicatesNothingToTrashWhenEveryCopyKept)
+{
   const std::size_t n = 256ull * 1024ull + 8;
   writeBytes(home / "Documents" / "x.bin", n, 'K');
   writeBytes(home / "Documents" / "y.bin", n, 'K');
@@ -49,6 +59,11 @@ TEST_F(HomeFixture, DuplicatesNothingToTrashWhenEveryCopyKept) {
   auto groups = e.findDuplicates(ui::duplicateOptions(home.string()));
   ASSERT_FALSE(groups.empty());
   for (auto& g : groups)
-    for (auto& f : g.files) f.keep = true;
+  {
+    for (auto& f : g.files)
+    {
+      f.keep = true;
+    }
+  }
   EXPECT_TRUE(ui::duplicatePathsToTrash(groups).empty());
 }
