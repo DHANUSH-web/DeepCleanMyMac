@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  dmg:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Resolve channel
+        id: meta
+        run: |
+          git fetch origin main beta
+          ver="$(sed -n 's/^project(dcmm-desktop VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+          tag="${GITHUB_REF_NAME#v}"
+          base="${tag%%-*}"
+          if [ "$base" != "$ver" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match CMakeLists.txt VERSION ${ver}"
+            exit 1
+          fi
+          on_main=0
+          on_beta=0
+          if git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            on_main=1
+          fi
+          if git merge-base --is-ancestor "${GITHUB_SHA}" origin/beta; then
+            on_beta=1
+          fi
+          if [ "$on_main" = 1 ]; then
+            channel=stable
+            asset="build/release/DeepCleanMyMac-${ver}.dmg"
+          elif [ "$on_beta" = 1 ]; then
+            channel=beta
+            asset="build/release/DeepCleanMyMac-${ver}-beta.dmg"
+          else
+            echo "Tag ${GITHUB_REF_NAME} is not on origin/main or origin/beta"
+            exit 1
+          fi
+          echo "channel=${channel}"
+          echo "ver=${ver}" >> "$GITHUB_OUTPUT"
+          echo "channel=${channel}" >> "$GITHUB_OUTPUT"
+          echo "asset=${asset}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Ninja
+        run: brew install ninja
+
+      - name: Build DMG
+        run: make dmg
+
+      - name: Name beta artifact
+        if: steps.meta.outputs.channel == 'beta'
+        run: mv "build/release/DeepCleanMyMac-${{ steps.meta.outputs.ver }}.dmg" \
+          "${{ steps.meta.outputs.asset }}"
+
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          extra=()
+          if [ "${{ steps.meta.outputs.channel }}" = beta ]; then
+            extra+=(--prerelease)
+          fi
+          gh release create "${GITHUB_REF_NAME}" \
+            "${{ steps.meta.outputs.asset }}" \
+            --title "DeepCleanMyMac ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            "${extra[@]}"
