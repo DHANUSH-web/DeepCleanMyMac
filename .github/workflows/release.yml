@@ -59,8 +59,12 @@ jobs:
 
       - name: Name beta artifact
         if: steps.meta.outputs.channel == 'beta'
-        run: mv "build/release/DeepCleanMyMac-${{ steps.meta.outputs.ver }}.dmg" \
-          "${{ steps.meta.outputs.asset }}"
+        run: |
+          ver="${{ steps.meta.outputs.ver }}"
+          src="build/release/DeepCleanMyMac-${ver}.dmg"
+          dest="build/release/DeepCleanMyMac-${ver}-beta.dmg"
+          ls -lh build/release/*.dmg
+          mv "$src" "$dest"
 
       - name: Publish GitHub Release
         env:
