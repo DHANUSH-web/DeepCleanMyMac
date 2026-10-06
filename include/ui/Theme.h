@@ -222,6 +222,13 @@ uint64_t DCLargeFileMinBytes(void);
 BOOL DCDuplicatesScanHome(void);
 void DCSetDuplicatesScanHome(BOOL on);
 
+/// Duplicates minimum size in KiB. Stops: 0 (All), 50, 100, 150, 200, 256. Default 256.
+NSInteger DCDuplicatesMinKB(void);
+void DCSetDuplicatesMinKB(NSInteger kb);
+uint64_t DCDuplicatesMinBytes(void);
+NSInteger DCDuplicatesMinKBStopIndex(void);
+void DCSetDuplicatesMinKBStopIndex(NSInteger index);
+
 /// Cancel is the default (Return). Copy follows the Cleaning setting.
 BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes);
 /// Space Lens: user-confirmed folders, including ones that are not on the safe list.

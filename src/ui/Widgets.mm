@@ -15,6 +15,10 @@ static NSString* const kDCAppearanceKey         = @"DCAppearance";
 static NSString* const kDCCleanPrefKey          = @"DCCleanPref";
 static NSString* const kDCLargeFileMinMBKey     = @"DCLargeFileMinMB";
 static NSString* const kDCDuplicatesScanHomeKey = @"DCDuplicatesScanHome";
+static NSString* const kDCDuplicatesMinKBKey    = @"DCDuplicatesMinKB";
+
+static const NSInteger kDCDupMinKBStops[] = {0, 50, 100, 150, 200, 256};
+static const NSInteger kDCDupMinKBCount   = 6;
 
 ui::AppearancePref DCAppearancePref(void)
 {
@@ -117,6 +121,76 @@ void DCSetDuplicatesScanHome(BOOL on)
   [[NSUserDefaults standardUserDefaults] setBool:on forKey:kDCDuplicatesScanHomeKey];
   [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
                                                       object:nil];
+}
+
+static NSInteger DCSnapDuplicatesMinKB(NSInteger kb)
+{
+  if (kb <= 0)
+  {
+    return 0;
+  }
+
+  NSInteger best = kDCDupMinKBStops[kDCDupMinKBCount - 1];
+  NSInteger dist = std::abs(kb - best);
+  for (NSInteger i = 0; i < kDCDupMinKBCount; ++i)
+  {
+    NSInteger d = std::abs(kb - kDCDupMinKBStops[i]);
+    if (d < dist)
+    {
+      dist = d;
+      best = kDCDupMinKBStops[i];
+    }
+  }
+  return best;
+}
+
+NSInteger DCDuplicatesMinKB(void)
+{
+  NSUserDefaults* d = [NSUserDefaults standardUserDefaults];
+  if (![d objectForKey:kDCDuplicatesMinKBKey])
+  {
+    return 256;
+  }
+  return DCSnapDuplicatesMinKB([d integerForKey:kDCDuplicatesMinKBKey]);
+}
+
+void DCSetDuplicatesMinKB(NSInteger kb)
+{
+  kb = DCSnapDuplicatesMinKB(kb);
+  [[NSUserDefaults standardUserDefaults] setInteger:kb forKey:kDCDuplicatesMinKBKey];
+  [[NSNotificationCenter defaultCenter] postNotificationName:DCSettingsDidChangeNotification
+                                                      object:nil];
+}
+
+uint64_t DCDuplicatesMinBytes(void)
+{
+  return (uint64_t)DCDuplicatesMinKB() * 1024ull;
+}
+
+NSInteger DCDuplicatesMinKBStopIndex(void)
+{
+  NSInteger kb = DCDuplicatesMinKB();
+  for (NSInteger i = 0; i < kDCDupMinKBCount; ++i)
+  {
+    if (kDCDupMinKBStops[i] == kb)
+    {
+      return i;
+    }
+  }
+  return kDCDupMinKBCount - 1;
+}
+
+void DCSetDuplicatesMinKBStopIndex(NSInteger index)
+{
+  if (index < 0)
+  {
+    index = 0;
+  }
+  if (index >= kDCDupMinKBCount)
+  {
+    index = kDCDupMinKBCount - 1;
+  }
+  DCSetDuplicatesMinKB(kDCDupMinKBStops[index]);
 }
 
 NSTextField* DCLabel(NSString* text)

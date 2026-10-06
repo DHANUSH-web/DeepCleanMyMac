@@ -143,12 +143,20 @@
 
 - (NSString*)idleStatus
 {
+  NSString* size = @"any size";
+  NSInteger kb   = DCDuplicatesMinKB();
+  if (kb > 0)
+  {
+    size = [NSString stringWithFormat:@"%@ or larger", DCNS(dcmm::formatBytes(DCDuplicatesMinBytes()))];
+  }
   if (DCDuplicatesScanHome())
   {
-    return @"Matches identical files in your home folder (256 KB or larger).";
+    return [NSString stringWithFormat:@"Matches identical files in your home folder (%@).", size];
   }
-  return @"Matches identical files in Documents, Downloads, Desktop, Pictures, Movies, and Music "
-         @"(256 KB or larger).";
+  return [NSString
+      stringWithFormat:
+          @"Matches identical files in Documents, Downloads, Desktop, Pictures, Movies, and Music (%@).",
+          size];
 }
 
 - (void)settingsChanged
@@ -289,8 +297,9 @@
         {
           return;
         }
-        g = strong->_engine.findDuplicates(
-            ui::duplicateOptions(dcmm::homeDirectory(), DCDuplicatesScanHome()));
+        auto opt     = ui::duplicateOptions(dcmm::homeDirectory(), DCDuplicatesScanHome());
+        opt.minBytes = DCDuplicatesMinBytes();
+        g            = strong->_engine.findDuplicates(opt);
       },
       ^{
         DCDuplicatesView* s = weakSelf;

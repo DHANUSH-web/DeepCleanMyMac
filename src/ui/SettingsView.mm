@@ -5,7 +5,82 @@
 #include "Modules.h"
 
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
+
+@interface DCSliderTickLabels : NSView
+@property(nonatomic, weak) NSSlider* slider;
+@property(nonatomic, copy) NSArray<NSTextField*>* labels;
+@end
+
+@implementation DCSliderTickLabels
+- (void)dealloc
+{
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)setSlider:(NSSlider*)slider
+{
+  if (_slider == slider)
+  {
+    return;
+  }
+  if (_slider)
+  {
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                    name:NSViewFrameDidChangeNotification
+                                                  object:_slider];
+  }
+  _slider = slider;
+  _slider.postsFrameChangedNotifications = YES;
+  if (_slider)
+  {
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(sliderFrameChanged:)
+                                                 name:NSViewFrameDidChangeNotification
+                                               object:_slider];
+  }
+  [self setNeedsLayout:YES];
+}
+
+- (void)sliderFrameChanged:(NSNotification*)note
+{
+  (void)note;
+  [self setNeedsLayout:YES];
+}
+
+- (void)layout
+{
+  [super layout];
+  NSSlider* slider = self.slider;
+  if (!slider || slider.numberOfTickMarks <= 0)
+  {
+    return;
+  }
+  const CGFloat hostW = NSWidth(self.bounds);
+  const CGFloat hostH = NSHeight(self.bounds);
+  const NSInteger n   = MIN((NSInteger)self.labels.count, slider.numberOfTickMarks);
+  for (NSInteger i = 0; i < n; ++i)
+  {
+    NSTextField* lab = self.labels[(NSUInteger)i];
+    [lab sizeToFit];
+    NSRect tick  = [slider rectOfTickMarkAtIndex:i];
+    NSPoint mid  = [slider convertPoint:NSMakePoint(NSMidX(tick), NSMidY(tick)) toView:self];
+    NSRect frame = lab.frame;
+    frame.origin.x = round(mid.x - NSWidth(frame) / 2.0);
+    frame.origin.y = round((hostH - NSHeight(frame)) / 2.0);
+    if (frame.origin.x < 0)
+    {
+      frame.origin.x = 0;
+    }
+    if (NSMaxX(frame) > hostW)
+    {
+      frame.origin.x = hostW - NSWidth(frame);
+    }
+    lab.frame = frame;
+  }
+}
+@end
 
 @interface DCSettingsView () <NSTextFieldDelegate>
 @end
@@ -16,6 +91,8 @@
   NSPopUpButton* _cleaning;
   NSTextField* _largeFileMin;
   NSSwitch* _dupHome;
+  NSSlider* _dupMin;
+  DCSliderTickLabels* _dupMinTicks;
 }
 
 - (instancetype)initWithFrame:(NSRect)frame
@@ -87,6 +164,55 @@
     [page addArrangedSubview:dupCard];
     DCStackFullWidth(page, dupCard);
 
+    _dupMin                            = [NSSlider sliderWithValue:5 minValue:0 maxValue:5
+                                                            target:self
+                                                            action:@selector(duplicatesMinChanged:)];
+    _dupMin.numberOfTickMarks          = 6;
+    _dupMin.allowsTickMarkValuesOnly   = YES;
+    _dupMin.tickMarkPosition           = NSTickMarkPositionBelow;
+    _dupMin.continuous                 = YES;
+    _dupMin.translatesAutoresizingMaskIntoConstraints = NO;
+    NSMutableArray<NSTextField*>* tickLabs = [NSMutableArray array];
+    _dupMinTicks                           = [[DCSliderTickLabels alloc] initWithFrame:NSZeroRect];
+    _dupMinTicks.translatesAutoresizingMaskIntoConstraints = NO;
+    for (NSString* title in @[ @"All", @"50KB", @"100KB", @"150KB", @"200KB", @"256KB" ])
+    {
+      NSTextField* lab         = DCCaptionLabel(title);
+      lab.alignment            = NSTextAlignmentCenter;
+      lab.maximumNumberOfLines = 1;
+      lab.lineBreakMode        = NSLineBreakByClipping;
+      [_dupMinTicks addSubview:lab];
+      [tickLabs addObject:lab];
+    }
+    _dupMinTicks.slider = _dupMin;
+    _dupMinTicks.labels = tickLabs;
+    [_dupMinTicks.heightAnchor constraintEqualToConstant:16].active = YES;
+    NSTextField* dupMinTitle = DCLabel(@"Minimum duplicate size");
+    dupMinTitle.font         = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+    NSTextField* dupMinDetail =
+        DCCaptionLabel(@"Skip files smaller than this. All includes every size. Default 256KB.");
+    dupMinDetail.maximumNumberOfLines = 4;
+    dupMinDetail.lineBreakMode        = NSLineBreakByWordWrapping;
+    NSStackView* dupMinBody =
+        [NSStackView stackViewWithViews:@[ dupMinTitle, dupMinDetail, _dupMin, _dupMinTicks ]];
+    dupMinBody.orientation = NSUserInterfaceLayoutOrientationVertical;
+    dupMinBody.alignment   = NSLayoutAttributeLeading;
+    dupMinBody.spacing     = 8;
+    dupMinBody.edgeInsets  = NSEdgeInsetsMake(14, 14, 14, 14);
+    DCStackFullWidth(dupMinBody, _dupMin);
+    DCStackFullWidth(dupMinBody, _dupMinTicks);
+    NSVisualEffectView* dupMinCard = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+    dupMinCard.material            = NSVisualEffectMaterialContentBackground;
+    dupMinCard.blendingMode        = NSVisualEffectBlendingModeWithinWindow;
+    dupMinCard.state               = NSVisualEffectStateFollowsWindowActiveState;
+    dupMinCard.wantsLayer          = YES;
+    dupMinCard.layer.cornerRadius  = 10;
+    dupMinCard.layer.masksToBounds = YES;
+    [dupMinCard addSubview:dupMinBody];
+    DCPinEdges(dupMinBody, dupMinCard);
+    [page addArrangedSubview:dupMinCard];
+    DCStackFullWidth(page, dupMinCard);
+
     NSView* spacer = DCFlexibleSpace();
     [page addArrangedSubview:spacer];
     DCStackFullWidth(page, spacer);
@@ -144,7 +270,8 @@
   [_appearance selectItemAtIndex:static_cast<NSInteger>(DCAppearancePref())];
   [_cleaning selectItemAtIndex:static_cast<NSInteger>(DCCleanPref())];
   _largeFileMin.stringValue = [NSString stringWithFormat:@"%ld", (long)DCLargeFileMinMB()];
-  _dupHome.state = DCDuplicatesScanHome() ? NSControlStateValueOn : NSControlStateValueOff;
+  _dupHome.state     = DCDuplicatesScanHome() ? NSControlStateValueOn : NSControlStateValueOff;
+  _dupMin.doubleValue = DCDuplicatesMinKBStopIndex();
 }
 
 - (void)appearanceChanged:(NSPopUpButton*)sender
@@ -160,6 +287,11 @@
 - (void)duplicatesHomeChanged:(NSSwitch*)sender
 {
   DCSetDuplicatesScanHome(sender.state == NSControlStateValueOn);
+}
+
+- (void)duplicatesMinChanged:(NSSlider*)sender
+{
+  DCSetDuplicatesMinKBStopIndex((NSInteger)llround(sender.doubleValue));
 }
 
 - (void)cleaningChanged:(NSPopUpButton*)sender
