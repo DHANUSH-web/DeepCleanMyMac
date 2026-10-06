@@ -1020,9 +1020,9 @@ static NSImage* DCDuplicateSymbolImage(NSString* path, CGFloat pointSize)
   return [img imageWithSymbolConfiguration:cfg] ?: img;
 }
 
-static const CGFloat kDCDupCardW = 128;
-static const CGFloat kDCDupCardH = 148;
-static const CGFloat kDCDupIcon  = 72;
+static const CGFloat kDCDupCardW = 85;
+static const CGFloat kDCDupCardH = 98;
+static const CGFloat kDCDupIcon  = 32;
 
 @interface DCDuplicateItemCard () <NSMenuDelegate>
 @end
