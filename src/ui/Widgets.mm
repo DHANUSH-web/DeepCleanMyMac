@@ -921,36 +921,10 @@ static NSColor* DCSizeBadgeTint(uint64_t bytes)
 
 @end
 
-static BOOL DCDuplicatePathIsImage(NSString* path)
-{
-  static NSSet<NSString*>* exts;
-  static dispatch_once_t once;
-
-  dispatch_once(&once, ^{
-    exts = [NSSet setWithArray:@[
-      @"png",
-      @"jpg",
-      @"jpeg",
-      @"gif",
-      @"heic",
-      @"heif",
-      @"webp",
-      @"tif",
-      @"tiff",
-      @"bmp",
-      @"raw",
-      @"dng",
-      @"ico",
-      @"icns"
-    ]];
-  });
-
-  return [exts containsObject:path.pathExtension.lowercaseString];
-}
-
 static NSString* DCDuplicateSymbolName(NSString* path)
 {
   NSString* ext = path.pathExtension.lowercaseString;
+  static NSSet<NSString*>* image;
   static NSSet<NSString*>* video;
   static NSSet<NSString*>* audio;
   static NSSet<NSString*>* archive;
@@ -961,6 +935,10 @@ static NSString* DCDuplicateSymbolName(NSString* path)
   static dispatch_once_t once;
 
   dispatch_once(&once, ^{
+    image = [NSSet setWithArray:@[
+      @"png", @"jpg", @"jpeg", @"gif", @"heic", @"heif", @"webp", @"tif", @"tiff", @"bmp", @"raw",
+      @"dng", @"ico", @"icns"
+    ]];
     video =
         [NSSet setWithArray:@[ @"mp4", @"mov", @"m4v", @"avi", @"mkv", @"webm", @"mpeg", @"mpg" ]];
     audio =
@@ -977,6 +955,11 @@ static NSString* DCDuplicateSymbolName(NSString* path)
     sheet  = [NSSet setWithArray:@[ @"xls", @"xlsx", @"csv", @"numbers" ]];
     slides = [NSSet setWithArray:@[ @"ppt", @"pptx", @"key" ]];
   });
+
+  if ([image containsObject:ext])
+  {
+    return @"photo.fill";
+  }
 
   if ([ext isEqualToString:@"pdf"])
   {
@@ -1037,72 +1020,6 @@ static NSImage* DCDuplicateSymbolImage(NSString* path, CGFloat pointSize)
   return [img imageWithSymbolConfiguration:cfg] ?: img;
 }
 
-static NSCache* DCDuplicateThumbCache(void)
-{
-  static NSCache* cache;
-  static dispatch_once_t once;
-
-  dispatch_once(&once, ^{
-    cache            = [[NSCache alloc] init];
-    cache.countLimit = 256;
-  });
-
-  return cache;
-}
-
-static NSImage* DCDuplicateThumbnail(NSString* path, CGFloat max)
-{
-  NSImage* cached = [DCDuplicateThumbCache() objectForKey:path];
-
-  if (cached)
-  {
-    return cached;
-  }
-
-  NSImage* src = [[NSImage alloc] initWithContentsOfFile:path];
-
-  if (!src)
-  {
-    return nil;
-  }
-
-  NSSize s = src.size;
-
-  if (s.width <= 0 || s.height <= 0)
-  {
-    return nil;
-  }
-
-  CGFloat factor = MIN(max / s.width, max / s.height);
-
-  if (factor > 1)
-  {
-    factor = 1;
-  }
-
-  NSSize out   = NSMakeSize(MAX(1, floor(s.width * factor)), MAX(1, floor(s.height * factor)));
-  NSImage* dst = [NSImage imageWithSize:out
-                                flipped:NO
-                         drawingHandler:^BOOL(NSRect dstRect) {
-                           [src drawInRect:dstRect
-                                     fromRect:NSZeroRect
-                                    operation:NSCompositingOperationCopy
-                                     fraction:1.0
-                               respectFlipped:YES
-                                        hints:@{
-                                          NSImageHintInterpolation : @(NSImageInterpolationHigh)
-                                        }];
-                           return YES;
-                         }];
-
-  if (dst)
-  {
-    [DCDuplicateThumbCache() setObject:dst forKey:path];
-  }
-
-  return dst;
-}
-
 static const CGFloat kDCDupCardW = 128;
 static const CGFloat kDCDupCardH = 148;
 static const CGFloat kDCDupIcon  = 72;
@@ -1114,8 +1031,6 @@ static const CGFloat kDCDupIcon  = 72;
 {
   NSImageView* _icon;
   DCSizeBadge* _badge;
-  uint64_t _gen;
-  BOOL _photo;
 }
 
 - (instancetype)initWithPath:(NSString*)path bytes:(uint64_t)bytes selected:(BOOL)selected
@@ -1133,11 +1048,8 @@ static const CGFloat kDCDupIcon  = 72;
     self.layer.masksToBounds                       = YES;
     self.translatesAutoresizingMaskIntoConstraints = NO;
 
-    _icon                     = [[NSImageView alloc] initWithFrame:NSZeroRect];
-    _icon.imageScaling        = NSImageScaleProportionallyUpOrDown;
-    _icon.wantsLayer          = YES;
-    _icon.layer.cornerRadius  = 8;
-    _icon.layer.masksToBounds = YES;
+    _icon              = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    _icon.imageScaling = NSImageScaleProportionallyUpOrDown;
     _icon.translatesAutoresizingMaskIntoConstraints                  = NO;
     [_icon.widthAnchor constraintEqualToConstant:kDCDupIcon].active  = YES;
     [_icon.heightAnchor constraintEqualToConstant:kDCDupIcon].active = YES;
@@ -1259,14 +1171,9 @@ static const CGFloat kDCDupIcon  = 72;
     s.layer.borderColor     = border.CGColor;
   }];
 
-  self.layer.borderWidth = _selected ? 2 : 1;
-
-  if (!_photo)
-  {
-    _icon.contentTintColor = _selected ? accent : NSColor.secondaryLabelColor;
-  }
-
-  self.accessibilityLabel = self.path.lastPathComponent ?: @"Duplicate";
+  self.layer.borderWidth   = _selected ? 2 : 1;
+  _icon.contentTintColor   = _selected ? accent : NSColor.secondaryLabelColor;
+  self.accessibilityLabel  = self.path.lastPathComponent ?: @"Duplicate";
   self.accessibilityValue = _selected ? @"Selected" : @"Not selected";
   self.accessibilityHelp  = self.path;
 }
@@ -1303,49 +1210,8 @@ static const CGFloat kDCDupIcon  = 72;
 
 - (void)reloadPreview
 {
-  _gen++;
-  uint64_t gen   = _gen;
-  NSString* path = self.path;
-
-  _photo = DCDuplicatePathIsImage(path);
-
-  if (!_photo)
-  {
-    _icon.image            = DCDuplicateSymbolImage(path, 36);
-    _icon.contentTintColor = _selected ? NSColor.controlAccentColor : NSColor.secondaryLabelColor;
-    return;
-  }
-
-  NSImage* cached = [DCDuplicateThumbCache() objectForKey:path];
-
-  if (cached)
-  {
-    _icon.image            = cached;
-    _icon.contentTintColor = nil;
-    return;
-  }
-
-  _icon.image            = DCDuplicateSymbolImage(path, 36);
-  _icon.contentTintColor = NSColor.secondaryLabelColor;
-
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-    NSImage* thumb = DCDuplicateThumbnail(path, kDCDupIcon * 2);
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-      if (gen != self->_gen)
-      {
-        return;
-      }
-
-      if (!thumb)
-      {
-        return;
-      }
-
-      self->_icon.image            = thumb;
-      self->_icon.contentTintColor = nil;
-    });
-  });
+  _icon.image            = DCDuplicateSymbolImage(self.path, 36);
+  _icon.contentTintColor = _selected ? NSColor.controlAccentColor : NSColor.secondaryLabelColor;
 }
 
 - (void)mouseUp:(NSEvent*)event
