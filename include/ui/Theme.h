@@ -172,6 +172,7 @@ NSTableCellView* DCCenteredDangerTextCell(NSTextField* field);
 @property(nonatomic, getter=isSelected) BOOL selected;
 @property(nonatomic, copy, nullable) void (^onToggle)(DCDuplicateItemCard* card);
 @property(nonatomic, copy, nullable) void (^onTrash)(DCDuplicateItemCard* card);
+@property(nonatomic, copy, nullable) void (^onHover)(DCDuplicateItemCard* card, BOOL inside);
 
 - (instancetype)initWithPath:(NSString*)path bytes:(uint64_t)bytes selected:(BOOL)selected;
 @end

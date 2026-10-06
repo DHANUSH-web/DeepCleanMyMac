@@ -1105,6 +1105,7 @@ static const CGFloat kDCDupIcon  = 32;
 {
   NSImageView* _icon;
   DCSizeBadge* _badge;
+  NSTrackingArea* _track;
 }
 
 - (instancetype)initWithPath:(NSString*)path bytes:(uint64_t)bytes selected:(BOOL)selected
@@ -1166,6 +1167,7 @@ static const CGFloat kDCDupIcon  = 32;
     self.menu = menu;
     [self applyChrome];
     [self reloadPreview];
+    [self updateTrackingAreas];
   }
 
   return self;
@@ -1288,6 +1290,40 @@ static const CGFloat kDCDupIcon  = 32;
   _icon.contentTintColor = _selected ? NSColor.controlAccentColor : NSColor.secondaryLabelColor;
 }
 
+- (void)updateTrackingAreas
+{
+  [super updateTrackingAreas];
+  if (_track)
+  {
+    [self removeTrackingArea:_track];
+  }
+  _track = [[NSTrackingArea alloc]
+      initWithRect:self.bounds
+           options:NSTrackingMouseEnteredAndExited | NSTrackingActiveInKeyWindow |
+                   NSTrackingInVisibleRect
+             owner:self
+          userInfo:nil];
+  [self addTrackingArea:_track];
+}
+
+- (void)mouseEntered:(NSEvent*)event
+{
+  (void)event;
+  if (self.onHover)
+  {
+    self.onHover(self, YES);
+  }
+}
+
+- (void)mouseExited:(NSEvent*)event
+{
+  (void)event;
+  if (self.onHover)
+  {
+    self.onHover(self, NO);
+  }
+}
+
 - (void)mouseUp:(NSEvent*)event
 {
   NSPoint p = [self convertPoint:event.locationInWindow fromView:nil];
@@ -1385,6 +1421,7 @@ static const CGFloat kDCDupIcon  = 32;
 @implementation DCDuplicateGroupView
 {
   NSTextField* _titleLabel;
+  NSTextField* _pathLabel;
   DCDupCarousel* _carousel;
   NSStackView* _strip;
   NSArray<DCDuplicateItemCard*>* _cards;
@@ -1406,6 +1443,31 @@ static const CGFloat kDCDupIcon  = 32;
     _titleLabel.lineBreakMode = NSLineBreakByTruncatingMiddle;
     _title                    = [_titleLabel.stringValue copy];
 
+    NSString* firstPath = _cards.firstObject.path ?: @"";
+    _pathLabel                      = DCCaptionLabel(firstPath.length ? firstPath : @" ");
+    _pathLabel.maximumNumberOfLines = 1;
+    _pathLabel.usesSingleLineMode   = YES;
+    _pathLabel.lineBreakMode        = NSLineBreakByTruncatingMiddle;
+    _pathLabel.cell.wraps           = NO;
+    [_pathLabel setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                         forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    __weak DCDuplicateGroupView* weakGroup = self;
+    for (DCDuplicateItemCard* card in _cards)
+    {
+      card.onHover = ^(DCDuplicateItemCard* c, BOOL inside) {
+        DCDuplicateGroupView* g = weakGroup;
+        if (!g)
+        {
+          return;
+        }
+        if (inside && c.path.length)
+        {
+          g->_pathLabel.stringValue = c.path;
+        }
+      };
+    }
+
     _strip             = [NSStackView stackViewWithViews:_cards];
     _strip.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     _strip.alignment   = NSLayoutAttributeCenterY;
@@ -1414,14 +1476,20 @@ static const CGFloat kDCDupIcon  = 32;
     _carousel = [[DCDupCarousel alloc] initWithStrip:_strip];
     [_carousel.heightAnchor constraintEqualToConstant:kDCDupCardH].active = YES;
 
-    NSStackView* body = [NSStackView stackViewWithViews:@[ _titleLabel, _carousel ]];
-    body.orientation  = NSUserInterfaceLayoutOrientationVertical;
-    body.alignment    = NSLayoutAttributeLeading;
-    body.spacing      = 10;
-    body.edgeInsets   = NSEdgeInsetsMake(14, 14, 14, 14);
+    NSStackView* header = [NSStackView stackViewWithViews:@[ _titleLabel, _pathLabel ]];
+    header.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    header.alignment    = NSLayoutAttributeLeading;
+    header.spacing      = 2;
+    NSStackView* body   = [NSStackView stackViewWithViews:@[ header, _carousel ]];
+    body.orientation    = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment      = NSLayoutAttributeLeading;
+    body.spacing        = 10;
+    body.edgeInsets     = NSEdgeInsetsMake(14, 14, 14, 14);
     [self addSubview:body];
     DCPinEdges(body, self);
-    DCStackFullWidth(body, _titleLabel);
+    DCStackFullWidth(header, _titleLabel);
+    DCStackFullWidth(header, _pathLabel);
+    DCStackFullWidth(body, header);
     DCStackFullWidth(body, _carousel);
     [self setContentHuggingPriority:NSLayoutPriorityRequired
                      forOrientation:NSLayoutConstraintOrientationVertical];
