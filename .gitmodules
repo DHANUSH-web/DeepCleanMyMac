@@ -1,4 +1,4 @@
 [submodule "dcmmlib"]
 	path = extras/dcmmlib
-	url = https://github.com/DHANUSH-web/dcmmlib.git
+	url = git@github.com:DHANUSH-web/dcmmlib.git
 	branch = main

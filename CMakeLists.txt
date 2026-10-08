@@ -17,13 +17,13 @@ endif()
 
 add_compile_options(-fobjc-arc -Wall -Wextra -Wno-unused-parameter)
 
-# Engine is extras/dcmmlib (git submodule from GitHub main).
+# Engine is extras/dcmmlib (git submodule from git@github.com:DHANUSH-web/dcmmlib.git, main).
 set(DCMM_BUILD_TESTS OFF CACHE BOOL "Disable engine tests when nested" FORCE)
 set(DCMM_BUILD_CLI OFF CACHE BOOL "Disable engine CLI when nested" FORCE)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extras/dcmmlib/CMakeLists.txt")
   add_subdirectory(extras/dcmmlib)
 else()
-  message(FATAL_ERROR "dcmmlib not found. Run: make init  (clones extras/dcmmlib from GitHub main)")
+  message(FATAL_ERROR "dcmmlib not found. Run: make init  (clones extras/dcmmlib via SSH, GitHub main)")
 endif()
 
 set(UI_SOURCES

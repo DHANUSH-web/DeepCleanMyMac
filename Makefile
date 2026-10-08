@@ -33,7 +33,7 @@ all:
 	$(MAKE) build PRESET=debug
 	$(MAKE) build PRESET=release
 
-ENGINE_GIT := https://github.com/DHANUSH-web/dcmmlib.git
+ENGINE_GIT := git@github.com:DHANUSH-web/dcmmlib.git
 
 icon:
 	cd resources && swift render-icon.swift
@@ -110,7 +110,7 @@ help:
 	@echo "  make clean           remove build/"
 	@echo "  make clean debug     remove build/debug"
 	@echo "  make clean release   remove build/release"
-	@echo "  make init            clone/update extras/dcmmlib from GitHub main"
+	@echo "  make init            clone/update extras/dcmmlib from git@github.com:DHANUSH-web/dcmmlib.git (main)"
 	@echo "  make icon            rebuild AppIcon.icns from resources/app-icon.png"
 	@echo "  make dmg-bg          rebuild resources/dmg-background.png"
 	@echo "  make format          clang-format include/, src/, tests/"

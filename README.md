@@ -15,18 +15,18 @@ dcmm-desktop/
   tests/             GoogleTest (engine link + module titles)
 ```
 
-You do **not** need a separate dcmmlib clone. The engine lives only at `extras/dcmmlib`, pulled from [GitHub `main`](https://github.com/DHANUSH-web/dcmmlib).
+You do **not** need a separate dcmmlib clone. The engine lives only at `extras/dcmmlib`, pulled from **`main`** over SSH (`git@github.com:DHANUSH-web/dcmmlib.git`). The engine repo is private; GitHub SSH keys are required for `make init` and `--recurse-submodules`.
 
 ```bash
 git clone --recurse-submodules https://github.com/DHANUSH-web/DeepCleanMyMac.git
 cd DeepCleanMyMac
-make init                 # extras/dcmmlib from GitHub main (also if you cloned without --recurse-submodules)
+make init                 # extras/dcmmlib via SSH (also if you cloned without --recurse-submodules)
 ```
 
 ## Build (LLVM + Clang + Ninja)
 
 ```bash
-make init                 # extras/dcmmlib from GitHub main
+make init                 # extras/dcmmlib via SSH (GitHub main)
 make                      # debug (default)
 make build release
 make test

@@ -11,7 +11,7 @@ Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.
 | `beta` | Default for PRs and new work |
 | `main` | Stable releases — do not open feature PRs against `main` |
 
-The engine lives at `extras/dcmmlib` (submodule of https://github.com/DHANUSH-web/dcmmlib.git, **`main`** branch). Contributors do not clone dcmmlib as a second repo.
+The engine lives at `extras/dcmmlib` (submodule of `git@github.com:DHANUSH-web/dcmmlib.git`, **`main`** branch). The engine repo is private; clone and `make init` use SSH. Contributors do not clone dcmmlib as a second repo.
 
 After an engine release is on **dcmmlib `main`**:
 
@@ -33,7 +33,7 @@ make test release
 make run release
 ```
 
-If you cloned without `--recurse-submodules`, `make init` clones `extras/dcmmlib` from GitHub `main`.
+If you cloned without `--recurse-submodules`, `make init` clones `extras/dcmmlib` from `git@github.com:DHANUSH-web/dcmmlib.git` (`main`).
 
 ## Pull requests
 
