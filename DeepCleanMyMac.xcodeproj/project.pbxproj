@@ -52,6 +52,20 @@
 		4F1E3BCC22E3CB73653D6A17 /* SpaceLensView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "SpaceLensView.h"; sourceTree = "<group>";};
 		D49F19A02A4D93BA39005570 /* Theme.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "Theme.h"; sourceTree = "<group>";};
 		D280C2F02EAA83311B8C24C2 /* UninstallerView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "UninstallerView.h"; sourceTree = "<group>";};
+		AA0100000000000000000001 /* home_fixture.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "home_fixture.hpp"; sourceTree = "<group>";};
+		AA0100000000000000000002 /* test_deep_scan.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_deep_scan.cpp"; sourceTree = "<group>";};
+		AA0100000000000000000003 /* test_duplicates.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_duplicates.cpp"; sourceTree = "<group>";};
+		AA0100000000000000000004 /* test_engine_link.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_engine_link.cpp"; sourceTree = "<group>";};
+		AA0100000000000000000005 /* test_large_files.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_large_files.cpp"; sourceTree = "<group>";};
+		AA0100000000000000000006 /* test_maintenance.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_maintenance.cpp"; sourceTree = "<group>";};
+		AA0100000000000000000007 /* test_modules.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_modules.cpp"; sourceTree = "<group>";};
+		AA0100000000000000000008 /* test_mymac.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_mymac.cpp"; sourceTree = "<group>";};
+		AA0100000000000000000009 /* test_navigation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_navigation.cpp"; sourceTree = "<group>";};
+		AA010000000000000000000A /* test_privacy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_privacy.cpp"; sourceTree = "<group>";};
+		AA010000000000000000000B /* test_settings.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_settings.cpp"; sourceTree = "<group>";};
+		AA010000000000000000000C /* test_smart_scan.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_smart_scan.cpp"; sourceTree = "<group>";};
+		AA010000000000000000000D /* test_space_lens.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_space_lens.cpp"; sourceTree = "<group>";};
+		AA010000000000000000000E /* test_uninstaller.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "test_uninstaller.cpp"; sourceTree = "<group>";};
 		890395FB17B89584FE90189D /* types.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "types.cpp"; sourceTree = "<group>";};
 		1BB9B85214C2F4CFBF2BA003 /* types.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 890395FB17B89584FE90189D /* types.cpp */; };
 		58E52D3B46245F0C4D48E35B /* path.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "path.cpp"; sourceTree = "<group>";};
@@ -181,6 +195,27 @@
 			path = include;
 			sourceTree = "<group>";
 		};
+		AA01000000000000000000FF /* tests */ = {
+			isa = PBXGroup;
+			children = (
+				AA0100000000000000000001 /* home_fixture.hpp */,
+				AA0100000000000000000002 /* test_deep_scan.cpp */,
+				AA0100000000000000000003 /* test_duplicates.cpp */,
+				AA0100000000000000000004 /* test_engine_link.cpp */,
+				AA0100000000000000000005 /* test_large_files.cpp */,
+				AA0100000000000000000006 /* test_maintenance.cpp */,
+				AA0100000000000000000007 /* test_modules.cpp */,
+				AA0100000000000000000008 /* test_mymac.cpp */,
+				AA0100000000000000000009 /* test_navigation.cpp */,
+				AA010000000000000000000A /* test_privacy.cpp */,
+				AA010000000000000000000B /* test_settings.cpp */,
+				AA010000000000000000000C /* test_smart_scan.cpp */,
+				AA010000000000000000000D /* test_space_lens.cpp */,
+				AA010000000000000000000E /* test_uninstaller.cpp */,
+			);
+			path = tests;
+			sourceTree = "<group>";
+		};
 		CEFD8E2D5F5D56D7B33BB899 /* src */ = {
 			isa = PBXGroup;
 			children = (
@@ -256,6 +291,7 @@
 			children = (
 				A2BEE4D8BA4C4169E1CAEFC0 /* src */,
 				9DA008AA693E9DD983DFEC24 /* include */,
+				AA01000000000000000000FF /* tests */,
 				ED701091A4E5B8ECDC56F15C /* dcmmlib */,
 				84D6A84AF1081FC68843A57C /* resources */,
 				4A1151FDD9DCE2E1222472FE /* Frameworks */,
