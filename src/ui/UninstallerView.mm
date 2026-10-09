@@ -2,7 +2,7 @@
 #import "ui/Theme.h"
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
-#include "dcmm/dcmm.hpp"
+#include "dcmm/mac/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
 

@@ -4,7 +4,7 @@
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
 #include "Modules.h"
-#include "dcmm/dcmm.hpp"
+#include "dcmm/mac/dcmm.hpp"
 
 #include <atomic>
 #include <vector>

@@ -2,8 +2,8 @@
 
 #include "AppFeatures.hpp"
 
-#include "dcmm/dcmm.hpp"
-#include "dcmm/safety.hpp"
+#include "dcmm/mac/dcmm.hpp"
+#include "dcmm/common/safety.hpp"
 
 #include <cstdint>
 #include <cstdlib>

@@ -1,6 +1,6 @@
 #include "SystemInfo.hpp"
 
-#include "dcmm/path.hpp"
+#include "dcmm/common/path.hpp"
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <DiskArbitration/DiskArbitration.h>

@@ -2,7 +2,7 @@
 
 #include "Modules.h"
 
-#include "dcmm/dcmm.hpp"
+#include "dcmm/mac/dcmm.hpp"
 
 #include <algorithm>
 #include <array>

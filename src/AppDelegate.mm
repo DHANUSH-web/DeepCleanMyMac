@@ -2,7 +2,7 @@
 #import "ui/MainWindowController.h"
 #import "ui/Theme.h"
 
-#include "dcmm/dcmm.h"
+#include "dcmm/common/dcmm.h"
 
 static NSString* const kDCAboutDocsURL   = @"https://dcmm.dhanushhv.com/docs";
 static NSString* const kDCAboutGitHubURL = @"https://github.com/DHANUSH-web/DeepCleanMyMac";

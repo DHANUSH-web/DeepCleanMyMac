@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dcmm/path.hpp"
+#include "dcmm/common/path.hpp"
 
 #include <gtest/gtest.h>
 

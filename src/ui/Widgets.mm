@@ -1,7 +1,7 @@
 #import "ui/Theme.h"
 
 #include "AppFeatures.hpp"
-#include "dcmm/path.hpp"
+#include "dcmm/common/path.hpp"
 
 #include <cstdlib>
 

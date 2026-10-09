@@ -11,7 +11,7 @@
 #import "ui/Theme.h"
 #import "ui/UninstallerView.h"
 
-#include "dcmm/dcmm.hpp"
+#include "dcmm/mac/dcmm.hpp"
 #include "Modules.h"
 
 @interface DCOpaquePane : NSView

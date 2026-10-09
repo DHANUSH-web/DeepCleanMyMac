@@ -5,7 +5,7 @@
 
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
-#include "dcmm/dcmm.hpp"
+#include "dcmm/mac/dcmm.hpp"
 
 #include <vector>
 

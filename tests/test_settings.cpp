@@ -3,7 +3,7 @@
 #include "Modules.h"
 #include "home_fixture.hpp"
 
-#include "dcmm/dcmm.hpp"
+#include "dcmm/common/dcmm.hpp"
 
 #include <gtest/gtest.h>
 

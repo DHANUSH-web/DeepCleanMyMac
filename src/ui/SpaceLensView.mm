@@ -3,7 +3,7 @@
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
 #include "SystemInfo.hpp"
-#include "dcmm/dcmm.hpp"
+#include "dcmm/mac/dcmm.hpp"
 #include "Modules.h"
 #include <vector>
 

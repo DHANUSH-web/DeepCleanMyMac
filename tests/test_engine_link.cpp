@@ -1,5 +1,5 @@
-#include "dcmm/dcmm.h"
-#include "dcmm/dcmm.hpp"
+#include "dcmm/common/dcmm.h"
+#include "dcmm/common/dcmm.hpp"
 
 #include <gtest/gtest.h>
 

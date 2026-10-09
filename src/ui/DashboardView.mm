@@ -3,7 +3,7 @@
 
 #include "AppFeatures.hpp"
 #include "SystemInfo.hpp"
-#include "dcmm/dcmm.hpp"
+#include "dcmm/mac/dcmm.hpp"
 
 #import <LocalAuthentication/LocalAuthentication.h>
 #import <QuartzCore/QuartzCore.h>
