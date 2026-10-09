@@ -1004,7 +1004,7 @@ static NSURL* DCDevRepoURL(NSString* s)
                                              selector:@selector(refreshClean)
                                                  name:DCSettingsDidChangeNotification
                                                object:nil];
-    [self reload];
+    [self syncBody];
   }
   return self;
 }
@@ -1632,7 +1632,7 @@ static NSURL* DCDevRepoURL(NSString* s)
   _clean.hidden = paths.empty();
   if ([self applicationTabSelected])
   {
-    _actions.hidden = _hasListed && _roots.count == 0;
+    _actions.hidden = _roots.count == 0;
   }
   else if ([self toolchainTabSelected])
   {
