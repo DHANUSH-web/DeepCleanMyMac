@@ -43,7 +43,8 @@ typedef NS_ENUM(NSInteger, DCDevKind) {
 typedef NS_ENUM(NSInteger, DCDevFamily) {
   DCDevFamilyVsCode,
   DCDevFamilyCursor,
-  DCDevFamilyAntigravity
+  DCDevFamilyAntigravity,
+  DCDevFamilyRust
 };
 
 @interface DCDevRow : NSObject
@@ -664,6 +665,179 @@ static NSURL* DCDevRepoURL(NSString* s)
 
 @end
 
+@interface DCDevRustCard : NSView
+@property(nonatomic) BOOL uninstallEnabled;
+@property(nonatomic, readonly) DCDevRow* root;
+- (instancetype)initWithRoot:(DCDevRow*)root
+                      target:(id)target
+                         tog:(SEL)tog
+                   uninstall:(SEL)uninstall;
+- (void)syncUninstallTitle;
+@end
+
+@implementation DCDevRustCard
+{
+  DCDevRow* _root;
+  NSButton* _uninstall;
+}
+
+- (DCDevRow*)root
+{
+  return _root;
+}
+
+- (void)syncUninstallTitle
+{
+  NSString* sz = DCNS(dcmm::formatBytes(_root.bytes));
+  _uninstall.title = [NSString stringWithFormat:@"Uninstall %@", sz];
+}
+
+- (NSStackView*)checkRow:(DCDevRow*)row
+                   title:(NSString*)title
+                  detail:(NSString*)detail
+                   badge:(BOOL)badge
+                  target:(id)target
+                     tog:(SEL)tog
+{
+  NSButton* check = [NSButton checkboxWithTitle:title target:target action:tog];
+  check.state     = row.selected ? NSControlStateValueOn : NSControlStateValueOff;
+  objc_setAssociatedObject(check, &kDCDevCheckRowKey, row, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+  [check setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [check setContentCompressionResistancePriority:1
+                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
+  NSMutableArray<NSView*>* parts = [NSMutableArray arrayWithObject:check];
+  if (detail.length)
+  {
+    NSTextField* raw = DCCaptionLabel(detail);
+    raw.lineBreakMode      = NSLineBreakByTruncatingMiddle;
+    raw.usesSingleLineMode = YES;
+    [raw setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [raw setContentCompressionResistancePriority:1
+                                  forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [parts addObject:raw];
+  }
+  NSView* spacer = [[NSView alloc] initWithFrame:NSZeroRect];
+  [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+  [parts addObject:spacer];
+  if (badge)
+  {
+    [parts addObject:[[DCDevSizeBadge alloc] initWithBytes:row.bytes]];
+  }
+  NSStackView* line = [NSStackView stackViewWithViews:parts];
+  line.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+  line.alignment    = NSLayoutAttributeCenterY;
+  line.spacing      = 8;
+  return line;
+}
+
+- (instancetype)initWithRoot:(DCDevRow*)root
+                      target:(id)target
+                         tog:(SEL)tog
+                   uninstall:(SEL)uninstall
+{
+  self = [super initWithFrame:NSZeroRect];
+  if (self)
+  {
+    _root                                          = root;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+
+    NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    NSImage* symbol   = [NSImage imageWithSystemSymbolName:@"chevron.left.forwardslash.chevron.right"
+                                accessibilityDescription:nil];
+    if (symbol)
+    {
+      icon.image = [symbol
+          imageWithSymbolConfiguration:[NSImageSymbolConfiguration
+                                           configurationWithPointSize:18
+                                                               weight:NSFontWeightMedium
+                                                                scale:NSImageSymbolScaleMedium]];
+    }
+    icon.translatesAutoresizingMaskIntoConstraints            = NO;
+    [icon.widthAnchor constraintEqualToConstant:32].active    = YES;
+    [icon.heightAnchor constraintEqualToConstant:32].active   = YES;
+
+    NSTextField* name  = DCLabel(@"Rust");
+    name.font          = [NSFont systemFontOfSize:15 weight:NSFontWeightSemibold];
+    NSStackView* ident = [NSStackView stackViewWithViews:@[ icon, name ]];
+    ident.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    ident.alignment    = NSLayoutAttributeCenterY;
+    ident.spacing      = 10;
+    [ident setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    _uninstall = DCDestructiveButton(@"Uninstall", target, uninstall);
+    objc_setAssociatedObject(
+        _uninstall, &kDCDevUninstallRowKey, root, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [_uninstall setContentHuggingPriority:NSLayoutPriorityRequired
+                           forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self syncUninstallTitle];
+
+    NSView* spacer = [[NSView alloc] initWithFrame:NSZeroRect];
+    [spacer setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSStackView* header = [NSStackView stackViewWithViews:@[ ident, spacer, _uninstall ]];
+    header.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    header.alignment    = NSLayoutAttributeCenterY;
+    header.spacing      = 8;
+
+    NSMutableArray<NSView*>* sections = [NSMutableArray arrayWithObject:header];
+    for (DCDevRow* group in root.children)
+    {
+      NSStackView* block             = [NSStackView stackViewWithViews:@[]];
+      block.orientation              = NSUserInterfaceLayoutOrientationVertical;
+      block.alignment                = NSLayoutAttributeLeading;
+      block.spacing                  = 6;
+      NSStackView* gRow              = [self checkRow:group
+                                  title:group.title
+                                 detail:nil
+                                  badge:YES
+                                 target:target
+                                    tog:tog];
+      [block addArrangedSubview:gRow];
+      for (DCDevRow* child in group.children)
+      {
+        NSStackView* cRow = [self checkRow:child
+                                     title:child.title
+                                    detail:child.version
+                                     badge:YES
+                                    target:target
+                                       tog:tog];
+        cRow.edgeInsets = NSEdgeInsetsMake(0, 22, 0, 0);
+        [block addArrangedSubview:cRow];
+      }
+      [sections addObject:block];
+    }
+
+    NSStackView* body        = [NSStackView stackViewWithViews:sections];
+    body.orientation         = NSUserInterfaceLayoutOrientationVertical;
+    body.alignment           = NSLayoutAttributeLeading;
+    body.spacing             = 12;
+    body.edgeInsets          = NSEdgeInsetsMake(14, 14, 14, 14);
+    NSVisualEffectView* card = DCDevWrapCard(body, 10);
+    [self addSubview:card];
+    DCPinEdges(card, self);
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    DCStackFullWidth((NSStackView*)body, header);
+    for (NSUInteger i = 1; i < sections.count; ++i)
+    {
+      NSStackView* block = (NSStackView*)sections[i];
+      DCStackFullWidth((NSStackView*)body, block);
+      for (NSView* row in block.arrangedSubviews)
+      {
+        DCStackFullWidth(block, row);
+      }
+    }
+  }
+  return self;
+}
+
+- (void)setUninstallEnabled:(BOOL)uninstallEnabled
+{
+  _uninstallEnabled  = uninstallEnabled;
+  _uninstall.enabled = uninstallEnabled;
+}
+
+@end
+
 @implementation DCDevCornerView
 {
   dcmm::Engine _engine;
@@ -672,6 +846,11 @@ static NSURL* DCDevRepoURL(NSString* s)
   NSScrollView* _appsScroll;
   DCDevFlippedDoc* _appsDoc;
   NSStackView* _appsList;
+  NSScrollView* _tcScroll;
+  DCDevFlippedDoc* _tcDoc;
+  NSStackView* _tcList;
+  DCDevRustCard* _rustCard;
+  DCDevRow* _rustRoot;
   DCGlowButton* _clean;
   DCGlowButton* _scanApps;
   BOOL _scanning;
@@ -679,9 +858,11 @@ static NSURL* DCDevRepoURL(NSString* s)
   NSStackView* _actions;
   NSSegmentedControl* _tabs;
   NSView* _appsWrap;
+  NSView* _tcWrap;
   NSView* _placeholder;
   DCStartScreen* _startScreen;
   BOOL _hasListed;
+  BOOL _hasListedRust;
   uint64_t _job;
   uint64_t _extGen;
 }
@@ -740,6 +921,32 @@ static NSURL* DCDevRepoURL(NSString* s)
     _appsScroll.documentView = _appsDoc;
     _appsWrap                = _appsScroll;
 
+    _tcScroll                                   = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+    _tcScroll.drawsBackground                   = NO;
+    _tcScroll.hasVerticalScroller               = YES;
+    _tcScroll.hasHorizontalScroller             = NO;
+    _tcScroll.autohidesScrollers                = YES;
+    _tcScroll.borderType                        = NSNoBorder;
+    _tcScroll.automaticallyAdjustsContentInsets = NO;
+    _tcScroll.contentInsets                     = NSEdgeInsetsZero;
+    _tcDoc                                      = [[DCDevFlippedDoc alloc] initWithFrame:NSZeroRect];
+    _tcList                                     = [NSStackView stackViewWithViews:@[]];
+    _tcList.orientation                         = NSUserInterfaceLayoutOrientationVertical;
+    _tcList.alignment                           = NSLayoutAttributeLeading;
+    _tcList.distribution                        = NSStackViewDistributionFill;
+    _tcList.spacing                             = 12;
+    _tcList.translatesAutoresizingMaskIntoConstraints = NO;
+    [_tcDoc addSubview:_tcList];
+    [NSLayoutConstraint activateConstraints:@[
+      [_tcList.topAnchor constraintEqualToAnchor:_tcDoc.topAnchor],
+      [_tcList.leadingAnchor constraintEqualToAnchor:_tcDoc.leadingAnchor],
+      [_tcList.trailingAnchor constraintEqualToAnchor:_tcDoc.trailingAnchor],
+      [_tcList.bottomAnchor constraintEqualToAnchor:_tcDoc.bottomAnchor],
+    ]];
+    _tcScroll.documentView = _tcDoc;
+    _tcWrap                = _tcScroll;
+    _tcWrap.hidden         = YES;
+
     NSTextField* soon                              = DCSecondaryLabel(@"Under development");
     soon.alignment                                 = NSTextAlignmentCenter;
     soon.translatesAutoresizingMaskIntoConstraints = NO;
@@ -752,6 +959,7 @@ static NSURL* DCDevRepoURL(NSString* s)
     _placeholder.hidden                                 = YES;
     NSView* body                                        = [[NSView alloc] initWithFrame:NSZeroRect];
     _appsWrap.translatesAutoresizingMaskIntoConstraints = NO;
+    _tcWrap.translatesAutoresizingMaskIntoConstraints   = NO;
     _placeholder.translatesAutoresizingMaskIntoConstraints = NO;
     __weak DCDevCornerView* weakSelf                       = self;
     _startScreen                                           = [[DCStartScreen alloc]
@@ -772,9 +980,11 @@ static NSURL* DCDevRepoURL(NSString* s)
     _startScreen.hidden        = YES;
     _startScreen.translatesAutoresizingMaskIntoConstraints = NO;
     [body addSubview:_appsWrap];
+    [body addSubview:_tcWrap];
     [body addSubview:_placeholder];
     [body addSubview:_startScreen];
     DCPinEdges(_appsWrap, body);
+    DCPinEdges(_tcWrap, body);
     DCPinEdges(_placeholder, body);
     DCPinEdges(_startScreen, body);
     _scanApps.keyEquivalent = @"";
@@ -807,13 +1017,16 @@ static NSURL* DCDevRepoURL(NSString* s)
 - (void)layout
 {
   [super layout];
-  CGFloat w = NSWidth(_appsScroll.contentView.bounds);
-  if (w < 1)
-  {
-    return;
-  }
-  CGFloat h      = MAX(_appsList.fittingSize.height, 1);
-  _appsDoc.frame = NSMakeRect(0, 0, w, h);
+  auto fit = [](NSScrollView* scroll, NSView* doc, NSStackView* list) {
+    CGFloat w = NSWidth(scroll.contentView.bounds);
+    if (w < 1)
+    {
+      return;
+    }
+    doc.frame = NSMakeRect(0, 0, w, MAX(list.fittingSize.height, 1));
+  };
+  fit(_appsScroll, _appsDoc, _appsList);
+  fit(_tcScroll, _tcDoc, _tcList);
 }
 
 - (BOOL)applicationTabSelected
@@ -821,23 +1034,50 @@ static NSURL* DCDevRepoURL(NSString* s)
   return _tabs.selectedSegment == 0;
 }
 
+- (BOOL)toolchainTabSelected
+{
+  return _tabs.selectedSegment == 1;
+}
+
 - (void)tabChanged:(NSSegmentedControl*)sender
 {
   (void)sender;
-  [self syncApplicationsBody];
+  if ([self toolchainTabSelected])
+  {
+    _scanApps.title = @"Scan Toolchains";
+    [_startScreen configureSymbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::DevCorner)]
+                         subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::DevCorner)]
+                      buttonTitle:@"Scan Toolchains"
+                        tintColor:NSColor.controlAccentColor
+                    defaultButton:YES
+                     appearBounce:NO];
+  }
+  else
+  {
+    _scanApps.title = @"Scan Applications";
+    [_startScreen configureSymbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::DevCorner)]
+                         subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::DevCorner)]
+                      buttonTitle:@"Scan Applications"
+                        tintColor:NSColor.controlAccentColor
+                    defaultButton:YES
+                     appearBounce:NO];
+  }
+  [self syncBody];
 }
 
 - (void)showNothingFound
 {
   _scanApps.keyEquivalent = @"";
+  NSString* again         = [self toolchainTabSelected] ? @"Scan Toolchains" : @"Scan Applications";
   [_startScreen configureSymbol:@"checkmark.seal.fill"
                        subtitle:@"Everything is clean"
-                    buttonTitle:@"Scan Again"
+                    buttonTitle:again
                       tintColor:NSColor.controlAccentColor
                   defaultButton:YES
                    appearBounce:YES];
   _startScreen.hidden = NO;
   _appsWrap.hidden    = YES;
+  _tcWrap.hidden      = YES;
   _placeholder.hidden = YES;
   _actions.hidden     = YES;
 }
@@ -845,30 +1085,63 @@ static NSURL* DCDevRepoURL(NSString* s)
 - (void)showContent
 {
   _startScreen.hidden     = YES;
-  _appsWrap.hidden        = NO;
   _placeholder.hidden     = YES;
   _actions.hidden         = NO;
   _scanApps.keyEquivalent = @"\r";
+  const BOOL apps         = [self applicationTabSelected];
+  _appsWrap.hidden        = !apps;
+  _tcWrap.hidden          = apps;
 }
 
-- (void)syncApplicationsBody
+- (void)syncBody
 {
-  if (![self applicationTabSelected])
+  if ([self applicationTabSelected])
   {
-    _startScreen.hidden = YES;
-    _appsWrap.hidden    = YES;
-    _placeholder.hidden = NO;
-    _actions.hidden     = YES;
+    if (_hasListed && _roots.count == 0)
+    {
+      [self showNothingFound];
+    }
+    else if (_hasListed)
+    {
+      [self showContent];
+    }
+    else
+    {
+      _startScreen.hidden = NO;
+      _appsWrap.hidden    = YES;
+      _tcWrap.hidden      = YES;
+      _placeholder.hidden = YES;
+      _actions.hidden     = YES;
+    }
+    [self refreshClean];
     return;
   }
-  if (_hasListed && _roots.count == 0)
+  if ([self toolchainTabSelected])
   {
-    [self showNothingFound];
+    if (_hasListedRust && !_rustRoot)
+    {
+      [self showNothingFound];
+    }
+    else if (_hasListedRust)
+    {
+      [self showContent];
+    }
+    else
+    {
+      _startScreen.hidden = NO;
+      _appsWrap.hidden    = YES;
+      _tcWrap.hidden      = YES;
+      _placeholder.hidden = YES;
+      _actions.hidden     = YES;
+    }
+    [self refreshClean];
+    return;
   }
-  else
-  {
-    [self showContent];
-  }
+  _startScreen.hidden = YES;
+  _appsWrap.hidden    = YES;
+  _tcWrap.hidden      = YES;
+  _placeholder.hidden = NO;
+  _actions.hidden     = YES;
 }
 
 - (void)rebuildCards
@@ -965,6 +1238,16 @@ static NSURL* DCDevRepoURL(NSString* s)
 }
 
 - (void)reload
+{
+  if ([self toolchainTabSelected])
+  {
+    [self reloadRust];
+    return;
+  }
+  [self reloadApplications];
+}
+
+- (void)reloadApplications
 {
   if (_scanning)
   {
@@ -1091,6 +1374,174 @@ static NSURL* DCDevRepoURL(NSString* s)
       });
 }
 
+- (void)rebuildRustCard
+{
+  DCDevClearStack(_tcList);
+  _rustCard = nil;
+  if (!_rustRoot)
+  {
+    return;
+  }
+  _rustCard = [[DCDevRustCard alloc] initWithRoot:_rustRoot
+                                           target:self
+                                              tog:@selector(tog:)
+                                        uninstall:@selector(uninstall:)];
+  _rustCard.uninstallEnabled = !_uninstalling;
+  [_tcList addArrangedSubview:_rustCard];
+  DCStackFullWidth(_tcList, _rustCard);
+  [self setNeedsLayout:YES];
+}
+
+- (DCDevRow*)folderRow:(NSString*)title path:(NSString*)path bytes:(uint64_t)bytes parent:(DCDevRow*)parent
+{
+  DCDevRow* row = [[DCDevRow alloc] init];
+  row.kind      = DCDevKindFolder;
+  row.title     = title;
+  row.path      = path;
+  row.bytes     = bytes;
+  row.parent    = parent;
+  return row;
+}
+
+- (void)reloadRust
+{
+  if (_scanning)
+  {
+    return;
+  }
+  _scanning                         = YES;
+  _scanApps.enabled                 = NO;
+  _startScreen.actionButton.enabled = NO;
+  if (_startScreen && !_startScreen.hidden)
+  {
+    [_startScreen beginProgress];
+  }
+  [_scanApps beginGlow];
+  DCGlowButtonSetActive(_startScreen.actionButton, YES);
+  __weak DCDevCornerView* weakSelf = self;
+  __block dcmm::RustInstall inst;
+  DCRunBackground(
+      &_job,
+      ^{
+        DCDevCornerView* strong = weakSelf;
+        if (!strong)
+        {
+          return;
+        }
+        inst = strong->_engine.listRust();
+      },
+      ^{
+        DCDevCornerView* s = weakSelf;
+        if (!s)
+        {
+          return;
+        }
+        [s->_scanApps endGlow];
+        DCGlowButtonSetActive(s->_startScreen.actionButton, NO);
+        [s->_startScreen endProgress];
+        s->_scanApps.enabled                 = YES;
+        s->_startScreen.actionButton.enabled = YES;
+        s->_scanning                         = NO;
+        s->_hasListedRust                    = YES;
+        s->_rustRoot                         = nil;
+        if (!inst.present)
+        {
+          [s rebuildRustCard];
+          [s showNothingFound];
+          return;
+        }
+        DCDevRow* root = [[DCDevRow alloc] init];
+        root.kind      = DCDevKindApp;
+        root.title     = @"Rust";
+        root.family    = DCDevFamilyRust;
+        root.bytes     = inst.bytes;
+        if (dcmm::isDirectory(inst.toolchainsPath) || !inst.toolchains.empty())
+        {
+          DCDevRow* g = [s folderRow:@"Toolchains"
+                                path:DCNS(inst.toolchainsPath)
+                               bytes:inst.toolchainsBytes
+                              parent:root];
+          for (auto& t : inst.toolchains)
+          {
+            DCDevRow* child = [s folderRow:DCNS(t.title) path:DCNS(t.path) bytes:t.bytes parent:g];
+            child.version   = DCNS(t.rawName);
+            [g.children addObject:child];
+          }
+          [root.children addObject:g];
+        }
+        DCDevRow* cargo = [s folderRow:@"Cargo" path:DCNS(inst.cargoHome) bytes:inst.cargoBytes parent:root];
+        for (auto& it : inst.cargoItems)
+        {
+          [cargo.children addObject:[s folderRow:DCNS(it.label)
+                                            path:DCNS(it.path)
+                                           bytes:it.bytes
+                                          parent:cargo]];
+        }
+        if (inst.cargoBytes > 0 || cargo.children.count || dcmm::pathExists(inst.cargoHome))
+        {
+          [root.children addObject:cargo];
+        }
+        s->_rustRoot = root;
+        [s rebuildRustCard];
+        [s showContent];
+        [s refreshClean];
+      });
+}
+
+- (void)dropRustRow:(DCDevRow*)row
+{
+  if (!row)
+  {
+    return;
+  }
+  const uint64_t b = row.bytes;
+  DCDevRow* p      = row.parent;
+  if (p)
+  {
+    [p.children removeObject:row];
+    for (DCDevRow* a = p; a; a = a.parent)
+    {
+      a.bytes = a.bytes > b ? a.bytes - b : 0;
+    }
+  }
+  else if (row == _rustRoot)
+  {
+    _rustRoot = nil;
+  }
+}
+
+- (void)applyRustDeletions:(const std::vector<std::string>&)paths
+{
+  NSMutableArray<DCDevRow*>* doomed = [NSMutableArray array];
+  for (const auto& p : paths)
+  {
+    DCDevRow* row = [self findRow:DCNS(p) in:_rustRoot ? @[ _rustRoot ] : @[]];
+    if (row)
+    {
+      [doomed addObject:row];
+    }
+  }
+  for (DCDevRow* row in doomed)
+  {
+    [self dropRustRow:row];
+  }
+  if (_rustRoot && _rustRoot.children.count == 0 && _rustRoot.bytes == 0)
+  {
+    _rustRoot = nil;
+  }
+  [self rebuildRustCard];
+  if (!_rustRoot)
+  {
+    [self showNothingFound];
+  }
+  else
+  {
+    [_rustCard syncUninstallTitle];
+    [self showContent];
+  }
+  [self refreshClean];
+}
+
 - (DCDevRow*)findRow:(NSString*)path in:(NSArray<DCDevRow*>*)rows
 {
   for (DCDevRow* r in rows)
@@ -1108,32 +1559,63 @@ static NSURL* DCDevRepoURL(NSString* s)
   return nil;
 }
 
-- (void)collectSelected:(NSArray<DCDevRow*>*)rows into:(std::vector<std::string>&)out
+- (void)collectSelected:(NSArray<DCDevRow*>*)rows
+                   into:(std::vector<std::string>&)out
+     skipChildrenIfSelected:(BOOL)skipChildren
 {
   for (DCDevRow* r in rows)
   {
     if (r.kind != DCDevKindApp && r.selected && r.path.length)
     {
       out.push_back(r.path.UTF8String);
+      if (skipChildren)
+      {
+        continue;
+      }
     }
-    [self collectSelected:r.children into:out];
+    [self collectSelected:r.children into:out skipChildrenIfSelected:skipChildren];
   }
+}
+
+- (void)collectSelected:(NSArray<DCDevRow*>*)rows into:(std::vector<std::string>&)out
+{
+  [self collectSelected:rows into:out skipChildrenIfSelected:NO];
 }
 
 - (std::vector<std::string>)selectedCleanPaths
 {
   std::vector<std::string> paths;
-  [self collectSelected:_roots into:paths];
+  if ([self toolchainTabSelected])
+  {
+    if (_rustRoot)
+    {
+      [self collectSelected:_rustRoot.children into:paths skipChildrenIfSelected:YES];
+      std::vector<std::string> hashes;
+      for (const auto& p : paths)
+      {
+        auto extra = dcmm::rustHashSidecars(p);
+        hashes.insert(hashes.end(), extra.begin(), extra.end());
+      }
+      paths.insert(paths.end(), hashes.begin(), hashes.end());
+    }
+  }
+  else
+  {
+    [self collectSelected:_roots into:paths];
+  }
   ui::pruneNestedSpaceLensPaths(paths);
   return paths;
 }
 
 - (uint64_t)bytesForPaths:(const std::vector<std::string>&)paths
 {
+  NSArray<DCDevRow*>* forest = [self toolchainTabSelected]
+                                   ? (_rustRoot ? @[ _rustRoot ] : @[])
+                                   : _roots;
   uint64_t n = 0;
   for (const auto& p : paths)
   {
-    DCDevRow* row = [self findRow:DCNS(p) in:_roots];
+    DCDevRow* row = [self findRow:DCNS(p) in:forest];
     if (row)
     {
       n += row.bytes;
@@ -1146,15 +1628,19 @@ static NSURL* DCDevRepoURL(NSString* s)
 {
   std::vector<std::string> paths = [self selectedCleanPaths];
   uint64_t bytes                 = [self bytesForPaths:paths];
-  _clean.title                   = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), bytes));
-  _clean.hidden                  = paths.empty();
-  if ([self applicationTabSelected] && _hasListed && _roots.count == 0)
+  _clean.title  = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), bytes));
+  _clean.hidden = paths.empty();
+  if ([self applicationTabSelected])
   {
-    _actions.hidden = YES;
+    _actions.hidden = _hasListed && _roots.count == 0;
+  }
+  else if ([self toolchainTabSelected])
+  {
+    _actions.hidden = !_rustRoot;
   }
   else
   {
-    _actions.hidden = ![self applicationTabSelected];
+    _actions.hidden = YES;
   }
 }
 
@@ -1206,8 +1692,20 @@ static NSURL* DCDevRepoURL(NSString* s)
         else
         {
           DCInformCleaned(@"Clean finished", DCNS(ui::cleanFinishedDetail(mode, r)));
+          if ([s toolchainTabSelected])
+          {
+            [s applyRustDeletions:paths];
+            return;
+          }
         }
-        [s reload];
+        if ([s toolchainTabSelected])
+        {
+          [s refreshClean];
+        }
+        else
+        {
+          [s reload];
+        }
       });
 }
 
@@ -1216,6 +1714,10 @@ static NSURL* DCDevRepoURL(NSString* s)
   for (DCDevVsCodeCard* c in _cards)
   {
     c.uninstallEnabled = on;
+  }
+  if (_rustCard)
+  {
+    _rustCard.uninstallEnabled = on;
   }
 }
 
@@ -1238,6 +1740,10 @@ static NSURL* DCDevRepoURL(NSString* s)
   else if (row.family == DCDevFamilyAntigravity)
   {
     paths = dcmm::antigravityNukePaths();
+  }
+  else if (row.family == DCDevFamilyRust)
+  {
+    paths = dcmm::rustNukePaths();
   }
   else
   {
@@ -1287,8 +1793,23 @@ static NSURL* DCDevRepoURL(NSString* s)
         else
         {
           DCInformCleaned(@"Uninstalled", DCNS(ui::cleanFinishedDetail(mode, r)));
+          if (row.family == DCDevFamilyRust)
+          {
+            s->_rustRoot = nil;
+            [s rebuildRustCard];
+            [s showNothingFound];
+            [s refreshClean];
+            return;
+          }
         }
-        [s reload];
+        if (row.family == DCDevFamilyRust)
+        {
+          [s refreshClean];
+        }
+        else
+        {
+          [s reload];
+        }
       });
 }
 
@@ -1300,6 +1821,30 @@ static NSURL* DCDevRepoURL(NSString* s)
     return;
   }
   item.selected = s.state == NSControlStateValueOn;
+  if ([self toolchainTabSelected])
+  {
+    if (item.children.count)
+    {
+      for (DCDevRow* c in item.children)
+      {
+        c.selected = item.selected;
+      }
+    }
+    else if (item.parent)
+    {
+      BOOL allOn = item.parent.children.count > 0;
+      for (DCDevRow* c in item.parent.children)
+      {
+        if (!c.selected)
+        {
+          allOn = NO;
+          break;
+        }
+      }
+      item.parent.selected = allOn;
+    }
+    [self rebuildRustCard];
+  }
   [self refreshClean];
 }
 
