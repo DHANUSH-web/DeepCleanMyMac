@@ -7,6 +7,8 @@
 #include "AppSettings.hpp"
 #include "dcmm/mac/dcmm.hpp"
 
+#include <fstream>
+#include <iterator>
 #include <vector>
 
 namespace
@@ -29,6 +31,37 @@ DCDevExtCopy DCDevCopyExt(const Ext& e)
   x.repositoryUrl = e.repositoryUrl;
   x.bytes         = e.bytes;
   return x;
+}
+
+NSString* DCDevRustDefaultName(const std::string& rustupHome)
+{
+  std::ifstream in(dcmm::joinPath(rustupHome, "settings.toml"));
+  if (!in)
+  {
+    return @"";
+  }
+  const std::string body((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  auto key = body.find("default_toolchain");
+  if (key == std::string::npos)
+  {
+    return @"";
+  }
+  auto eq = body.find('=', key);
+  if (eq == std::string::npos)
+  {
+    return @"";
+  }
+  auto a = body.find_first_not_of(" \t\"'", eq + 1);
+  if (a == std::string::npos)
+  {
+    return @"";
+  }
+  auto b = body.find_first_of(" \t\"'\r\n", a);
+  if (b == std::string::npos)
+  {
+    b = body.size();
+  }
+  return DCNS(body.substr(a, b - a));
 }
 } // namespace
 
@@ -63,6 +96,7 @@ typedef NS_ENUM(NSInteger, DCDevFamily) {
 @property(nonatomic) BOOL selected;
 @property(nonatomic) BOOL loaded;
 @property(nonatomic) BOOL loading;
+@property(nonatomic) BOOL rustDefault;
 @property(nonatomic, strong) NSMutableArray<DCDevRow*>* children;
 @property(nonatomic, weak) DCDevRow* parent;
 @end
@@ -252,6 +286,62 @@ static NSColor* DCDevSizeTint(uint64_t bytes)
   _bytes             = bytes;
   _label.stringValue = DCNS(dcmm::formatBytes(bytes));
   [self setNeedsDisplay:YES];
+}
+
+@end
+
+@interface DCDevAccentBadge : NSView
+- (instancetype)initWithText:(NSString*)text;
+@end
+
+@implementation DCDevAccentBadge
+{
+  NSTextField* _label;
+}
+
+- (BOOL)wantsUpdateLayer
+{
+  return YES;
+}
+
+- (void)updateLayer
+{
+  NSAppearanceName match =
+      [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameDarkAqua ]];
+  const BOOL dark = [match isEqualToString:NSAppearanceNameDarkAqua];
+  NSColor* tint   = NSColor.controlAccentColor;
+  self.layer.backgroundColor = [tint colorWithAlphaComponent:dark ? 0.22 : 0.12].CGColor;
+  _label.textColor           = tint;
+  self.layer.cornerRadius    = MAX(NSHeight(self.bounds) / 2.0, 8);
+  self.layer.masksToBounds   = YES;
+}
+
+- (instancetype)initWithText:(NSString*)text
+{
+  self = [super initWithFrame:NSZeroRect];
+  if (self)
+  {
+    self.wantsLayer                                = YES;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+    _label                                         = DCLabel(text);
+    _label.font      = [NSFont systemFontOfSize:11 weight:NSFontWeightMedium];
+    _label.alignment = NSTextAlignmentCenter;
+    _label.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:_label];
+    [NSLayoutConstraint activateConstraints:@[
+      [_label.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:7],
+      [_label.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-7],
+      [_label.topAnchor constraintEqualToAnchor:self.topAnchor constant:2],
+      [_label.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-2],
+    ]];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [self setContentHuggingPriority:NSLayoutPriorityRequired
+                     forOrientation:NSLayoutConstraintOrientationVertical];
+    [self setContentCompressionResistancePriority:NSLayoutPriorityRequired
+                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
+  }
+  return self;
 }
 
 @end
@@ -706,6 +796,10 @@ static NSURL* DCDevRepoURL(NSString* s)
   [check setContentCompressionResistancePriority:1
                                   forOrientation:NSLayoutConstraintOrientationHorizontal];
   NSMutableArray<NSView*>* parts = [NSMutableArray arrayWithObject:check];
+  if (row.rustDefault)
+  {
+    [parts addObject:[[DCDevAccentBadge alloc] initWithText:@"default"]];
+  }
   if (detail.length)
   {
     NSTextField* raw = DCCaptionLabel(detail);
@@ -1461,10 +1555,18 @@ static NSURL* DCDevRepoURL(NSString* s)
                                 path:DCNS(inst.toolchainsPath)
                                bytes:inst.toolchainsBytes
                               parent:root];
+          NSString* defName                 = DCDevRustDefaultName(inst.rustupHome);
+          BOOL foundDefaultRustToolchain    = NO;
           for (auto& t : inst.toolchains)
           {
             DCDevRow* child = [s folderRow:DCNS(t.title) path:DCNS(t.path) bytes:t.bytes parent:g];
             child.version   = DCNS(t.rawName);
+            if (!foundDefaultRustToolchain && defName.length &&
+                [child.version isEqualToString:defName])
+            {
+              child.rustDefault          = YES;
+              foundDefaultRustToolchain = YES;
+            }
             [g.children addObject:child];
           }
           [root.children addObject:g];
