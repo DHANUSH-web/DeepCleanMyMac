@@ -969,7 +969,7 @@ static NSURL* DCDevRepoURL(NSString* s)
     _roots             = [NSMutableArray array];
     _cards             = [NSMutableArray array];
     NSStackView* page  = DCPageStack(self);
-    page.edgeInsets    = NSEdgeInsetsMake(24, 0, 24, 0);
+    page.edgeInsets    = NSEdgeInsetsMake(24, 12, 24, 12);
     _scanApps          = [DCGlowButton defaultButtonWithTitle:@"Scan Applications"
                                                        target:self
                                                        action:@selector(reload)
