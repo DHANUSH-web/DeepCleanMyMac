@@ -90,7 +90,7 @@ typedef NS_ENUM(NSInteger, DCDevFamily) {
 @property(nonatomic, copy) NSString* publisher;
 @property(nonatomic, copy) NSString* repositoryUrl;
 @property(nonatomic) uint64_t bytes;
-@property(nonatomic) dcmm::VsCodeEdition edition;
+@property(nonatomic) dcmm::Program edition;
 @property(nonatomic) DCDevFamily family;
 @property(nonatomic) BOOL extensions;
 @property(nonatomic) BOOL selected;
@@ -1267,7 +1267,7 @@ static NSURL* DCDevRepoURL(NSString* s)
   }
   row.loading                      = YES;
   const DCDevFamily family         = card.appRow.family;
-  dcmm::VsCodeEdition edition      = card.appRow.edition;
+  dcmm::Program edition            = card.appRow.edition;
   __weak DCDevCornerView* weakSelf = self;
   __weak DCDevRow* weakRow         = row;
   __weak DCDevVsCodeCard* weakCard = card;
