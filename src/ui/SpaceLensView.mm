@@ -1,10 +1,15 @@
 #import "ui/SpaceLensView.h"
 #import "ui/Theme.h"
+
+#include "Modules.h"
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
 #include "SystemInfo.hpp"
+
+#include "dcmm/common/path.hpp"
+
 #include "dcmm/mac/dcmm.hpp"
-#include "Modules.h"
+
 #include <vector>
 
 @interface DCLensRow : NSObject
@@ -250,7 +255,7 @@
         {
           return;
         }
-        n      = strong->_engine.spaceLens();
+        n      = strong->_engine.space_lens();
         volume = ui::volumeInfo("/").totalBytes;
         if (volume == 0)
         {
@@ -416,7 +421,7 @@
   [_outline beginUpdates];
   for (const auto& path : paths)
   {
-    if (dcmm::pathExists(path))
+    if (dcmm::path_exists(path))
     {
       continue;
     }
@@ -607,7 +612,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band)
     {
       return;
     }
-    auto kids = strong->_engine.spaceLensChildren(path);
+    auto kids = strong->_engine.space_lens_children(path);
     dispatch_async(dispatch_get_main_queue(), ^{
       DCSpaceLensView* s = weakSelf;
       DCLensRow* parent  = weakRow;
@@ -714,7 +719,7 @@ static NSColor* DCSpaceSizeBandFill(ui::SpaceSizeBand band)
   }
   else
   {
-    t.stringValue = DCNS(dcmm::formatBytes(row.node.bytes));
+    t.stringValue = DCNS(dcmm::format_bytes(row.node.bytes));
     t.alignment   = NSTextAlignmentRight;
     t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
                                                      weight:NSFontWeightRegular];

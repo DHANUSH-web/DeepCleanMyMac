@@ -1,5 +1,6 @@
 #include "dcmm/common/dcmm.h"
-#include "dcmm/common/dcmm.hpp"
+#include "dcmm/common/engine.hpp"
+#include "dcmm/common/path.hpp"
 
 #include <gtest/gtest.h>
 
@@ -18,7 +19,7 @@ TEST(DesktopEngine, CAbiVersion)
 TEST(DesktopEngine, RefusesToTrashRoot)
 {
   dcmm::Engine e;
-  auto r = e.trashPaths({"/"});
+  auto r = e.trash_paths({"/"});
   EXPECT_GE(r.failedItems, 1u);
   EXPECT_EQ(r.trashedItems, 0u);
 }
@@ -26,15 +27,15 @@ TEST(DesktopEngine, RefusesToTrashRoot)
 TEST(DesktopEngine, RefusesHomeAndDocuments)
 {
   dcmm::Engine e;
-  auto home = dcmm::homeDirectory();
-  EXPECT_EQ(e.trashPaths({home}).trashedItems, 0u);
-  EXPECT_EQ(e.trashPaths({dcmm::joinPath(home, "Documents")}).trashedItems, 0u);
+  auto home = dcmm::home_directory();
+  EXPECT_EQ(e.trash_paths({home}).trashedItems, 0u);
+  EXPECT_EQ(e.trash_paths({dcmm::join_path(home, "Documents")}).trashedItems, 0u);
 }
 
 TEST(DesktopEngine, EmptySelectionIsANoOp)
 {
   dcmm::Engine e;
-  auto r = e.trashPaths({});
+  auto r = e.trash_paths({});
   EXPECT_EQ(r.trashedItems, 0u);
   EXPECT_EQ(r.trashedBytes, 0u);
 }

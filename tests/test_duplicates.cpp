@@ -1,6 +1,8 @@
 #include "AppFeatures.hpp"
 #include "home_fixture.hpp"
 
+#include "dcmm/common/types.hpp"
+
 #include <gtest/gtest.h>
 
 TEST_F(HomeFixture, DuplicatesDefaultRootsExcludeHome)
@@ -29,14 +31,14 @@ TEST_F(HomeFixture, DuplicatesKeepsFirstCopyAndTrashesTheRest)
   writeBytes(home / "Downloads" / "a.bin", n, 'D');
   writeBytes(home / "Documents" / "b.bin", n, 'D');
   dcmm::Engine e;
-  auto groups = e.findDuplicates(ui::duplicateOptions(home.string()));
+  std::vector<dcmm::DuplicateGroup> groups = e.find_duplicates(ui::duplicateOptions(home.string()));
   ASSERT_FALSE(groups.empty());
   ASSERT_GE(groups[0].files.size(), 2u);
   EXPECT_TRUE(groups[0].files[0].keep);
   EXPECT_FALSE(groups[0].files[1].keep);
-  auto paths = ui::duplicatePathsToTrash(groups);
+  std::vector<std::string> paths = ui::duplicatePathsToTrash(groups);
   ASSERT_EQ(paths.size(), groups[0].files.size() - 1);
-  auto result = e.trashPaths(paths);
+  dcmm::CleanResult result = e.trash_paths(paths);
   EXPECT_GE(result.trashedItems, 1u);
   int remaining = 0;
   if (fs::exists(home / "Downloads" / "a.bin"))
@@ -56,7 +58,7 @@ TEST_F(HomeFixture, DuplicatesNothingToTrashWhenEveryCopyKept)
   writeBytes(home / "Documents" / "x.bin", n, 'K');
   writeBytes(home / "Documents" / "y.bin", n, 'K');
   dcmm::Engine e;
-  auto groups = e.findDuplicates(ui::duplicateOptions(home.string()));
+  std::vector<dcmm::DuplicateGroup> groups = e.find_duplicates(ui::duplicateOptions(home.string()));
   ASSERT_FALSE(groups.empty());
   for (auto& g : groups)
   {

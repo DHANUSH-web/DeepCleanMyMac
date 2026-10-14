@@ -1,9 +1,13 @@
 #import "ui/LargeFilesView.h"
 #import "ui/Theme.h"
+#include "Modules.h"
+
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
+
+#include "dcmm/common/path.hpp"
 #include "dcmm/mac/dcmm.hpp"
-#include "Modules.h"
+
 #include <vector>
 
 @interface DCLargeFilesView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
@@ -205,8 +209,8 @@ struct FlatRow
         {
           return;
         }
-        files = strong->_engine.findLargeFiles(
-            ui::largeFileOptions(dcmm::homeDirectory(), DCLargeFileMinBytes()));
+        files = strong->_engine.find_large_files(
+            ui::largeFileOptions(dcmm::home_directory(), DCLargeFileMinBytes()));
       },
       ^{
         DCLargeFilesView* s = weakSelf;
@@ -349,7 +353,7 @@ struct FlatRow
     NSTextField* t = DCLabel(@"");
     t.font         = [NSFont preferredFontForTextStyle:NSFontTextStyleHeadline options:@{}];
     t.stringValue  = [NSString
-        stringWithFormat:@"%@ — %@", DCNS(g.title), DCNS(dcmm::formatBytes(g.totalBytes()))];
+        stringWithFormat:@"%@ — %@", DCNS(g.title), DCNS(dcmm::format_bytes(g.totalBytes()))];
     if (!col)
     {
       NSStackView* rowView = [NSStackView stackViewWithViews:@[ groupCheck(), t ]];
@@ -381,12 +385,12 @@ struct FlatRow
   t.lineBreakMode = NSLineBreakByTruncatingMiddle;
   if ([ident isEqualToString:@"name"])
   {
-    t.stringValue = DCNS(dcmm::displayName(f.path));
+    t.stringValue = DCNS(dcmm::display_name(f.path));
     t.toolTip     = DCNS(f.path);
   }
   else
   {
-    t.stringValue = DCNS(dcmm::formatBytes(f.bytes));
+    t.stringValue = DCNS(dcmm::format_bytes(f.bytes));
     t.alignment   = NSTextAlignmentRight;
     t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
                                                      weight:NSFontWeightRegular];

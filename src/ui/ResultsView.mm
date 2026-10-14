@@ -4,6 +4,9 @@
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
 #include "Modules.h"
+
+#include "dcmm/common/path.hpp"
+
 #include "dcmm/mac/dcmm.hpp"
 
 #include <atomic>
@@ -291,7 +294,7 @@ NSString* DCResultsSymbol(DCResultsMode mode)
               return;
             }
             ui->_status.stringValue = [NSString stringWithFormat:@"Scanning %@ — %llu items",
-                                                                 DCNS(dcmm::displayName(p)),
+                                                                 DCNS(dcmm::display_name(p)),
                                                                  (unsigned long long)vis];
           });
         };
@@ -336,7 +339,7 @@ NSString* DCResultsSymbol(DCResultsMode mode)
   NSString* verb      = _mode == DCResultsModeSmart ? @"Recommended" : @"Found";
   _status.stringValue = [NSString stringWithFormat:@"%@ %@ in %lu groups (%.1f s)",
                                                    verb,
-                                                   DCNS(dcmm::formatBytes(_report.totalBytes())),
+                                                   DCNS(dcmm::format_bytes(_report.total_bytes())),
                                                    (unsigned long)_report.groups.size(),
                                                    _report.elapsedMs / 1000.0];
   [_table reloadData];
@@ -357,7 +360,7 @@ NSString* DCResultsSymbol(DCResultsMode mode)
 
 - (void)refreshCleanTitle
 {
-  uint64_t b       = _report.selectedBytes();
+  uint64_t b       = _report.selected_bytes();
   _cleanBtn.title  = DCNS(ui::cleanButtonTitleWithBytes(DCCleanPref(), b));
   _cleanBtn.hidden = _state != 2 || b == 0;
 }
@@ -372,7 +375,7 @@ NSString* DCResultsSymbol(DCResultsMode mode)
 
 - (void)cleanSelected
 {
-  auto paths = _report.selectedPaths();
+  auto paths = _report.selected_paths();
   if (paths.empty())
   {
     DCInformNothingToClean(@"Select items in the list first. Nothing was deleted.");
@@ -383,7 +386,7 @@ NSString* DCResultsSymbol(DCResultsMode mode)
   {
     [list addObject:DCNS(p)];
   }
-  if (!DCConfirmClean(list, _report.selectedBytes()))
+  if (!DCConfirmClean(list, _report.selected_bytes()))
   {
     return;
   }
@@ -470,7 +473,7 @@ NSString* DCResultsSymbol(DCResultsMode mode)
     NSTextField* t    = DCLabel(@"");
     t.font            = [NSFont preferredFontForTextStyle:NSFontTextStyleHeadline options:@{}];
     t.stringValue     = [NSString
-        stringWithFormat:@"%@ — %@", DCNS(g.title), DCNS(dcmm::formatBytes(g.totalBytes()))];
+        stringWithFormat:@"%@ — %@", DCNS(g.title), DCNS(dcmm::format_bytes(g.total_bytes()))];
     t.toolTip         = DCNS(g.subtitle);
     const bool native = g.id == "native_system";
     if (!column)
@@ -538,7 +541,7 @@ NSString* DCResultsSymbol(DCResultsMode mode)
   }
   else if ([ident isEqualToString:@"size"])
   {
-    t.stringValue = DCNS(dcmm::formatBytes(it.bytes));
+    t.stringValue = DCNS(dcmm::format_bytes(it.bytes));
     t.alignment   = NSTextAlignmentRight;
     t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
                                                      weight:NSFontWeightRegular];

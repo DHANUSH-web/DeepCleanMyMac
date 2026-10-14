@@ -8,7 +8,7 @@ TEST_F(HomeFixture, PrivacyFindsSafariCacheUnchecked)
   writeBytes(home / "Library" / "Caches" / "com.apple.Safari" / "cache.db", 4096);
   dcmm::Engine e;
   auto r = ui::runScan(e, ui::Module::Privacy);
-  EXPECT_GE(r.totalBytes(), 4096u);
+  EXPECT_GE(r.total_bytes(), 4096u);
   EXPECT_FALSE(ui::allScanItemsSelected(r));
   bool found = false;
   for (const auto& g : r.groups)

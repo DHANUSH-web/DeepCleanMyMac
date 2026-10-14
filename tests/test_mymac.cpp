@@ -1,5 +1,6 @@
 #include "SystemInfo.hpp"
-#include "dcmm/common/dcmm.hpp"
+
+#include "dcmm/common/engine.hpp"
 
 #include <gtest/gtest.h>
 

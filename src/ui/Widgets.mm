@@ -989,7 +989,7 @@ static NSColor* DCSizeBadgeTint(uint64_t bytes)
 - (void)setBytes:(uint64_t)bytes
 {
   _bytes             = bytes;
-  _label.stringValue = DCNS(dcmm::formatBytes(bytes));
+  _label.stringValue = DCNS(dcmm::format_bytes(bytes));
   [self setNeedsDisplay:YES];
 }
 
@@ -2415,7 +2415,7 @@ BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes)
                        @"touched.",
                        (unsigned long)paths.count,
                        paths.count == 1 ? "" : "s",
-                       DCNS(dcmm::formatBytes(bytes))];
+                       DCNS(dcmm::format_bytes(bytes))];
   }
   else
   {
@@ -2425,7 +2425,7 @@ BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes)
               @"are never touched.",
               (unsigned long)paths.count,
               paths.count == 1 ? "" : "s",
-              DCNS(dcmm::formatBytes(bytes))];
+              DCNS(dcmm::format_bytes(bytes))];
   }
 
   NSString* title   = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";
@@ -2455,7 +2455,7 @@ BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes)
                        @"Trash.\n\nAny folder you checked is removed at your own risk.",
                        (unsigned long)paths.count,
                        paths.count == 1 ? "" : "s",
-                       DCNS(dcmm::formatBytes(bytes))];
+                       DCNS(dcmm::format_bytes(bytes))];
   }
   else
   {
@@ -2464,7 +2464,7 @@ BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes)
                        @"risk.",
                        (unsigned long)paths.count,
                        paths.count == 1 ? "" : "s",
-                       DCNS(dcmm::formatBytes(bytes))];
+                       DCNS(dcmm::format_bytes(bytes))];
   }
 
   NSString* title   = perm ? @"Delete these items permanently?" : @"Move these items to Trash?";

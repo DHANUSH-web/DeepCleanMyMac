@@ -156,7 +156,7 @@
         {
           return;
         }
-        apps = strong->_engine.listApps();
+        apps = strong->_engine.list_apps();
       },
       ^{
         DCUninstallerView* s = weakSelf;
@@ -285,7 +285,7 @@
         }
         for (auto& app : workApps)
         {
-          strong->_engine.attachLeftovers(app);
+          strong->_engine.attach_left_overs(app);
         }
         auto paths = ui::uninstallPaths(workApps);
         r          = ui::applyClean(strong->_engine, paths, mode);
@@ -345,7 +345,7 @@
     [icon.heightAnchor constraintEqualToConstant:35].active = YES;
     return DCCenteredIconTextCell(icon, t);
   }
-  t.stringValue = DCNS(dcmm::formatBytes(a.app.appBytes));
+  t.stringValue = DCNS(dcmm::format_bytes(a.app.appBytes));
   t.alignment   = NSTextAlignmentRight;
   t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
                                                    weight:NSFontWeightRegular];

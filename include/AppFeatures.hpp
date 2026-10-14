@@ -2,7 +2,10 @@
 
 #include "Modules.h"
 
-#include "dcmm/mac/dcmm.hpp"
+#include "dcmm/common/engine.hpp"
+#include "dcmm/common/path.hpp"
+#include "dcmm/common/safety.hpp"
+#include "dcmm/common/types.hpp"
 
 #include <algorithm>
 #include <array>
@@ -107,7 +110,7 @@ inline bool scanNameHasComApple(const std::string& name)
 
 inline bool isNativeAppleScanItem(const dcmm::ScanItem& it)
 {
-  return scanNameHasComApple(it.displayName) || scanNameHasComApple(dcmm::displayName(it.path));
+  return scanNameHasComApple(it.displayName) || scanNameHasComApple(dcmm::display_name(it.path));
 }
 
 inline void regroupNativeSystemItems(dcmm::ScanReport& r)
@@ -147,7 +150,7 @@ inline void regroupNativeSystemItems(dcmm::ScanReport& r)
   {
     return;
   }
-  native.sortBySizeDescending();
+  native.sort_by_size_descending();
   r.groups.push_back(std::move(native));
 }
 
@@ -157,15 +160,15 @@ runScan(dcmm::Engine& engine, Module page, const dcmm::ProgressFn& progress = nu
   switch (page)
   {
     case Module::SmartScan:
-      return engine.scanSmart(progress);
+      return engine.scan_smart(progress);
     case Module::DeepScan:
     {
-      auto r = engine.scanJunk(progress);
+      dcmm::ScanReport r = engine.deep_scan(progress);
       regroupNativeSystemItems(r);
       return r;
     }
     case Module::Privacy:
-      return engine.scanPrivacy(progress);
+      return engine.scan_privacy(progress);
     default:
       return {};
   }
@@ -251,26 +254,26 @@ struct LargeFileRootSpec
 };
 
 inline std::vector<LargeFileRootSpec>
-largeFileRootSpecs(const std::string& home = dcmm::homeDirectory())
+largeFileRootSpecs(const std::string& home = dcmm::home_directory())
 {
   return {
-      {"desktop", "Desktop", dcmm::joinPath(home, "Desktop")},
-      {"documents", "Documents", dcmm::joinPath(home, "Documents")},
-      {"downloads", "Downloads", dcmm::joinPath(home, "Downloads")},
-      {"pictures", "Pictures", dcmm::joinPath(home, "Pictures")},
-      {"movies", "Movies", dcmm::joinPath(home, "Movies")},
-      {"music", "Music", dcmm::joinPath(home, "Music")},
+      {"desktop", "Desktop", dcmm::join_path(home, "Desktop")},
+      {"documents", "Documents", dcmm::join_path(home, "Documents")},
+      {"downloads", "Downloads", dcmm::join_path(home, "Downloads")},
+      {"pictures", "Pictures", dcmm::join_path(home, "Pictures")},
+      {"movies", "Movies", dcmm::join_path(home, "Movies")},
+      {"music", "Music", dcmm::join_path(home, "Music")},
       {"icloud",
        "iCloud Drive",
-       dcmm::joinPath(home, "Library/Mobile Documents/com~apple~CloudDocs")},
-      {"bin", "Bin", dcmm::joinPath(home, ".Trash")},
+       dcmm::join_path(home, "Library/Mobile Documents/com~apple~CloudDocs")},
+      {"bin", "Bin", dcmm::join_path(home, ".Trash")},
   };
 }
 
 inline constexpr uint64_t kMebibyte                 = 1024ull * 1024ull;
 inline constexpr uint64_t kDefaultLargeFileMinBytes = 50ull * kMebibyte;
 
-inline dcmm::LargeFileOptions largeFileOptions(const std::string& home = dcmm::homeDirectory(),
+inline dcmm::LargeFileOptions largeFileOptions(const std::string& home = dcmm::home_directory(),
                                                uint64_t minBytes       = kDefaultLargeFileMinBytes)
 {
   dcmm::LargeFileOptions opt;
@@ -278,8 +281,8 @@ inline dcmm::LargeFileOptions largeFileOptions(const std::string& home = dcmm::h
   {
     opt.roots.push_back(s.path);
   }
-  const auto icloudLink = dcmm::joinPath(home, "iCloud Drive");
-  if (dcmm::pathExists(icloudLink))
+  const auto icloudLink = dcmm::join_path(home, "iCloud Drive");
+  if (dcmm::path_exists(icloudLink))
   {
     opt.roots.push_back(icloudLink);
   }
@@ -323,10 +326,10 @@ struct LargeFileGroup
 };
 
 inline std::vector<LargeFileGroup> groupLargeFiles(const std::vector<dcmm::LargeFile>& files,
-                                                   const std::string& home = dcmm::homeDirectory())
+                                                   const std::string& home = dcmm::home_directory())
 {
   auto specs            = largeFileRootSpecs(home);
-  const auto icloudLink = dcmm::joinPath(home, "iCloud Drive");
+  const auto icloudLink = dcmm::join_path(home, "iCloud Drive");
   std::vector<LargeFileGroup> groups;
   groups.reserve(specs.size());
   for (const auto& s : specs)
@@ -413,16 +416,16 @@ inline void setLargeFileGroupSelected(LargeFileGroup& g, bool selected)
   }
 }
 
-inline dcmm::DuplicateOptions duplicateOptions(const std::string& home = dcmm::homeDirectory(),
+inline dcmm::DuplicateOptions duplicateOptions(const std::string& home = dcmm::home_directory(),
                                                bool includeHome        = false)
 {
   dcmm::DuplicateOptions opt;
-  opt.roots = {dcmm::joinPath(home, "Documents"),
-               dcmm::joinPath(home, "Downloads"),
-               dcmm::joinPath(home, "Desktop"),
-               dcmm::joinPath(home, "Pictures"),
-               dcmm::joinPath(home, "Movies"),
-               dcmm::joinPath(home, "Music")};
+  opt.roots = {dcmm::join_path(home, "Documents"),
+               dcmm::join_path(home, "Downloads"),
+               dcmm::join_path(home, "Desktop"),
+               dcmm::join_path(home, "Pictures"),
+               dcmm::join_path(home, "Movies"),
+               dcmm::join_path(home, "Music")};
   if (includeHome)
   {
     opt.roots.push_back(home);
@@ -514,7 +517,7 @@ inline bool spaceLensDanger(const std::string& path)
   {
     p.pop_back();
   }
-  const std::string home     = dcmm::homeDirectory();
+  const std::string home     = dcmm::home_directory();
   static const char* roots[] = {"Desktop",
                                 "Documents",
                                 "Downloads",
@@ -526,16 +529,16 @@ inline bool spaceLensDanger(const std::string& path)
                                 nullptr};
   for (int i = 0; roots[i]; ++i)
   {
-    if (p == dcmm::joinPath(home, roots[i]))
+    if (p == dcmm::join_path(home, roots[i]))
     {
       return true;
     }
   }
-  if (dcmm::isJunkCategoryRoot(p))
+  if (dcmm::is_junk_category_root(p))
   {
     return false;
   }
-  const auto library = dcmm::joinPath(home, "Library");
+  const auto library = dcmm::join_path(home, "Library");
   const bool underLibrary =
       p == library || (p.size() > library.size() && p.compare(0, library.size(), library) == 0 &&
                        (p[library.size()] == '/' || p[library.size()] == '\\'));
@@ -699,18 +702,18 @@ inline std::vector<std::string> applicationSupportNames(const dcmm::InstalledApp
   };
   add(app.bundleId);
   add(app.name);
-  add(dcmm::displayName(app.appPath));
+  add(dcmm::display_name(app.appPath));
   return names;
 }
 
 inline std::vector<std::string> applicationSupportLeftoverPaths(const dcmm::InstalledApp& app)
 {
-  const auto root = dcmm::joinPath(dcmm::homeDirectory(), "Library/Application Support");
+  const auto root = dcmm::join_path(dcmm::home_directory(), "Library/Application Support");
   std::vector<std::string> out;
   for (const auto& n : applicationSupportNames(app))
   {
-    const auto p = dcmm::joinPath(root, n);
-    if (dcmm::pathExists(p) && dcmm::isSafeToTrash(p))
+    const auto p = dcmm::join_path(root, n);
+    if (dcmm::path_exists(p) && dcmm::is_safe_to_trash(p))
     {
       appendUniquePath(out, p);
     }

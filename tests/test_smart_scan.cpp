@@ -1,8 +1,6 @@
 #include "AppFeatures.hpp"
 #include "home_fixture.hpp"
 
-#include "dcmm/common/dcmm.hpp"
-
 #include <gtest/gtest.h>
 
 TEST_F(HomeFixture, SmartScanRecommendsWholeCacheGroup)
@@ -12,7 +10,7 @@ TEST_F(HomeFixture, SmartScanRecommendsWholeCacheGroup)
   dcmm::Engine e;
   auto r = ui::runScan(e, ui::Module::SmartScan);
   EXPECT_FALSE(r.groups.empty());
-  EXPECT_GE(r.totalBytes(), 4096u);
+  EXPECT_GE(r.total_bytes(), 4096u);
   EXPECT_TRUE(ui::allScanItemsSelected(r));
 
   bool sawChildName = false;
@@ -49,11 +47,11 @@ TEST_F(HomeFixture, SmartScanSelectAllToggles)
   ASSERT_TRUE(ui::allScanItemsSelected(r));
   ui::setAllScanItemsSelected(r, false);
   EXPECT_FALSE(ui::allScanItemsSelected(r));
-  EXPECT_EQ(r.selectedBytes(), 0u);
-  EXPECT_TRUE(r.selectedPaths().empty());
+  EXPECT_EQ(r.selected_bytes(), 0u);
+  EXPECT_TRUE(r.selected_paths().empty());
   ui::setAllScanItemsSelected(r, true);
   EXPECT_TRUE(ui::allScanItemsSelected(r));
-  EXPECT_FALSE(r.selectedPaths().empty());
+  EXPECT_FALSE(r.selected_paths().empty());
 }
 
 TEST_F(HomeFixture, SmartScanCleanMovesCacheChildren)
@@ -62,9 +60,9 @@ TEST_F(HomeFixture, SmartScanCleanMovesCacheChildren)
   writeBytes(child / "a.bin", 2048);
   dcmm::Engine e;
   auto r     = ui::runScan(e, ui::Module::SmartScan);
-  auto paths = r.selectedPaths();
+  auto paths = r.selected_paths();
   ASSERT_FALSE(paths.empty());
-  auto result = e.trashPaths(paths);
+  auto result = e.trash_paths(paths);
   EXPECT_GE(result.trashedItems, 1u);
   EXPECT_FALSE(fs::exists(child));
   EXPECT_TRUE(fs::exists(home / "Library" / "Caches"));

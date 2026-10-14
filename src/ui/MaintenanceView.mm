@@ -1,7 +1,11 @@
 #import "ui/MaintenanceView.h"
 #import "ui/Theme.h"
-#include "dcmm/mac/dcmm.hpp"
+
 #include "Modules.h"
+
+#include "dcmm/common/path.hpp"
+
+#include "dcmm/mac/dcmm.hpp"
 
 #include <vector>
 
@@ -150,7 +154,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
     DCStackFullWidth(page, header);
 
     _runButtons = [NSMutableArray array];
-    auto tasks  = _engine.maintenanceTasks();
+    auto tasks  = _engine.maintenance_tasks();
     _taskJobs.assign(tasks.size(), 0);
     NSMutableArray<NSView*>* cards = [NSMutableArray array];
     for (size_t i = 0; i < tasks.size(); ++i)
@@ -199,7 +203,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
   {
     return;
   }
-  auto tasks = _engine.maintenanceTasks();
+  auto tasks = _engine.maintenance_tasks();
   if (sender.tag < 0 || sender.tag >= (NSInteger)tasks.size())
   {
     return;
@@ -224,7 +228,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
         {
           return;
         }
-        preview = strong->_engine.previewMaintenance(id);
+        preview = strong->_engine.preview_maintenance(id);
       },
       ^{
         DCMaintenanceView* s = weakSelf;
@@ -245,7 +249,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
         {
           copy.body = [NSString stringWithFormat:@"%@\n\nCurrently using %@.",
                                                  copy.body,
-                                                 DCNS(dcmm::formatBytes(preview.bytesFreed))];
+                                                 DCNS(dcmm::format_bytes(preview.bytesFreed))];
         }
         if (!DCConfirmDestructive(copy.title, copy.body, copy.proceed))
         {
@@ -261,7 +265,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
               {
                 return;
               }
-              result = st->_engine.runMaintenance(id);
+              result = st->_engine.run_maintenance(id);
             },
             ^{
               DCMaintenanceView* st = weakSelf;
@@ -286,7 +290,7 @@ ConfirmCopy ConfirmForTask(const std::string& id, const dcmm::MaintenanceTask& t
               NSString* doneTitle =
                   result.bytesFreed > 0
                       ? [NSString stringWithFormat:@"Freed %@",
-                                                   DCNS(dcmm::formatBytes(result.bytesFreed))]
+                                                   DCNS(dcmm::format_bytes(result.bytesFreed))]
                       : @"Finished";
               DCInformCleaned(doneTitle, DCNS(result.message));
             });

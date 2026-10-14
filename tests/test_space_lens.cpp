@@ -2,8 +2,6 @@
 #include "AppSettings.hpp"
 #include "home_fixture.hpp"
 
-#include "dcmm/common/dcmm.hpp"
-
 #include <gtest/gtest.h>
 
 TEST_F(HomeFixture, SpaceLensMeasuresHomeFolders)
@@ -11,7 +9,7 @@ TEST_F(HomeFixture, SpaceLensMeasuresHomeFolders)
   writeBytes(home / "Downloads" / "movie.bin", 8192);
   writeBytes(home / "Library" / "Caches" / "c.bin", 4096);
   dcmm::Engine e;
-  auto nodes = e.spaceLens();
+  auto nodes = e.space_lens();
   EXPECT_FALSE(nodes.empty());
   bool sawDownloads = false, sawCaches = false, sawLibraryRoot = false;
   for (const auto& n : nodes)
@@ -44,7 +42,7 @@ TEST_F(HomeFixture, SpaceLensSelectedPathsIncludeOwnRiskFolders)
   writeBytes(home / "Library" / "Caches" / "c.bin", 4096);
   writeBytes(home / "Documents" / "keep.txt", 1024);
   dcmm::Engine e;
-  auto nodes = e.spaceLens();
+  auto nodes = e.space_lens();
   ASSERT_FALSE(nodes.empty());
   std::vector<char> selected(nodes.size(), 1);
   auto paths = ui::selectedSpaceLensPaths(nodes, selected);
@@ -118,7 +116,7 @@ TEST_F(HomeFixture, SpaceLensParentSizeCoversChildren)
   writeBytes(home / "Library" / "Application Support" / "root.bin", 1024);
   dcmm::Engine e;
   const auto support   = (home / "Library" / "Application Support").string();
-  auto parent          = e.spaceLensChildren((home / "Library").string());
+  auto parent          = e.space_lens_children((home / "Library").string());
   uint64_t parentBytes = 0;
   for (const auto& n : parent)
   {
@@ -128,7 +126,7 @@ TEST_F(HomeFixture, SpaceLensParentSizeCoversChildren)
     }
   }
   EXPECT_GT(parentBytes, 0u);
-  auto kids         = e.spaceLensChildren(support);
+  auto kids         = e.space_lens_children(support);
   uint64_t childSum = 0;
   for (const auto& n : kids)
   {
@@ -142,7 +140,7 @@ TEST_F(HomeFixture, SpaceLensChildrenListsNestedFolder)
   writeBytes(home / "Downloads" / "heavy" / "clip.bin", 4096);
   writeBytes(home / "Downloads" / "notes.txt", 512);
   dcmm::Engine e;
-  auto kids = e.spaceLensChildren((home / "Downloads").string());
+  auto kids = e.space_lens_children((home / "Downloads").string());
   ASSERT_FALSE(kids.empty());
   bool sawHeavy = false, sawNotes = false;
   for (const auto& n : kids)

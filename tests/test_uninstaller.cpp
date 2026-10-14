@@ -2,7 +2,7 @@
 #include "AppSettings.hpp"
 #include "home_fixture.hpp"
 
-#include "dcmm/common/dcmm.hpp"
+#include "dcmm/common/types.hpp"
 
 #include <gtest/gtest.h>
 
@@ -20,7 +20,7 @@ TEST_F(HomeFixture, UninstallerListsAppsWithoutSelectingLeftovers)
   writeBytes(home / "Library" / "Caches" / "com.example.Fixture" / "c.bin", 256);
 
   dcmm::Engine e;
-  auto apps  = e.listApps();
+  auto apps  = e.list_apps();
   bool found = false;
   for (auto& a : apps)
   {
@@ -29,7 +29,7 @@ TEST_F(HomeFixture, UninstallerListsAppsWithoutSelectingLeftovers)
       continue;
     }
     found = true;
-    e.attachLeftovers(a);
+    e.attach_left_overs(a);
     for (const auto& it : a.leftovers)
     {
       EXPECT_FALSE(it.selected);
@@ -51,7 +51,7 @@ TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp)
   }
   writeBytes(home / "Library" / "Caches" / "com.example.Fixture" / "c.bin", 256);
   dcmm::Engine e;
-  auto apps                       = e.listApps();
+  auto apps                       = e.list_apps();
   const dcmm::InstalledApp* found = nullptr;
   for (auto& a : apps)
   {
@@ -62,7 +62,7 @@ TEST_F(HomeFixture, UninstallRemovesAttachedLeftoversWithApp)
   }
   ASSERT_NE(found, nullptr);
   dcmm::InstalledApp app = *found;
-  e.attachLeftovers(app);
+  e.attach_left_overs(app);
   auto paths = ui::uninstallPaths(app);
   ASSERT_FALSE(paths.empty());
   EXPECT_EQ(paths.front(), app.appPath);
@@ -125,7 +125,7 @@ TEST_F(HomeFixture, UninstallRemovesApplicationSupportNamedFolders)
   writeBytes(home / "Library" / "Application Support" / "Google" / "keep.txt", 32);
   writeBytes(home / "Library" / "Caches" / "com.google.chrome" / "c.bin", 64);
   dcmm::Engine e;
-  auto apps                       = e.listApps();
+  auto apps                       = e.list_apps();
   const dcmm::InstalledApp* found = nullptr;
   for (auto& a : apps)
   {
@@ -189,7 +189,7 @@ TEST_F(HomeFixture, UninstallPathsCollectsMultipleApps)
 TEST_F(HomeFixture, UninstallerRefusesSystemApps)
 {
   dcmm::Engine e;
-  auto r = e.trashPaths({"/System/Applications/Safari.app"});
+  dcmm::CleanResult r = e.trash_paths({"/System/Applications/Safari.app"});
   EXPECT_EQ(r.trashedItems, 0u);
   EXPECT_GE(r.failedItems, 1u);
 }

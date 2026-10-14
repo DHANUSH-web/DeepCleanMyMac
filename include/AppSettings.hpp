@@ -1,9 +1,8 @@
 #pragma once
 
-#include "AppFeatures.hpp"
-
-#include "dcmm/mac/dcmm.hpp"
+#include "dcmm/common/path.hpp"
 #include "dcmm/common/safety.hpp"
+#include "dcmm/common/engine.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -87,9 +86,9 @@ inline std::string cleanButtonTitleWithBytes(CleanPref p, uint64_t bytes)
   }
   if (p == CleanPref::DeletePermanently)
   {
-    return std::string("Delete ") + dcmm::formatBytes(bytes) + " Permanently";
+    return std::string("Delete ") + dcmm::format_bytes(bytes) + " Permanently";
   }
-  return std::string("Move ") + dcmm::formatBytes(bytes) + " to Trash";
+  return std::string("Move ") + dcmm::format_bytes(bytes) + " to Trash";
 }
 
 inline const char* cleanNothingDetail(CleanPref p)
@@ -102,8 +101,8 @@ inline std::string cleanFinishedDetail(CleanPref p, const dcmm::CleanResult& r)
 {
   const char* how  = p == CleanPref::DeletePermanently ? "deleting" : "moving";
   const char* dest = p == CleanPref::DeletePermanently ? "" : " to Trash";
-  std::string s    = "Freed " + dcmm::formatBytes(r.trashedBytes) + " by " + how + " " +
-                     dcmm::formatCount(r.trashedItems, "item", "items") + dest + ".";
+  std::string s    = "Freed " + dcmm::format_bytes(r.trashedBytes) + " by " + how + " " +
+                     dcmm::format_count(r.trashedItems, "item", "items") + dest + ".";
   if (r.failedItems)
   {
     s += " " + std::to_string(r.failedItems) + " skipped.";
@@ -119,21 +118,21 @@ inline std::vector<std::string> cleanTargets(const std::string& path)
   {
     return out;
   }
-  if (dcmm::isJunkCategoryRoot(path))
+  if (dcmm::is_junk_category_root(path))
   {
     std::error_code ec;
     fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec);
     for (; it != fs::directory_iterator() && !ec; it.increment(ec))
     {
       const std::string full = it->path().string();
-      if (dcmm::isSafeToTrash(full))
+      if (dcmm::is_safe_to_trash(full))
       {
         out.push_back(full);
       }
     }
     return out;
   }
-  if (dcmm::isSafeToTrash(path))
+  if (dcmm::is_safe_to_trash(path))
   {
     out.push_back(path);
   }
@@ -166,7 +165,7 @@ applyClean(dcmm::Engine& engine, const std::vector<std::string>& paths, CleanPre
 {
   if (mode != CleanPref::DeletePermanently)
   {
-    return engine.trashPaths(paths);
+    return engine.trash_paths(paths);
   }
   namespace fs = std::filesystem;
   dcmm::CleanResult result;
@@ -181,7 +180,7 @@ applyClean(dcmm::Engine& engine, const std::vector<std::string>& paths, CleanPre
     }
     for (const auto& t : targets)
     {
-      if (!dcmm::isSafeToTrash(t))
+      if (!dcmm::is_safe_to_trash(t))
       {
         result.failedItems++;
         result.errors.push_back("Blocked (protected path): " + t);
@@ -215,7 +214,7 @@ inline bool moveOwnRiskToTrash(const std::string& path, std::string& err)
   }
   const char* env = std::getenv("DCMM_TRASH");
   fs::path destRoot =
-      env && *env ? fs::path(env) : fs::path(dcmm::joinPath(dcmm::homeDirectory(), ".Trash"));
+      env && *env ? fs::path(env) : fs::path(dcmm::join_path(dcmm::home_directory(), ".Trash"));
   fs::create_directories(destRoot, ec);
   std::string stem = src.filename().string();
   fs::path dest    = destRoot / stem;
@@ -250,7 +249,7 @@ applySpaceLensClean(dcmm::Engine& engine, const std::vector<std::string>& paths,
       result.errors.push_back("Blocked (protected path): " + p);
       continue;
     }
-    if (dcmm::isJunkCategoryRoot(p) || dcmm::isSafeToTrash(p))
+    if (dcmm::is_junk_category_root(p) || dcmm::is_safe_to_trash(p))
     {
       enginePaths.push_back(p);
     }

@@ -1,4 +1,9 @@
 #import "ui/DevCornerView.h"
+#include "dcmm/mac/vscode.hpp"
+#include "dcmm/mac/antigravity.hpp"
+#include "dcmm/mac/cursor.hpp"
+#include "dcmm/common/rust.hpp"
+#include "dcmm/common/path.hpp"
 #import "ui/Theme.h"
 
 #import <objc/runtime.h>
@@ -35,7 +40,7 @@ DCDevExtCopy DCDevCopyExt(const Ext& e)
 
 NSString* DCDevRustDefaultName(const std::string& rustupHome)
 {
-  std::ifstream in(dcmm::joinPath(rustupHome, "settings.toml"));
+  std::ifstream in(dcmm::join_path(rustupHome, "settings.toml"));
   if (!in)
   {
     return @"";
@@ -284,7 +289,7 @@ static NSColor* DCDevSizeTint(uint64_t bytes)
 - (void)setBytes:(uint64_t)bytes
 {
   _bytes             = bytes;
-  _label.stringValue = DCNS(dcmm::formatBytes(bytes));
+  _label.stringValue = DCNS(dcmm::format_bytes(bytes));
   [self setNeedsDisplay:YES];
 }
 
@@ -778,7 +783,7 @@ static NSURL* DCDevRepoURL(NSString* s)
 
 - (void)syncUninstallTitle
 {
-  NSString* sz = DCNS(dcmm::formatBytes(_root.bytes));
+  NSString* sz = DCNS(dcmm::format_bytes(_root.bytes));
   _uninstall.title = [NSString stringWithFormat:@"Uninstall %@", sz];
 }
 
@@ -1281,21 +1286,21 @@ static NSURL* DCDevRepoURL(NSString* s)
     }
     if (family == DCDevFamilyCursor)
     {
-      for (auto& e : strong->_engine.listCursorExtensions())
+      for (auto& e : strong->_engine.list_cursor_extensions())
       {
         exts.push_back(DCDevCopyExt(e));
       }
     }
     else if (family == DCDevFamilyAntigravity)
     {
-      for (auto& e : strong->_engine.listAntigravityExtensions())
+      for (auto& e : strong->_engine.list_antigravity_extensions())
       {
         exts.push_back(DCDevCopyExt(e));
       }
     }
     else
     {
-      for (auto& e : strong->_engine.listVsCodeExtensions(edition))
+      for (auto& e : strong->_engine.list_vscode_extensions(edition))
       {
         exts.push_back(DCDevCopyExt(e));
       }
@@ -1368,9 +1373,9 @@ static NSURL* DCDevRepoURL(NSString* s)
         {
           return;
         }
-        vscode      = strong->_engine.listVsCode();
-        cursor      = strong->_engine.listCursor();
-        antigravity = strong->_engine.listAntigravity();
+        vscode      = strong->_engine.list_vscode();
+        cursor      = strong->_engine.list_cursor();
+        antigravity = strong->_engine.list_antigravity();
       },
       ^{
         DCDevCornerView* s = weakSelf;
@@ -1522,7 +1527,7 @@ static NSURL* DCDevRepoURL(NSString* s)
         {
           return;
         }
-        inst = strong->_engine.listRust();
+        inst = strong->_engine.list_rust();
       },
       ^{
         DCDevCornerView* s = weakSelf;
@@ -1549,7 +1554,7 @@ static NSURL* DCDevRepoURL(NSString* s)
         root.title     = @"Rust";
         root.family    = DCDevFamilyRust;
         root.bytes     = inst.bytes;
-        if (dcmm::isDirectory(inst.toolchainsPath) || !inst.toolchains.empty())
+        if (dcmm::is_directory(inst.toolchainsPath) || !inst.toolchains.empty())
         {
           DCDevRow* g = [s folderRow:@"Toolchains"
                                 path:DCNS(inst.toolchainsPath)
@@ -1579,7 +1584,7 @@ static NSURL* DCDevRepoURL(NSString* s)
                                            bytes:it.bytes
                                           parent:cargo]];
         }
-        if (inst.cargoBytes > 0 || cargo.children.count || dcmm::pathExists(inst.cargoHome))
+        if (inst.cargoBytes > 0 || cargo.children.count || dcmm::path_exists(inst.cargoHome))
         {
           [root.children addObject:cargo];
         }
@@ -1695,7 +1700,7 @@ static NSURL* DCDevRepoURL(NSString* s)
       std::vector<std::string> hashes;
       for (const auto& p : paths)
       {
-        auto extra = dcmm::rustHashSidecars(p);
+        auto extra = dcmm::rust_hash_sidecars(p);
         hashes.insert(hashes.end(), extra.begin(), extra.end());
       }
       paths.insert(paths.end(), hashes.begin(), hashes.end());
@@ -1837,19 +1842,19 @@ static NSURL* DCDevRepoURL(NSString* s)
   std::vector<std::string> paths;
   if (row.family == DCDevFamilyCursor)
   {
-    paths = dcmm::cursorNukePaths();
+    paths = dcmm::cursor_nuke_paths();
   }
   else if (row.family == DCDevFamilyAntigravity)
   {
-    paths = dcmm::antigravityNukePaths();
+    paths = dcmm::antigravity_nuke_paths();
   }
   else if (row.family == DCDevFamilyRust)
   {
-    paths = dcmm::rustNukePaths();
+    paths = dcmm::rust_nuke_paths();
   }
   else
   {
-    paths = dcmm::vsCodeNukePaths(row.edition);
+    paths = dcmm::vscode_nuke_paths(row.edition);
   }
   if (paths.empty())
   {

@@ -3,8 +3,6 @@
 #include "Modules.h"
 #include "home_fixture.hpp"
 
-#include "dcmm/common/dcmm.hpp"
-
 #include <gtest/gtest.h>
 
 TEST(Settings, AppearanceIdsRoundTrip)

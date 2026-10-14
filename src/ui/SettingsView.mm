@@ -1,6 +1,7 @@
 #import "ui/SettingsView.h"
 #import "ui/Theme.h"
 
+#include "AppFeatures.hpp"
 #include "AppSettings.hpp"
 #include "Modules.h"
 

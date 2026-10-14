@@ -10,7 +10,7 @@ TEST_F(HomeFixture, DeepScanListsEachCacheChildUnchecked)
   dcmm::Engine e;
   auto r = ui::runScan(e, ui::Module::DeepScan);
   EXPECT_FALSE(ui::allScanItemsSelected(r));
-  EXPECT_EQ(r.selectedBytes(), 0u);
+  EXPECT_EQ(r.selected_bytes(), 0u);
 
   bool foundJunk = false, foundArc = false;
   for (const auto& g : r.groups)
@@ -126,7 +126,7 @@ TEST_F(HomeFixture, DeepScanOptInCleanOnlyCheckedRows)
       }
     }
   }
-  auto result = e.trashPaths(r.selectedPaths());
+  auto result = e.trash_paths(r.selected_paths());
   EXPECT_GE(result.trashedItems, 1u);
   EXPECT_TRUE(fs::exists(home / "Library" / "Caches" / "keep.me"));
   EXPECT_FALSE(fs::exists(home / "Library" / "Caches" / "drop.me"));

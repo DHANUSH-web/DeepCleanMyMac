@@ -766,7 +766,7 @@ std::vector<std::pair<std::string, std::string>> machineFacts(const HostInfo& h)
   addFact(out, "Cores", formatCoreCount(h.physicalCpus, h.performanceCpus, h.efficiencyCpus));
   if (h.memoryBytes)
   {
-    addFact(out, "Memory", dcmm::formatBytes(h.memoryBytes));
+    addFact(out, "Memory", dcmm::format_bytes(h.memoryBytes));
   }
   addFact(out, "macOS", formatOsLine(h));
   addFact(out, "Model", h.modelId);
@@ -789,11 +789,11 @@ std::vector<std::pair<std::string, std::string>> storageFacts(const VolumeInfo& 
   addFact(out, "Mount", v.mountPoint);
   if (v.mediaSizeBytes && v.mediaSizeBytes != v.totalBytes)
   {
-    addFact(out, "Container", dcmm::formatBytes(v.mediaSizeBytes));
+    addFact(out, "Container", dcmm::format_bytes(v.mediaSizeBytes));
   }
   if (v.purgeableBytes)
   {
-    addFact(out, "Purgeable", dcmm::formatBytes(v.purgeableBytes));
+    addFact(out, "Purgeable", dcmm::format_bytes(v.purgeableBytes));
   }
   addFact(out, "FileVault", yesNo(v.encrypted));
   addFact(out, "Writable", yesNo(v.writable));

@@ -1,9 +1,14 @@
 #import "ui/DuplicatesView.h"
 #import "ui/Theme.h"
+
+#include "Modules.h"
 #include "AppFeatures.hpp"
 #include "AppSettings.hpp"
+
+#include "dcmm/common/path.hpp"
+
 #include "dcmm/mac/dcmm.hpp"
-#include "Modules.h"
+
 #include <vector>
 
 @interface DCDupFlippedDoc : NSView
@@ -147,7 +152,7 @@
   NSInteger kb   = DCDuplicatesMinKB();
   if (kb > 0)
   {
-    size = [NSString stringWithFormat:@"%@ or larger", DCNS(dcmm::formatBytes(DCDuplicatesMinBytes()))];
+    size = [NSString stringWithFormat:@"%@ or larger", DCNS(dcmm::format_bytes(DCDuplicatesMinBytes()))];
   }
   if (DCDuplicatesScanHome())
   {
@@ -297,9 +302,9 @@
         {
           return;
         }
-        auto opt     = ui::duplicateOptions(dcmm::homeDirectory(), DCDuplicatesScanHome());
+        auto opt     = ui::duplicateOptions(dcmm::home_directory(), DCDuplicatesScanHome());
         opt.minBytes = DCDuplicatesMinBytes();
-        g            = strong->_engine.findDuplicates(opt);
+        g            = strong->_engine.find_duplicates(opt);
       },
       ^{
         DCDuplicatesView* s = weakSelf;

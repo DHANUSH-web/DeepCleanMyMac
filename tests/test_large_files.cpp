@@ -1,6 +1,8 @@
 #include "AppFeatures.hpp"
 #include "home_fixture.hpp"
 
+#include "dcmm/common/types.hpp"
+
 #include <gtest/gtest.h>
 
 TEST_F(HomeFixture, LargeFilesUsesHomeFolderRoots)
@@ -28,7 +30,7 @@ TEST_F(HomeFixture, LargeFilesIgnoresSmallFilesAtDefaultThreshold)
 {
   writeBytes(home / "Downloads" / "tiny.bin", 4096);
   dcmm::Engine e;
-  auto files = e.findLargeFiles(ui::largeFileOptions(home.string()));
+  std::vector<dcmm::LargeFile> files = e.find_large_files(ui::largeFileOptions(home.string()));
   EXPECT_TRUE(files.empty());
   EXPECT_TRUE(ui::selectedLargeFilePaths(files).empty());
 }
@@ -40,7 +42,7 @@ TEST_F(HomeFixture, LargeFilesFindsOversizedDownloadsUnchecked)
   auto opt     = ui::largeFileOptions(home.string());
   opt.minBytes = 100;
   dcmm::Engine e;
-  auto files = e.findLargeFiles(opt);
+  std::vector<dcmm::LargeFile> files = e.find_large_files(opt);
   ASSERT_FALSE(files.empty());
   bool sawDownloads = false, sawCaches = false;
   for (const auto& f : files)
@@ -61,7 +63,7 @@ TEST_F(HomeFixture, LargeFilesFindsOversizedDownloadsUnchecked)
   files[0].selected = true;
   auto paths        = ui::selectedLargeFilePaths(files);
   ASSERT_EQ(paths.size(), 1u);
-  auto result = e.trashPaths(paths);
+  auto result = e.trash_paths(paths);
   EXPECT_EQ(result.trashedItems, 1u);
   EXPECT_FALSE(fs::exists(home / "Downloads" / "big.bin"));
 }
