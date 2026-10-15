@@ -50,7 +50,7 @@
         @"Duplicates", [NSString stringWithUTF8String:ui::subtitle(ui::Module::Duplicates)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
-    _scan         = [DCGlowButton defaultButtonWithTitle:@"Scan"
+    _scan         = [DCGlowButton defaultButtonWithTitle:@"Scan Again"
                                                   target:self
                                                   action:@selector(startScan)
                                                glowColor:NSColor.controlAccentColor
