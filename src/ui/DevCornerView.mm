@@ -959,7 +959,6 @@ static NSURL* DCDevRepoURL(NSString* s)
   NSSegmentedControl* _tabs;
   NSView* _appsWrap;
   NSView* _tcWrap;
-  NSView* _placeholder;
   DCStartScreen* _startScreen;
   BOOL _hasListed;
   BOOL _hasListedRust;
@@ -1047,20 +1046,9 @@ static NSURL* DCDevRepoURL(NSString* s)
     _tcWrap                = _tcScroll;
     _tcWrap.hidden         = YES;
 
-    NSTextField* soon                              = DCSecondaryLabel(@"Under development");
-    soon.alignment                                 = NSTextAlignmentCenter;
-    soon.translatesAutoresizingMaskIntoConstraints = NO;
-    _placeholder                                   = [[NSView alloc] initWithFrame:NSZeroRect];
-    [_placeholder addSubview:soon];
-    [NSLayoutConstraint activateConstraints:@[
-      [soon.centerXAnchor constraintEqualToAnchor:_placeholder.centerXAnchor],
-      [soon.centerYAnchor constraintEqualToAnchor:_placeholder.centerYAnchor],
-    ]];
-    _placeholder.hidden                                 = YES;
     NSView* body                                        = [[NSView alloc] initWithFrame:NSZeroRect];
     _appsWrap.translatesAutoresizingMaskIntoConstraints = NO;
     _tcWrap.translatesAutoresizingMaskIntoConstraints   = NO;
-    _placeholder.translatesAutoresizingMaskIntoConstraints = NO;
     __weak DCDevCornerView* weakSelf                       = self;
     _startScreen                                           = [[DCStartScreen alloc]
         initWithTitle:@"Dev Corner"
@@ -1081,16 +1069,14 @@ static NSURL* DCDevRepoURL(NSString* s)
     _startScreen.translatesAutoresizingMaskIntoConstraints = NO;
     [body addSubview:_appsWrap];
     [body addSubview:_tcWrap];
-    [body addSubview:_placeholder];
     [body addSubview:_startScreen];
     DCPinEdges(_appsWrap, body);
     DCPinEdges(_tcWrap, body);
-    DCPinEdges(_placeholder, body);
     DCPinEdges(_startScreen, body);
     _scanApps.keyEquivalent = @"";
 
     _tabs                 = [NSSegmentedControl
-        segmentedControlWithLabels:@[ @"Applications", @"Toolchains", @"Others" ]
+        segmentedControlWithLabels:@[ @"Applications", @"Toolchains" ]
                       trackingMode:NSSegmentSwitchTrackingSelectOne
                             target:self
                             action:@selector(tabChanged:)];
@@ -1176,16 +1162,14 @@ static NSURL* DCDevRepoURL(NSString* s)
                   defaultButton:YES
                    appearBounce:YES];
   _startScreen.hidden = NO;
-  _appsWrap.hidden    = YES;
-  _tcWrap.hidden      = YES;
-  _placeholder.hidden = YES;
-  _actions.hidden     = YES;
+  _appsWrap.hidden = YES;
+  _tcWrap.hidden   = YES;
+  _actions.hidden  = YES;
 }
 
 - (void)showContent
 {
   _startScreen.hidden     = YES;
-  _placeholder.hidden     = YES;
   _actions.hidden         = NO;
   _scanApps.keyEquivalent = @"\r";
   const BOOL apps         = [self applicationTabSelected];
@@ -1208,10 +1192,9 @@ static NSURL* DCDevRepoURL(NSString* s)
     else
     {
       _startScreen.hidden = NO;
-      _appsWrap.hidden    = YES;
-      _tcWrap.hidden      = YES;
-      _placeholder.hidden = YES;
-      _actions.hidden     = YES;
+      _appsWrap.hidden = YES;
+      _tcWrap.hidden   = YES;
+      _actions.hidden  = YES;
     }
     [self refreshClean];
     return;
@@ -1229,19 +1212,12 @@ static NSURL* DCDevRepoURL(NSString* s)
     else
     {
       _startScreen.hidden = NO;
-      _appsWrap.hidden    = YES;
-      _tcWrap.hidden      = YES;
-      _placeholder.hidden = YES;
-      _actions.hidden     = YES;
+      _appsWrap.hidden = YES;
+      _tcWrap.hidden   = YES;
+      _actions.hidden  = YES;
     }
     [self refreshClean];
-    return;
   }
-  _startScreen.hidden = YES;
-  _appsWrap.hidden    = YES;
-  _tcWrap.hidden      = YES;
-  _placeholder.hidden = NO;
-  _actions.hidden     = YES;
 }
 
 - (void)rebuildCards
@@ -1745,10 +1721,6 @@ static NSURL* DCDevRepoURL(NSString* s)
   else if ([self toolchainTabSelected])
   {
     _actions.hidden = !_rustRoot;
-  }
-  else
-  {
-    _actions.hidden = YES;
   }
 }
 
