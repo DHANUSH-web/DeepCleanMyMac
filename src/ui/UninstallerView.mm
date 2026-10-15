@@ -25,7 +25,6 @@
   NSTableView* _appsTable;
   NSStackView* _content;
   DCStartScreen* _startScreen;
-  BOOL _listed;
   uint64_t _job;
 }
 
@@ -85,7 +84,7 @@
                symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::Uninstaller)]
         iconPointSize:250
               colored:NO
-          buttonTitle:@"Refresh"
+          buttonTitle:@"Scan Apps"
              onAction:^{
                [weakSelf reloadApps];
              }];
@@ -94,24 +93,13 @@
     _startScreen.buttonMinWidth        = 100;
     _startScreen.buttonFont            = [NSFont systemFontOfSize:15 weight:NSFontWeightMedium];
     _startScreen.defaultButton         = YES;
-    _startScreen.hidden                = YES;
     [self addSubview:_startScreen];
     DCPinEdges(_startScreen, self);
+    _content.hidden       = YES;
     _reload.keyEquivalent = @"";
     [self refreshUninstall];
   }
   return self;
-}
-
-- (void)viewDidMoveToWindow
-{
-  [super viewDidMoveToWindow];
-  if (!self.window || _listed)
-  {
-    return;
-  }
-  _listed = YES;
-  [self reloadApps];
 }
 
 - (void)showContent
