@@ -755,6 +755,7 @@ static NSURL* DCDevRepoURL(NSString* s)
     }
     [_extStrip addArrangedSubview:[[DCDevExtensionCard alloc] initWithRow:e]];
   }
+  _extBlock.hidden = _extStrip.arrangedSubviews.count == 0;
   [self setNeedsLayout:YES];
 }
 
