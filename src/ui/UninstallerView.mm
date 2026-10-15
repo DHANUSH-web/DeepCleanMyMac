@@ -500,11 +500,31 @@
         }
         else
         {
-          NSString* msg          = DCNS(ui::cleanFinishedDetail(mode, r));
-          s->_status.stringValue = msg;
-          DCInformCleaned(@"Uninstall finished", msg);
+          DCInformCleaned(@"Uninstall finished", DCNS(ui::cleanFinishedDetail(mode, r)));
         }
-        [s reloadApps];
+        std::vector<AppRow> kept;
+        kept.reserve(s->_apps.size());
+        for (auto& row : s->_apps)
+        {
+          if (row.selected && !dcmm::path_exists(row.app.appPath))
+          {
+            continue;
+          }
+          kept.push_back(std::move(row));
+        }
+        s->_apps = std::move(kept);
+        [s rebuildGrid];
+        [s refreshUninstall];
+        if (s->_apps.empty())
+        {
+          [s showNothingFound];
+        }
+        else
+        {
+          s->_status.stringValue =
+              [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
+          [s showContent];
+        }
       });
 }
 
