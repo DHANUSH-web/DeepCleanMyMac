@@ -152,10 +152,13 @@ NSString* DCResultsSymbol(DCResultsMode mode)
     c1.title          = @"Item";
     c1.minWidth       = 160;
     [_table addTableColumn:c1];
-    NSTableColumn* c2 = [[NSTableColumn alloc] initWithIdentifier:@"files"];
-    c2.title          = @"Files";
-    c2.width          = 72;
-    [_table addTableColumn:c2];
+    if (_mode != DCResultsModeJunk)
+    {
+      NSTableColumn* c2 = [[NSTableColumn alloc] initWithIdentifier:@"files"];
+      c2.title          = @"Files";
+      c2.width          = 72;
+      [_table addTableColumn:c2];
+    }
     NSTableColumn* c3 = [[NSTableColumn alloc] initWithIdentifier:@"size"];
     c3.title          = @"Size";
     c3.width          = 90;
