@@ -232,7 +232,7 @@ inline bool moveOwnRiskToTrash(const std::string& path, std::string& err)
   return false;
 }
 
-/// Space Lens clean: junk-category roots still expand to children; every other
+/// Aperture clean: junk-category roots still expand to children; every other
 /// checked row is removed at the user's own risk.
 inline dcmm::CleanResult
 applySpaceLensClean(dcmm::Engine& engine, const std::vector<std::string>& paths, CleanPref mode)

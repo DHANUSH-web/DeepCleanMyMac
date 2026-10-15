@@ -79,7 +79,7 @@ open build/release/DeepCleanMyMac.app
 - Large files and SHA-256 duplicates
 - App uninstaller + leftover files
 - Privacy (browser caches)
-- Space Lens (home-folder usage)
+- Aperture (home-folder usage)
 - Maintenance (empty Trash, flush DNS, rebuild Launch Services)
 
 Selected items are **moved to Trash** by `dcmmlib`. Protected paths are rejected by the engine.

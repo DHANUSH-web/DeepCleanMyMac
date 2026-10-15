@@ -27,7 +27,7 @@ Engine code is **only** `extras/dcmmlib`, a submodule of `https://github.com/DHA
 
 ## Product
 
-Free CleanMyMac-style utility: Smart Scan, Deep Scan, Large Files, Duplicates, Uninstaller, Privacy, Space Lens, Maintenance, Settings. Moves **checked** items to Trash after confirmation. No telemetry.
+Free CleanMyMac-style utility: Smart Scan, Deep Scan, Large Files, Duplicates, Uninstaller, Privacy, Aperture, Maintenance, Settings. Moves **checked** items to Trash after confirmation. No telemetry.
 
 Bundle ID: `com.deepclean.DeepCleanMyMac`  
 App name: DeepCleanMyMac  

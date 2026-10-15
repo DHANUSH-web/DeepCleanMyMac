@@ -38,7 +38,7 @@ inline const char* title(Module m)
     case Module::Privacy:
       return "Privacy";
     case Module::SpaceLens:
-      return "Space Lens";
+      return "Aperture";
     case Module::DevCorner:
       return "Dev Corner";
     case Module::Maintenance:

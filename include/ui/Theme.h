@@ -232,7 +232,7 @@ void DCSetDuplicatesMinKBStopIndex(NSInteger index);
 
 /// Cancel is the default (Return). Copy follows the Cleaning setting.
 BOOL DCConfirmClean(NSArray<NSString*>* paths, uint64_t bytes);
-/// Space Lens: user-confirmed folders, including ones that are not on the safe list.
+/// Aperture: user-confirmed folders, including ones that are not on the safe list.
 BOOL DCConfirmSpaceLensClean(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmMoveToTrash(NSArray<NSString*>* paths, uint64_t bytes);
 BOOL DCConfirmDestructive(NSString* title, NSString* info, NSString* proceedTitle);

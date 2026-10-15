@@ -46,7 +46,7 @@ TEST(Modules, Titles)
   EXPECT_STREQ(ui::title(ui::Module::Duplicates), "Duplicates");
   EXPECT_STREQ(ui::title(ui::Module::Uninstaller), "Uninstaller");
   EXPECT_STREQ(ui::title(ui::Module::Privacy), "Privacy");
-  EXPECT_STREQ(ui::title(ui::Module::SpaceLens), "Space Lens");
+  EXPECT_STREQ(ui::title(ui::Module::SpaceLens), "Aperture");
   EXPECT_STREQ(ui::title(ui::Module::DevCorner), "Dev Corner");
   EXPECT_STREQ(ui::title(ui::Module::Maintenance), "Maintenance");
   EXPECT_STREQ(ui::title(ui::Module::Settings), "Settings");

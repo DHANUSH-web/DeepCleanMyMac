@@ -108,7 +108,7 @@
     NSStackView* page   = DCPageStack(self);
     _content            = page;
     NSStackView* header = DCHeaderStack(
-        @"Space Lens", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
+        @"Aperture", [NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]);
     [page addArrangedSubview:header];
     DCStackFullWidth(page, header);
     _scan                = [DCGlowButton defaultButtonWithTitle:@"Analyze"
@@ -168,7 +168,7 @@
     DCStackExpand(page, scroll);
     __weak DCSpaceLensView* weakSelf = self;
     _startScreen                     = [[DCStartScreen alloc]
-        initWithTitle:@"Space Lens"
+        initWithTitle:@"Aperture"
              subtitle:[NSString stringWithUTF8String:ui::subtitle(ui::Module::SpaceLens)]
                symbol:[NSString stringWithUTF8String:ui::sidebarSymbol(ui::Module::SpaceLens)]
         iconPointSize:250

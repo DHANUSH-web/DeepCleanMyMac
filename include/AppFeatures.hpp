@@ -85,7 +85,7 @@ inline std::array<DashboardTool, 9> dashboardTools()
        "Browser caches and tracking leftovers you choose."},
       {Module::SpaceLens,
        sidebarSymbol(Module::SpaceLens),
-       "Space Lens",
+       "Aperture",
        "Find all hidden heavy items in your MacBook."},
       {Module::DevCorner,
        sidebarSymbol(Module::DevCorner),
