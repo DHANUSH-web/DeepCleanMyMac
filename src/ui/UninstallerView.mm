@@ -6,7 +6,155 @@
 #include "Modules.h"
 #include <vector>
 
-@interface DCUninstallerView () <NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate>
+@interface DCUninstallAppCard : NSView <NSMenuDelegate>
+@property(nonatomic) NSInteger index;
+@property(nonatomic) BOOL selected;
+@property(nonatomic, copy) void (^onToggle)(NSInteger index);
+- (instancetype)initWithName:(NSString*)name
+                        path:(NSString*)path
+                       bytes:(uint64_t)bytes
+                    selected:(BOOL)selected
+                       index:(NSInteger)index;
+@end
+
+@interface DCUninstallerView ()
+@end
+
+@interface DCUninstallGridDoc : NSView
+@end
+
+@implementation DCUninstallGridDoc
+- (BOOL)isFlipped
+{
+  return YES;
+}
+@end
+
+@implementation DCUninstallAppCard
+{
+  NSString* _path;
+  NSImageView* _icon;
+}
+
+- (instancetype)initWithName:(NSString*)name
+                        path:(NSString*)path
+                       bytes:(uint64_t)bytes
+                    selected:(BOOL)selected
+                       index:(NSInteger)index
+{
+  self = [super initWithFrame:NSZeroRect];
+  if (self)
+  {
+    _path                                          = [path copy] ?: @"";
+    _index                                         = index;
+    _selected                                      = selected;
+    self.wantsLayer                                = YES;
+    self.layer.cornerRadius                        = 10;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+
+    _icon                              = [[NSImageView alloc] initWithFrame:NSZeroRect];
+    NSImage* img                       = [[[NSWorkspace sharedWorkspace] iconForFile:_path] copy];
+    img.size                           = NSMakeSize(56, 56);
+    _icon.image                        = img;
+    _icon.imageScaling                 = NSImageScaleProportionallyUpOrDown;
+    _icon.translatesAutoresizingMaskIntoConstraints = NO;
+    [_icon.widthAnchor constraintEqualToConstant:56].active  = YES;
+    [_icon.heightAnchor constraintEqualToConstant:56].active = YES;
+
+    NSTextField* title         = DCLabel(name.length ? name : _path.lastPathComponent);
+    title.font                 = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
+    title.alignment            = NSTextAlignmentCenter;
+    title.lineBreakMode        = NSLineBreakByTruncatingTail;
+    title.usesSingleLineMode   = YES;
+    title.maximumNumberOfLines = 1;
+    [title setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow
+                                    forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+    DCSizeBadge* badge = [[DCSizeBadge alloc] initWithBytes:bytes];
+
+    NSStackView* col = [NSStackView stackViewWithViews:@[ _icon, title, badge ]];
+    col.orientation  = NSUserInterfaceLayoutOrientationVertical;
+    col.alignment    = NSLayoutAttributeCenterX;
+    col.spacing      = 8;
+    col.edgeInsets   = NSEdgeInsetsMake(12, 10, 12, 10);
+    col.translatesAutoresizingMaskIntoConstraints = NO;
+    [self addSubview:col];
+    [NSLayoutConstraint activateConstraints:@[
+      [col.topAnchor constraintEqualToAnchor:self.topAnchor],
+      [col.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+      [col.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+      [col.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+      [self.heightAnchor constraintGreaterThanOrEqualToConstant:118],
+    ]];
+    [title.widthAnchor constraintEqualToAnchor:col.widthAnchor constant:-20].active = YES;
+
+    NSMenu* menu          = [[NSMenu alloc] initWithTitle:@""];
+    menu.delegate         = self;
+    menu.autoenablesItems = YES;
+    self.menu             = menu;
+    [self applyChrome];
+  }
+  return self;
+}
+
+- (void)applyChrome
+{
+  NSColor* accent = NSColor.controlAccentColor;
+  NSColor* fill   = _selected ? [accent colorWithAlphaComponent:0.22] : NSColor.controlBackgroundColor;
+  NSColor* border = _selected ? accent : NSColor.separatorColor;
+  __weak DCUninstallAppCard* weakSelf = self;
+  [self.effectiveAppearance performAsCurrentDrawingAppearance:^{
+    DCUninstallAppCard* s = weakSelf;
+    if (!s)
+    {
+      return;
+    }
+    s.layer.backgroundColor = fill.CGColor;
+    s.layer.borderColor     = border.CGColor;
+  }];
+  self.layer.borderWidth = _selected ? 2 : 1;
+}
+
+- (void)viewDidChangeEffectiveAppearance
+{
+  [super viewDidChangeEffectiveAppearance];
+  [self applyChrome];
+}
+
+- (void)mouseUp:(NSEvent*)event
+{
+  (void)event;
+  if (self.onToggle)
+  {
+    self.onToggle(self.index);
+  }
+}
+
+- (void)menuNeedsUpdate:(NSMenu*)menu
+{
+  [menu removeAllItems];
+  if (!_path.length)
+  {
+    return;
+  }
+  DCAddPathMenuItems(menu, _path);
+  [menu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:_selected ? @"Unselect" : @"Select"
+                                               action:@selector(ctxToggle:)
+                                        keyEquivalent:@""];
+  sel.target = self;
+  [menu addItem:sel];
+}
+
+- (void)ctxToggle:(id)sender
+{
+  (void)sender;
+  if (self.onToggle)
+  {
+    self.onToggle(self.index);
+  }
+}
+
 @end
 
 @implementation DCUninstallerView
@@ -22,7 +170,9 @@
   NSButton* _selAll;
   NSButton* _remove;
   NSTextField* _status;
-  NSTableView* _appsTable;
+  NSScrollView* _scroll;
+  DCUninstallGridDoc* _doc;
+  NSStackView* _grid;
   NSStackView* _content;
   DCStartScreen* _startScreen;
   uint64_t _job;
@@ -55,28 +205,25 @@
         @"Check one or more apps to uninstall. Leftover files are removed with the app.");
     [page addArrangedSubview:_status];
 
-    _appsTable = [[NSTableView alloc] initWithFrame:NSZeroRect];
-    DCStyleTable(_appsTable);
-    _appsTable.dataSource   = self;
-    _appsTable.delegate     = self;
-    _appsTable.rowSizeStyle = NSTableViewRowSizeStyleCustom;
-    _appsTable.rowHeight    = 47;
-    DCAttachTableMenu(_appsTable, self);
-    NSTableColumn* check = [[NSTableColumn alloc] initWithIdentifier:@"check"];
-    check.width          = 24;
-    check.minWidth       = 24;
-    check.maxWidth       = 32;
-    check.title          = @"";
-    [_appsTable addTableColumn:check];
-    NSTableColumn* n = [[NSTableColumn alloc] initWithIdentifier:@"app"];
-    n.title          = @"Application";
-    [_appsTable addTableColumn:n];
-    NSTableColumn* s = [[NSTableColumn alloc] initWithIdentifier:@"size"];
-    s.title          = @"Size";
-    s.width          = 80;
-    [_appsTable addTableColumn:s];
-
-    DCStackExpand(page, DCWrapTable(_appsTable));
+    _scroll                    = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+    _scroll.drawsBackground    = NO;
+    _scroll.hasVerticalScroller = YES;
+    _scroll.borderType         = NSNoBorder;
+    _doc                       = [[DCUninstallGridDoc alloc] initWithFrame:NSZeroRect];
+    _grid                      = [NSStackView stackViewWithViews:@[]];
+    _grid.orientation          = NSUserInterfaceLayoutOrientationVertical;
+    _grid.alignment            = NSLayoutAttributeLeading;
+    _grid.spacing              = 12;
+    _grid.translatesAutoresizingMaskIntoConstraints = NO;
+    [_doc addSubview:_grid];
+    [NSLayoutConstraint activateConstraints:@[
+      [_grid.topAnchor constraintEqualToAnchor:_doc.topAnchor],
+      [_grid.leadingAnchor constraintEqualToAnchor:_doc.leadingAnchor],
+      [_grid.trailingAnchor constraintEqualToAnchor:_doc.trailingAnchor],
+      [_grid.bottomAnchor constraintEqualToAnchor:_doc.bottomAnchor],
+    ]];
+    _scroll.documentView = _doc;
+    DCStackExpand(page, _scroll);
     __weak DCUninstallerView* weakSelf = self;
     _startScreen                       = [[DCStartScreen alloc]
         initWithTitle:@"Uninstaller"
@@ -168,7 +315,7 @@
           [s showNothingFound];
           return;
         }
-        [s->_appsTable reloadData];
+        [s rebuildGrid];
         s->_status.stringValue =
             [NSString stringWithFormat:@"%lu apps", (unsigned long)s->_apps.size()];
         [s refreshUninstall];
@@ -235,8 +382,70 @@
   {
     row.selected = on;
   }
-  [_appsTable reloadData];
+  [self rebuildGrid];
   [self refreshUninstall];
+}
+
+- (void)layout
+{
+  [super layout];
+  CGFloat w = NSWidth(_scroll.contentView.bounds);
+  if (w < 1)
+  {
+    return;
+  }
+  _doc.frame = NSMakeRect(0, 0, w, MAX(_grid.fittingSize.height, 1));
+}
+
+- (void)rebuildGrid
+{
+  NSArray<NSView*>* old = [_grid.arrangedSubviews copy];
+  for (NSView* v in old)
+  {
+    [_grid removeArrangedSubview:v];
+    [v removeFromSuperview];
+  }
+  const NSInteger n                  = (NSInteger)_apps.size();
+  const NSInteger cols               = 3;
+  __weak DCUninstallerView* weakSelf = self;
+  for (NSInteger i = 0; i < n; i += cols)
+  {
+    NSStackView* row = [NSStackView stackViewWithViews:@[]];
+    row.orientation  = NSUserInterfaceLayoutOrientationHorizontal;
+    row.alignment    = NSLayoutAttributeTop;
+    row.distribution = NSStackViewDistributionFillEqually;
+    row.spacing      = 12;
+    for (NSInteger c = 0; c < cols; ++c)
+    {
+      NSInteger idx = i + c;
+      if (idx >= n)
+      {
+        [row addArrangedSubview:[[NSView alloc] initWithFrame:NSZeroRect]];
+        continue;
+      }
+      auto& a = _apps[(size_t)idx];
+      DCUninstallAppCard* card =
+          [[DCUninstallAppCard alloc] initWithName:DCNS(a.app.name)
+                                              path:DCNS(a.app.appPath)
+                                             bytes:a.app.appBytes
+                                          selected:a.selected
+                                             index:idx];
+      card.onToggle = ^(NSInteger index) {
+        DCUninstallerView* s = weakSelf;
+        if (!s || index < 0 || index >= (NSInteger)s->_apps.size())
+        {
+          return;
+        }
+        s->_apps[(size_t)index].selected = !s->_apps[(size_t)index].selected;
+        [s rebuildGrid];
+        [s refreshUninstall];
+      };
+      [row addArrangedSubview:card];
+    }
+    [_grid addArrangedSubview:row];
+    [row.widthAnchor constraintEqualToAnchor:_grid.widthAnchor].active = YES;
+  }
+  [self setNeedsLayout:YES];
 }
 
 - (void)uninstall
@@ -297,87 +506,6 @@
         }
         [s reloadApps];
       });
-}
-
-- (NSInteger)numberOfRowsInTableView:(NSTableView*)tv
-{
-  return (NSInteger)_apps.size();
-}
-
-- (CGFloat)tableView:(NSTableView*)tv heightOfRow:(NSInteger)row
-{
-  return 47;
-}
-
-- (NSView*)tableView:(NSTableView*)tv viewForTableColumn:(NSTableColumn*)col row:(NSInteger)row
-{
-  auto& a = _apps[(size_t)row];
-  if ([col.identifier isEqualToString:@"check"])
-  {
-    NSButton* b = [NSButton checkboxWithTitle:@"" target:self action:@selector(togApp:)];
-    b.state     = a.selected ? NSControlStateValueOn : NSControlStateValueOff;
-    b.tag       = row;
-    return DCCenteredCheckCell(b);
-  }
-  NSTextField* t = DCLabel(@"");
-  if ([col.identifier isEqualToString:@"app"])
-  {
-    t.stringValue     = DCNS(a.app.name);
-    t.toolTip         = DCNS(a.app.appPath);
-    NSImageView* icon = [[NSImageView alloc] initWithFrame:NSZeroRect];
-    NSImage* img      = [[[NSWorkspace sharedWorkspace] iconForFile:DCNS(a.app.appPath)] copy];
-    img.size          = NSMakeSize(35, 35);
-    icon.image        = img;
-    icon.imageScaling = NSImageScaleProportionallyUpOrDown;
-    [icon.widthAnchor constraintEqualToConstant:35].active  = YES;
-    [icon.heightAnchor constraintEqualToConstant:35].active = YES;
-    return DCCenteredIconTextCell(icon, t);
-  }
-  t.stringValue = DCNS(dcmm::format_bytes(a.app.appBytes));
-  t.alignment   = NSTextAlignmentRight;
-  t.font        = [NSFont monospacedDigitSystemFontOfSize:NSFont.systemFontSize
-                                                   weight:NSFontWeightRegular];
-  return DCCenteredTextCell(t);
-}
-
-- (void)togApp:(NSButton*)s
-{
-  if (s.tag < 0 || s.tag >= (NSInteger)_apps.size())
-  {
-    return;
-  }
-  _apps[(size_t)s.tag].selected = s.state == NSControlStateValueOn;
-  [self refreshUninstall];
-}
-
-- (void)menuNeedsUpdate:(NSMenu*)menu
-{
-  [menu removeAllItems];
-  NSInteger row = _appsTable.clickedRow;
-  if (row < 0 || row >= (NSInteger)_apps.size())
-  {
-    return;
-  }
-  auto& a = _apps[(size_t)row];
-  DCAddPathMenuItems(menu, DCNS(a.app.appPath));
-  [menu addItem:[NSMenuItem separatorItem]];
-  NSMenuItem* sel = [[NSMenuItem alloc] initWithTitle:a.selected ? @"Unselect" : @"Select"
-                                               action:@selector(ctxToggleApp:)
-                                        keyEquivalent:@""];
-  sel.target      = self;
-  sel.tag         = row;
-  [menu addItem:sel];
-}
-
-- (void)ctxToggleApp:(NSMenuItem*)sender
-{
-  if (sender.tag < 0 || sender.tag >= (NSInteger)_apps.size())
-  {
-    return;
-  }
-  _apps[(size_t)sender.tag].selected = !_apps[(size_t)sender.tag].selected;
-  [_appsTable reloadData];
-  [self refreshUninstall];
 }
 
 @end
