@@ -1,10 +1,13 @@
 #import "ui/DevCornerView.h"
+#import "ui/Theme.h"
+
 #include "dcmm/mac/vscode.hpp"
 #include "dcmm/mac/antigravity.hpp"
 #include "dcmm/mac/cursor.hpp"
+
+#include "dcmm/mac/codex.hpp"
 #include "dcmm/common/rust.hpp"
 #include "dcmm/common/path.hpp"
-#import "ui/Theme.h"
 
 #import <objc/runtime.h>
 
@@ -82,6 +85,7 @@ typedef NS_ENUM(NSInteger, DCDevFamily) {
   DCDevFamilyVsCode,
   DCDevFamilyCursor,
   DCDevFamilyAntigravity,
+  DCDevFamilyCodex,
   DCDevFamilyRust
 };
 
@@ -1342,6 +1346,7 @@ static NSURL* DCDevRepoURL(NSString* s)
   __block std::vector<dcmm::VsCodeInstall> vscode;
   __block std::vector<dcmm::CursorInstall> cursor;
   __block std::vector<dcmm::AntigravityInstall> antigravity;
+  __block std::vector<dcmm::CodexInstall> codex;
   DCRunBackground(
       &_job,
       ^{
@@ -1353,6 +1358,7 @@ static NSURL* DCDevRepoURL(NSString* s)
         vscode      = strong->_engine.list_vscode();
         cursor      = strong->_engine.list_cursor();
         antigravity = strong->_engine.list_antigravity();
+        codex       = strong->_engine.list_codex();
       },
       ^{
         DCDevCornerView* s = weakSelf;
@@ -1428,6 +1434,28 @@ static NSURL* DCDevRepoURL(NSString* s)
             child.extensions = it.extensions;
             child.loaded     = !it.extensions;
             child.parent     = app;
+            [app.children addObject:child];
+          }
+          [s->_roots addObject:app];
+        }
+        for (auto& inst : codex)
+        {
+          DCDevRow* app = [[DCDevRow alloc] init];
+          app.kind      = DCDevKindApp;
+          app.title     = DCNS(inst.displayName);
+          app.appPath   = DCNS(inst.appPath);
+          app.bytes     = inst.bytes;
+          app.family    = DCDevFamilyCodex;
+          for (auto& it : inst.items)
+          {
+            DCDevRow* child = [[DCDevRow alloc] init];
+            child.kind      = DCDevKindFolder;
+            child.title     = DCNS(it.label);
+            child.path      = DCNS(it.path);
+            child.bytes     = it.bytes;
+            child.family    = DCDevFamilyCodex;
+            child.loaded    = YES;
+            child.parent    = app;
             [app.children addObject:child];
           }
           [s->_roots addObject:app];
@@ -1688,6 +1716,10 @@ static NSURL* DCDevRepoURL(NSString* s)
     [self collectSelected:_roots into:paths];
   }
   ui::pruneNestedSpaceLensPaths(paths);
+  if (![self toolchainTabSelected])
+  {
+    paths = dcmm::codex_expand_paths(paths);
+  }
   return paths;
 }
 
@@ -1820,6 +1852,10 @@ static NSURL* DCDevRepoURL(NSString* s)
   else if (row.family == DCDevFamilyAntigravity)
   {
     paths = dcmm::antigravity_nuke_paths();
+  }
+  else if (row.family == DCDevFamilyCodex)
+  {
+    paths = dcmm::codex_nuke_paths();
   }
   else if (row.family == DCDevFamilyRust)
   {
